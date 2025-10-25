@@ -1,0 +1,5 @@
+.venv
+.aws-sam
+credentials.json
+sam.config.toml
+.env

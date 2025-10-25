@@ -1,0 +1,14 @@
+[project]
+name = "insert-values-google-sheet"
+version = "0.1.0"
+description = "Simple serverless API to insert values into a Google Sheet"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-auth>=2.41.1",
+    "gspread>=6.2.1",
+]
+
+[dependency-groups]
+dev = [
+]
