@@ -1,9 +1,10 @@
-import { verify } from "hono/jwt";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { AppContext } from "../types";
 
-// Replace with your actual JWT Secret or JWKS if using Supabase/Google
-const JWT_SECRET = "your-jwt-secret-here"; 
+// Polyfill the global Request/Response/fetch for 'jose' library to fetch the JWKS correctly
+/* global fetch */
 
+// The JWT_SECRET is now accessed from the environment variables (c.env.JWT_SECRET)
 export const authMiddleware = async (c: AppContext, next: () => Promise<void>) => {
 	const authHeader = c.req.header("Authorization");
 
@@ -26,19 +27,25 @@ export const authMiddleware = async (c: AppContext, next: () => Promise<void>) =
 		return next();
 	}
 
-	// 2. If not a static key, try to verify as JWT (Mobile App Login)
+	// 2. Verify JWT using Supabase JWKS (JSON Web Key Set)
 	try {
-		const payload = await verify(token, JWT_SECRET, "HS256");
-		
-		// The subject usually contains the user ID in standard JWTs
-		if (payload.sub) {
-			c.set("userId", payload.sub as string);
+		const JWKS = createRemoteJWKSet(
+			new URL(`${c.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`)
+		);
+
+		const { payload } = await jwtVerify(token, JWKS, {
+			issuer: `${c.env.SUPABASE_URL}/auth/v1`,
+			audience: "authenticated",
+		});
+
+		if (payload && payload.sub) {
+			c.set("userId", payload.sub);
 			return next();
 		} else {
-             return c.json({ error: "JWT missing 'sub' (user ID)" }, 401);
-        }
+			return c.json({ error: "Session missing User ID (sub)" }, 401);
+		}
 	} catch (error) {
-		// Token is either completely invalid, expired, or doesn't match the secret
-		return c.json({ error: "Unauthorized: Invalid API Key or JWT" }, 401);
+		console.error("JWKS Token validation failed:", error);
+		return c.json({ error: "Unauthorized: Invalid API Key or Session JWT", details: error }, 401);
 	}
 };
