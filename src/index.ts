@@ -12,6 +12,7 @@ import { RecurringList } from "./endpoints/recurringList";
 import { RecurringCreate } from "./endpoints/recurringCreate";
 import { RecurringUpdate } from "./endpoints/recurringUpdate";
 import { RecurringDelete } from "./endpoints/recurringDelete";
+import { TransactionMonthlySummary } from "./endpoints/transactionMonthlySummary";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -37,6 +38,7 @@ openapi.use("/api/*", authMiddleware);
 
 // ── Transactions ──
 openapi.get("/api/transactions", TransactionList);
+openapi.get("/api/transactions/summary/monthly", TransactionMonthlySummary);
 openapi.post("/api/transactions", TransactionCreate);
 openapi.get("/api/transactions/:id", TransactionFetch);
 openapi.put("/api/transactions/:id", TransactionUpdate);
