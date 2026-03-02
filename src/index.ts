@@ -6,6 +6,8 @@ import { TransactionDelete } from "./endpoints/transactionDelete";
 import { TransactionFetch } from "./endpoints/transactionFetch";
 import { TransactionList } from "./endpoints/transactionList";
 import { TransactionUpdate } from "./endpoints/transactionUpdate";
+import { ApiKeyFetch } from "./endpoints/apiKeyFetch";
+import { ApiKeyGenerate } from "./endpoints/apiKeyGenerate";
 import { authMiddleware } from "./middleware/auth";
 
 // Start a Hono app
@@ -35,6 +37,9 @@ openapi.post("/api/transactions", TransactionCreate);
 openapi.get("/api/transactions/:id", TransactionFetch);
 openapi.put("/api/transactions/:id", TransactionUpdate);
 openapi.delete("/api/transactions/:id", TransactionDelete);
+
+openapi.get("/api/keys", ApiKeyFetch);
+openapi.post("/api/keys", ApiKeyGenerate);
 
 // You may also register routes for non OpenAPI directly on Hono
 // app.get('/test', (c) => c.text('Hono!'))
