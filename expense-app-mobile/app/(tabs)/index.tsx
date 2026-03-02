@@ -10,7 +10,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { MonthNavigator } from "../../components/dashboard/MonthNavigator";
 import { DonutChartCard } from "../../components/dashboard/DonutChartCard";
 import { BudgetCard } from "../../components/dashboard/BudgetCard";
-import { RecentExpenses } from "../../components/dashboard/RecentExpenses";
+import { RecentActivity } from "../../components/dashboard/RecentActivity";
 import { DashboardSkeleton } from "../../components/dashboard/DashboardSkeleton";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useApi } from "../../lib/api";
@@ -138,11 +138,15 @@ export default function Dashboard() {
     isRefetching,
     refetch,
     totalSpent,
+    totalIncome,
     remaining,
     spentPercent,
     pieData,
+    tagPieData,
+    barData,
     legendEntries,
-    recentExpenses,
+    tagLegendEntries,
+    recentActivity,
     colorMap,
     iconMap
   } = useDashboardData(currentDate, budget, selectedCategory);
@@ -195,18 +199,23 @@ export default function Dashboard() {
           {/* ── Extracted Components ── */}
           <Animated.View entering={FadeInDown.duration(500).delay(100).springify()}>
             <DonutChartCard
-          pieData={pieData}
-          totalSpent={totalSpent}
-          legendEntries={legendEntries}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          colorMap={colorMap}
-        />
-      </Animated.View>
+              pieData={pieData}
+              tagPieData={tagPieData}
+              barData={barData}
+              totalSpent={totalSpent}
+              legendEntries={legendEntries}
+              tagLegendEntries={tagLegendEntries}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              colorMap={colorMap}
+            />
+          </Animated.View>
 
       <Animated.View entering={FadeInDown.duration(600).delay(150).springify()}>
         <BudgetCard
           budget={budget}
+          totalSpent={totalSpent}
+          totalIncome={totalIncome}
           remaining={remaining}
           spentPercent={spentPercent}
           showBudgetModal={showBudgetModal}
@@ -218,9 +227,8 @@ export default function Dashboard() {
       </Animated.View>
 
       <Animated.View entering={FadeInDown.duration(700).delay(200).springify()}>
-        <RecentExpenses
-          recentExpenses={recentExpenses}
-          selectedCategory={selectedCategory}
+        <RecentActivity
+          recentActivity={recentActivity}
           onEdit={setEditingItem}
           onDelete={handleDelete}
         />

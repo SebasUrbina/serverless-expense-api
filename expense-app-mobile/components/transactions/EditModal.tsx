@@ -25,6 +25,7 @@ export function EditModal({ item, visible, onClose, onSave, isSaving }: EditModa
   const [tag, setTag]           = useState("");
   const [date, setDate]         = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTagPicker, setShowTagPicker]   = useState(false);
 
   // Pre-fill when a new item is passed
   const prevId = useRef<number | null>(null);
@@ -83,7 +84,7 @@ export function EditModal({ item, visible, onClose, onSave, isSaving }: EditModa
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: showTagPicker ? 120 : 20 }}>
             
             {/* Amount (Hero) */}
             <View className="items-center mb-6 mt-2">
@@ -162,17 +163,48 @@ export function EditModal({ item, visible, onClose, onSave, isSaving }: EditModa
                     <TextInput className="text-white text-[15px] p-0" value={account} onChangeText={setAccount} placeholderTextColor="#636366" placeholder="Bank" />
                   </View>
                </View>
-               <View className="flex-1">
-                  <Text className={labelClass}>Tag (optional)</Text>
-                  <View className={inputContainerClass}>
-                    <TextInput className="text-white text-[15px] p-0" value={tag} onChangeText={setTag} placeholderTextColor="#636366" placeholder="personal" />
-                  </View>
-               </View>
+                   <View className="flex-1">
+                    <Text className={labelClass}>Tag</Text>
+                    <TouchableOpacity 
+                      className={`${inputContainerClass} flex-row items-center justify-between z-50`}
+                      onPress={() => setShowTagPicker(!showTagPicker)}
+                    >
+                      <Text className={`text-[15px] ${tag ? "text-white" : "text-[#636366]"}`}>
+                        {tag || "Select tag"}
+                      </Text>
+                      <Ionicons name={showTagPicker ? "chevron-up" : "chevron-down"} size={16} color="#0A84FF" />
+                    </TouchableOpacity>
+                 </View>
             </View>
-
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Pop-up Selector Overlay - No KeyboardAvoidingView to prevent jump */}
+      {showTagPicker && (
+        <Modal transparent animationType="fade" visible={showTagPicker}>
+          <TouchableWithoutFeedback onPress={() => setShowTagPicker(false)}>
+            <View className="flex-1 px-5">
+              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                <View className="absolute bottom-[240px] right-5 bg-[#2C2C2E] border border-white/10 rounded-xl overflow-hidden shadow-2xl w-[45%]">
+                  {["Fixed", "Variable"].map((presetTag, idx) => (
+                    <TouchableOpacity
+                      key={presetTag}
+                      onPress={() => { setTag(presetTag); setShowTagPicker(false); }}
+                      className={`flex-row items-center justify-between py-3 px-3 ${idx !== 0 ? "border-t border-[#3A3A3C]" : ""}`}
+                    >
+                      <Text className={`text-[14px] leading-tight ${tag === presetTag ? "text-[#0A84FF] font-semibold" : "text-white"}`}>
+                        {presetTag}
+                      </Text>
+                      {tag === presetTag && <Ionicons name="checkmark" size={16} color="#0A84FF" />}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      )}
 
       {/* Inline Date Picker Modal for iOS/Android consistency */}
       {showDatePicker && (

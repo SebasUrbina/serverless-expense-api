@@ -26,13 +26,28 @@ export function useDashboardData(currentDate: Date, budget: number, selectedCate
     },
   });
 
+  // ── Fetch Monthly Summary ──
+  const { data: monthlySummaryData, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ["transactions", "summary", "monthly"],
+    queryFn: async () => {
+      const response = await api.get('/transactions/summary/monthly?months=6');
+      return Array.isArray(response.data.summary) ? response.data.summary : [];
+    },
+  });
+
   const transactions: Transaction[] = data || [];
 
-  // ── Compute category totals ──
+  // ── Compute category & tag totals ──
   const categoryTotals: Record<string, number> = {};
+  const tagTotals: Record<string, number> = {};
+
   transactions.forEach((item: Transaction) => {
     if (item.type === "expense") {
       categoryTotals[item.category] = (categoryTotals[item.category] || 0) + item.amount;
+      
+      if (item.tag) {
+        tagTotals[item.tag] = (tagTotals[item.tag] || 0) + item.amount;
+      }
     }
   });
 
@@ -44,8 +59,12 @@ export function useDashboardData(currentDate: Date, budget: number, selectedCate
   const totalSpent = Object.values(categoryTotals).reduce((a, b) => a + b, 0);
   const remaining = Math.max(0, budget - totalSpent);
   const spentPercent = budget > 0 ? Math.min(100, Math.round((totalSpent / budget) * 100)) : 0;
+  
+  const totalIncome = transactions
+    .filter((t: Transaction) => t.type === "income")
+    .reduce((acc, item) => acc + item.amount, 0);
 
-  // ── Pie Data Formatting ──
+  // ── Pie Data Formatting (Categories) ──
   const pieData = Object.entries(categoryTotals).map(([cat, value]) => ({
     value,
     color: colorMap[cat] || "#8E8E93",
@@ -54,26 +73,69 @@ export function useDashboardData(currentDate: Date, budget: number, selectedCate
   if (pieData.length === 0) {
     pieData.push({ value: 1, color: "#38383A", text: "" }); // Blank placeholder ring
   }
-
   const legendEntries = Object.entries(categoryTotals);
 
-  // ── Recent/Filtered Expenses ──
-  const expensesOnly = transactions.filter((t: Transaction) => t.type === "expense");
-  const filteredExpenses = selectedCategory
-    ? expensesOnly.filter((t: Transaction) => t.category === selectedCategory)
-    : expensesOnly;
-  const recentExpenses = filteredExpenses.slice(0, 5);
+  // ── Pie Data Formatting (Tags) ──
+  // Consistent distinct colors for tags
+  const tagColors: Record<string, string> = {
+    "Fixed Expense": "#BF5AF2",    // Purple
+    "Variable Expense": "#FF9F0A", // Orange
+  };
+  const tagPieData = Object.entries(tagTotals).map(([tag, value]) => ({
+    value,
+    color: tagColors[tag] || "#32ADE6", // Fallback blue
+    text: tag,
+  }));
+  if (tagPieData.length === 0) {
+    tagPieData.push({ value: 1, color: "#38383A", text: "" }); // Blank placeholder ring
+  }
+  const tagLegendEntries = Object.entries(tagTotals);
+
+  // ── Bar Data Formatting ──
+  // Format the monthly summary data for a Grouped Bar Chart (Income vs Expense).
+  // We use flatMap to push two objects per month.
+  const barData = (monthlySummaryData || []).flatMap((item: any) => {
+    // item.month is "YYYY-MM"
+    const [y, m] = item.month.split('-');
+    const date = new Date(parseInt(y), parseInt(m) - 1, 1);
+    const shortMonth = date.toLocaleString('en-US', { month: 'short' }); 
+    return [
+      {
+        value: item.total_income,
+        label: shortMonth, // Used by default in grouped mode
+        monthLabel: shortMonth, // Custom fallback for filtering
+        frontColor: '#30D158', // Green for income
+        spacing: 10, 
+      },
+      {
+        value: item.total_expense,
+        monthLabel: shortMonth, // Custom fallback for filtering
+        frontColor: '#FF453A', // Red for expense
+        spacing: 24, // Space between month groups
+      }
+    ];
+  });
+
+  // ── Recent/Filtered Activity ──
+  const filteredActivity = selectedCategory
+    ? transactions.filter((t: Transaction) => t.category === selectedCategory)
+    : transactions;
+  const recentActivity = filteredActivity.slice(0, 5);
 
   return {
     isLoading,
     isRefetching,
     refetch,
     totalSpent,
+    totalIncome,
     remaining,
     spentPercent,
     pieData,
+    tagPieData,
+    barData,
     legendEntries,
-    recentExpenses,
+    tagLegendEntries,
+    recentActivity,
     colorMap,
     iconMap
   };

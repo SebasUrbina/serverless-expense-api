@@ -3,6 +3,8 @@ import { Ionicons } from "@expo/vector-icons";
 
 interface BudgetCardProps {
   budget: number;
+  totalSpent: number;
+  totalIncome: number;
   remaining: number;
   spentPercent: number;
   showBudgetModal: boolean;
@@ -13,10 +15,13 @@ interface BudgetCardProps {
 }
 
 export function BudgetCard({
-  budget, remaining, spentPercent,
+  budget, totalSpent, totalIncome, remaining, spentPercent,
   showBudgetModal, setShowBudgetModal,
   budgetInput, setBudgetInput, saveBudget
 }: BudgetCardProps) {
+  const netBalance = totalIncome - totalSpent;
+  const isPositive = netBalance >= 0;
+
   return (
     <>
       <TouchableOpacity
@@ -26,21 +31,24 @@ export function BudgetCard({
       >
         <View className="flex-row items-center justify-between mb-5">
           <View className="flex-row items-center">
-            <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: "rgba(48,209,88,0.12)" }}>
-              <Ionicons name="wallet" size={22} color="#30D158" />
+            <View className={`w-10 h-10 rounded-xl items-center justify-center mr-3 ${isPositive ? "bg-[#30D158]/10" : "bg-[#FF453A]/10"}`}>
+              <Ionicons name={isPositive ? "trending-up" : "trending-down"} size={22} color={isPositive ? "#30D158" : "#FF453A"} />
             </View>
             <View>
-              <Text className="text-xs text-[#8E8E93] font-bold uppercase tracking-widest">Monthly Budget</Text>
-              <Text className="text-xl font-bold text-white">
-                ${budget.toLocaleString("es-CL", { maximumFractionDigits: 0 })}
+              <Text className="text-xs text-[#8E8E93] font-bold uppercase tracking-widest">Net Balance</Text>
+              <Text className={`text-xl font-bold ${isPositive ? "text-[#30D158]" : "text-[#FF453A]"}`}>
+                {isPositive ? "+" : "-"}${Math.abs(netBalance).toLocaleString("es-CL", { maximumFractionDigits: 0 })}
               </Text>
             </View>
           </View>
           <View className="items-end">
-            <Text className="text-xs text-[#8E8E93] font-bold uppercase tracking-widest">Remaining</Text>
-            <Text className="text-xl font-bold text-[#30D158]">
-              ${remaining.toLocaleString("es-CL", { maximumFractionDigits: 0 })}
-            </Text>
+            <Text className="text-xs text-[#8E8E93] font-bold uppercase tracking-widest">Budget</Text>
+            <View className="flex-row items-center">
+              <Text className="text-xl font-bold text-white mr-1.5">
+                ${budget.toLocaleString("es-CL", { maximumFractionDigits: 0 })}
+              </Text>
+              <Ionicons name="pencil" size={14} color="#8E8E93" />
+            </View>
           </View>
         </View>
 
@@ -52,9 +60,11 @@ export function BudgetCard({
           />
         </View>
         <View className="flex-row justify-between items-center">
-          <Text className="text-sm font-medium text-[#8E8E93]">Total spent progress</Text>
+          <Text className="text-sm font-medium text-[#8E8E93]">
+            {spentPercent}% spent
+          </Text>
           <Text className="text-sm font-bold" style={{ color: spentPercent > 90 ? "#FF453A" : "#30D158" }}>
-            {spentPercent}% of total
+            ${remaining.toLocaleString("es-CL", { maximumFractionDigits: 0 })} left
           </Text>
         </View>
       </TouchableOpacity>

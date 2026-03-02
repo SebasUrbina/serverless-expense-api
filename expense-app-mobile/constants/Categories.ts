@@ -1,36 +1,37 @@
-// ── Dynamic color & icon palette ──
-// Colors rotate for any number of categories
-export const COLOR_PALETTE = [
-  "#32D74B", // iOS Green
-  "#0A84FF", // iOS Blue
-  "#FFD60A", // iOS Yellow
-  "#BF5AF2", // iOS Purple
-  "#FF9F0A", // iOS Orange
-  "#FF375F", // iOS Pink
-  "#64D2FF", // iOS Teal
-  "#AC8E68", // iOS Brown
-];
-
-export const ICON_PALETTE: string[] = [
-  "restaurant",
-  "car",
-  "cart",
-  "pricetag",
-  "home",
-  "medical",
-  "game-controller",
-  "airplane",
-];
+// ── Predefined Dictionary ──
+export const CATEGORY_META: Record<string, { color: string; icon: string }> = {
+  // Common Expenses
+  "Food": { color: "#FF375F", icon: "restaurant" },
+  "Transport": { color: "#0A84FF", icon: "car" },
+  "Housing": { color: "#BF5AF2", icon: "home" },
+  "Shopping": { color: "#FF9F0A", icon: "cart" },
+  "Entertainment": { color: "#FFD60A", icon: "game-controller" },
+  "Health": { color: "#32D74B", icon: "medical" },
+  "Travel": { color: "#64D2FF", icon: "airplane" },
+  "Utilities": { color: "#AC8E68", icon: "flash" },
+  "Education": { color: "#5E5CE6", icon: "book" },
+  
+  // Common Income
+  "Salary": { color: "#30D158", icon: "cash" },
+  "Freelance": { color: "#32ADE6", icon: "laptop" },
+  "Investment": { color: "#BF5AF2", icon: "trending-up" },
+  "Gift": { color: "#FF375F", icon: "gift" },
+};
 
 export const FALLBACK_COLOR = "#8E8E93";
+export const FALLBACK_ICON = "pricetag";
 
-// Build color/icon assignments on-the-fly from unique categories
+// Backward compatible lookup for dynamic UI features
+// For any unknown category in the DB, falls back to gray tag
 export function buildCategoryMeta(categories: string[]) {
   const colorMap: Record<string, string> = {};
   const iconMap: Record<string, string> = {};
-  categories.forEach((cat, i) => {
-    colorMap[cat] = COLOR_PALETTE[i % COLOR_PALETTE.length];
-    iconMap[cat] = ICON_PALETTE[i % ICON_PALETTE.length];
+  
+  categories.forEach((cat) => {
+    const meta = CATEGORY_META[cat];
+    colorMap[cat] = meta ? meta.color : FALLBACK_COLOR;
+    iconMap[cat] = meta ? meta.icon : FALLBACK_ICON;
   });
+  
   return { colorMap, iconMap };
 }
