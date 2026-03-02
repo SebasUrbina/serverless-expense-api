@@ -8,7 +8,12 @@ import { TransactionList } from "./endpoints/transactionList";
 import { TransactionUpdate } from "./endpoints/transactionUpdate";
 import { ApiKeyFetch } from "./endpoints/apiKeyFetch";
 import { ApiKeyGenerate } from "./endpoints/apiKeyGenerate";
+import { RecurringList } from "./endpoints/recurringList";
+import { RecurringCreate } from "./endpoints/recurringCreate";
+import { RecurringUpdate } from "./endpoints/recurringUpdate";
+import { RecurringDelete } from "./endpoints/recurringDelete";
 import { authMiddleware } from "./middleware/auth";
+export { scheduled } from "./cron";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -30,19 +35,22 @@ openapi.registry.registerComponent("securitySchemes", "BearerAuth", {
 // Protect all /api routes via middleware
 openapi.use("/api/*", authMiddleware);
 
-// Register OpenAPI endpoints
-
+// ── Transactions ──
 openapi.get("/api/transactions", TransactionList);
 openapi.post("/api/transactions", TransactionCreate);
 openapi.get("/api/transactions/:id", TransactionFetch);
 openapi.put("/api/transactions/:id", TransactionUpdate);
 openapi.delete("/api/transactions/:id", TransactionDelete);
 
+// ── Recurring Rules ──
+openapi.get("/api/recurring", RecurringList);
+openapi.post("/api/recurring", RecurringCreate);
+openapi.put("/api/recurring/:id", RecurringUpdate);
+openapi.delete("/api/recurring/:id", RecurringDelete);
+
+// ── API Keys ──
 openapi.get("/api/keys", ApiKeyFetch);
 openapi.post("/api/keys", ApiKeyGenerate);
-
-// You may also register routes for non OpenAPI directly on Hono
-// app.get('/test', (c) => c.text('Hono!'))
 
 // Export the Hono app
 export default app;
