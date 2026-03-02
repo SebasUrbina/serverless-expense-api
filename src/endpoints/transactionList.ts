@@ -9,6 +9,10 @@ export class TransactionList extends OpenAPIRoute {
 		security: [{ BearerAuth: [] }],
 		request: {
 			query: z.object({
+				search: Str({
+					description: "Search by title (case-insensitive)",
+					required: false,
+				}),
 				category: Str({
 					description: "Filter by category",
 					required: false,
@@ -60,12 +64,16 @@ export class TransactionList extends OpenAPIRoute {
 
 	async handle(c: AppContext) {
 		const data = await this.getValidatedData<typeof this.schema>();
-		const { category, type, startDate, endDate, page, limit } = data.query;
+		const { search, category, type, startDate, endDate, page, limit } = data.query;
 		const userId = c.get("userId");
 
 		let query = `SELECT * FROM transactions WHERE user_id = ?`;
 		const binds: any[] = [userId];
 
+		if (search) {
+			query += ` AND LOWER(title) LIKE LOWER(?)`;
+			binds.push(`%${search}%`);
+		}
 		if (category) {
 			query += ` AND category = ?`;
 			binds.push(category);
