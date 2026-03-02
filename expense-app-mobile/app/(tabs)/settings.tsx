@@ -41,62 +41,62 @@ export default function Settings() {
   };
 
   return (
-    <View className="flex-1 px-4 pt-10 bg-slate-900">
-      <Text className="text-3xl text-white font-extrabold mb-8">Settings</Text>
+    <View className="flex-1 px-4 pt-16 bg-black">
+      <Text className="text-3xl text-white font-extrabold mb-8 tracking-tight">Settings</Text>
       
       {/* iOS Shortcuts Integration Section */}
-      <View className="bg-slate-800 p-5 rounded-3xl mb-8 border border-slate-700">
-        <Text className="text-white font-bold mb-2 text-xl">Siri & Shortcuts</Text>
-        <Text className="text-slate-400 mb-6 text-sm">
+      <View className="bg-[#1C1C1E] p-5 rounded-[24px] mb-8 border border-[#2C2C2E]">
+        <Text className="text-white font-bold mb-1.5 text-xl tracking-tight">Siri & Shortcuts</Text>
+        <Text className="text-[#8E8E93] mb-6 text-sm leading-5">
           Connect your Expense Tracker natively to iOS Shortcuts and Siri using a long-lived API key.
         </Text>
 
-        <View className="bg-slate-900 rounded-xl p-4 mb-4 border border-slate-700">
-          <Text className="text-slate-500 font-medium mb-2 text-xs uppercase tracking-wider">Your Secret API Key</Text>
+        <View className="bg-black rounded-xl p-4 mb-5 border border-[#2C2C2E]">
+          <Text className="text-[#8E8E93] font-semibold mb-2 text-xs uppercase tracking-wider">Your Secret API Key</Text>
           {isLoading ? (
             <ActivityIndicator color="#34d399" />
           ) : apiKey ? (
             <TouchableOpacity onPress={handleCopyKey} className="flex-row items-center justify-between">
-              <Text className="text-emerald-400 font-mono text-base" numberOfLines={1} ellipsizeMode="tail">
+              <Text className="text-emerald-400 font-mono text-sm" numberOfLines={1} ellipsizeMode="tail">
                 {apiKey}
               </Text>
-              <Text className="text-slate-400 text-xs ml-2">Copy</Text>
+              <Text className="text-white font-semibold text-sm ml-2 bg-[#2C2C2E] px-2 py-1 rounded-md">Copy</Text>
             </TouchableOpacity>
           ) : (
-            <Text className="text-slate-500 text-sm italic">No API key generated yet</Text>
+            <Text className="text-[#8E8E93] text-sm italic">No API key generated yet</Text>
           )}
         </View>
 
         <TouchableOpacity 
-          className="bg-emerald-500/10 px-4 py-3 rounded-xl border border-emerald-500/20 mb-3 active:bg-emerald-500/20 flex-row justify-center items-center"
+          className="bg-[#2C2C2E] px-4 py-3.5 rounded-xl mb-3 active:bg-[#3A3A3C] flex-row justify-center items-center"
           onPress={() => generateKeyMutation.mutate()}
           disabled={generateKeyMutation.isPending}
         >
           {generateKeyMutation.isPending ? (
             <ActivityIndicator color="#34d399" />
           ) : (
-            <Text className="text-emerald-400 font-bold">
-              {apiKey ? "Regenerate API Key" : "Generate API Key"}
+            <Text className="text-white font-semibold text-base">
+              {generateKeyMutation.isPending ? "Generating..." : (apiKey ? "Regenerate API Key" : "Generate API Key")}
             </Text>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity 
-          className="bg-blue-500 px-4 py-3 rounded-xl active:bg-blue-600 flex-row justify-center items-center"
+          className="bg-[#0A84FF] px-4 py-3.5 rounded-xl active:bg-[#007AFF] flex-row justify-center items-center"
           onPress={handleDownloadShortcut}
         >
-          <Text className="text-white font-bold">Download iOS Shortcut</Text>
+          <Text className="text-white font-semibold text-base">Download iOS Shortcut</Text>
         </TouchableOpacity>
       </View>
 
       {/* Account Section */}
-      <View className="bg-slate-800 p-5 rounded-3xl border border-slate-700">
-        <Text className="text-white font-bold mb-4 text-xl">Account</Text>
+      <View className="bg-[#1C1C1E] p-5 rounded-[24px] border border-[#2C2C2E]">
+        <Text className="text-white font-bold mb-4 text-xl tracking-tight">Account</Text>
         <TouchableOpacity 
-          className="bg-red-500/10 px-4 py-3 rounded-xl border border-red-500/20 active:bg-red-500/20 flex-row justify-center items-center"
+          className="bg-[#2C2C2E] px-4 py-3.5 rounded-xl active:bg-[#3A3A3C] flex-row justify-center items-center"
           onPress={() => supabase.auth.signOut()}
         >
-           <Text className="text-red-400 font-bold">Log Out</Text>
+           <Text className="text-[#FF453A] font-semibold text-base">Log Out</Text>
         </TouchableOpacity>
       </View>
     </View>

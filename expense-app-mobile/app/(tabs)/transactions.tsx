@@ -1,121 +1,178 @@
-import { View, Text, FlatList, ActivityIndicator, RefreshControl } from "react-native";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import {
+  View, Text, FlatList, ActivityIndicator, RefreshControl, Alert,
+} from "react-native";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback, useDeferredValue } from "react";
 import { useApi } from "../../lib/api";
 
-type Transaction = {
-  id: number;
-  title: string;
-  amount: number;
-  category: string;
-  type: string; // 'expense' | 'income'
-  date: string;
-  account: string;
-  tag: string | null;
-};
+import { SearchBar } from "../../components/transactions/SearchBar";
+import { TransactionGroup } from "../../components/transactions/TransactionGroup";
+import { EditModal } from "../../components/transactions/EditModal";
+import { Transaction } from "../../components/transactions/TransactionItem";
+import { TransactionSkeleton } from "../../components/transactions/TransactionSkeleton";
 
-export function TransactionItem({ item }: { item: Transaction }) {
-  const isExpense = item.type === "expense";
-  
-  return (
-    <View className="flex-row flex-wrap items-center justify-between bg-slate-800 p-4 rounded-2xl mb-3 border border-slate-700">
-      <View className="flex-row items-center flex-1 min-w-[60%]">
-        <View className="w-12 h-12 rounded-full items-center justify-center bg-slate-900 border border-slate-700 mr-4">
-          <Text className="text-xl">
-            {item.category === "Food" ? "🍔" : item.category === "Transport" ? "🚗" : "🛒"}
-          </Text>
-        </View>
-        <View className="flex-1">
-          <Text className="text-white font-bold text-lg" numberOfLines={1}>{item.title}</Text>
-          <Text className="text-slate-400 text-sm">{item.date}</Text>
-        </View>
-      </View>
-      <View className="items-end min-w-[30%]">
-        <Text className={`font-bold text-lg ${isExpense ? 'text-white' : 'text-emerald-400'}`}>
-          {isExpense ? '-' : '+'}${item.amount.toFixed(2)}
-        </Text>
-        <View className="flex-row mt-1 gap-1">
-          <Text className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
-            {item.account}
-          </Text>
-          {item.tag && (
-            <Text className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-900/50 text-emerald-400 border border-emerald-800/50">
-              {item.tag}
-            </Text>
-          )}
-        </View>
-      </View>
-    </View>
-  );
+// ── Date label helper ─────────────────────────────────────────────────────────
+function formatDateLabel(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(date, today)) return "Today";
+  if (sameDay(date, yesterday)) return "Yesterday";
+
+  const sameYear = date.getFullYear() === today.getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
 }
 
-export default function Transactions() {
-  const api = useApi();
+// ── Group into sections array ─────────────────────────────────────────────────
+type Section = { title: string; data: Transaction[] };
 
-  const { 
-    data, 
-    isLoading, 
-    isError, 
-    refetch, 
-    isRefetching, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage 
-  } = useInfiniteQuery({
-    queryKey: ["transactions"],
-    queryFn: async ({ pageParam = 1 }) => {
-      const response = await api.get(`/transactions?limit=20&page=${pageParam}`);
-      return response.data;
-    },
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+function groupByDate(transactions: Transaction[]): Section[] {
+  const map: Record<string, Transaction[]> = {};
+  for (const t of transactions) {
+    if (!map[t.date]) map[t.date] = [];
+    map[t.date].push(t);
+  }
+  return Object.entries(map)
+    .sort(([a], [b]) => b.localeCompare(a)) // newest first
+    .map(([dateStr, data]) => ({ title: formatDateLabel(dateStr), data }));
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+export default function Transactions() {
+  const api         = useApi();
+  const queryClient = useQueryClient();
+
+  const [search, setSearch]           = useState("");
+  const [editingItem, setEditingItem] = useState<Transaction | null>(null);
+  const [refreshing, setRefreshing]   = useState(false);
+  const deferredSearch                = useDeferredValue(search);
+
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+  }, [queryClient]);
+
+  // ── Infinite query — key includes search so it resets on new term ──
+  const { data, isLoading, isError, refetch, isRefetching, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useInfiniteQuery({
+      queryKey: ["transactions", "list", deferredSearch],
+      queryFn: async ({ pageParam = 1 }) => {
+        const params = new URLSearchParams({ limit: "30", page: String(pageParam) });
+        if (deferredSearch) params.set("search", deferredSearch);
+        const res = await api.get(`/transactions?${params.toString()}`);
+        return res.data;
+      },
+      initialPageParam: 1,
+      getNextPageParam: (lastPage) => lastPage.nextPage,
+    });
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
+  const allTransactions: Transaction[] = data ? data.pages.flatMap((p) => p.transactions) : [];
+  // Group into sections — each section is the unit rendered by FlatList
+  const sections = groupByDate(allTransactions);
+
+  // ── Mutations ──
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/transactions/${id}`),
+    onSuccess: invalidateAll,
+    onError: () => Alert.alert("Error", "Could not delete the transaction."),
   });
 
-  const allTransactions = data ? data.pages.flatMap((page) => page.transactions) : [];
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: Partial<Transaction> }) =>
+      api.put(`/transactions/${id}`, updates),
+    onSuccess: () => { setEditingItem(null); invalidateAll(); },
+    onError: () => Alert.alert("Error", "Could not update the transaction."),
+  });
+
+  const handleDelete = (id: number) =>
+    Alert.alert("Delete Transaction", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate(id) },
+    ]);
+
+  // ── Render a section group as a single FlatList item ──
+  const renderSection = ({ item: section }: { item: Section }) => (
+    <TransactionGroup
+      title={section.title}
+      data={section.data}
+      onEdit={setEditingItem}
+      onDelete={handleDelete}
+    />
+  );
 
   return (
-    <View className="flex-1 bg-slate-900 px-4 pt-10">
-      <View className="mb-6">
-        <Text className="text-3xl text-white font-extrabold">All Transactions</Text>
-        <Text className="text-slate-400">Your complete history</Text>
+    <View className="flex-1 bg-black">
+      {/* Sticky header */}
+      <View className="px-4 pt-16 pb-2 bg-black">
+        <Text className="text-3xl text-white font-extrabold tracking-tight mb-1">Transactions</Text>
+        <Text className="text-[#636366] font-medium mb-4">Your complete history</Text>
+        <SearchBar value={search} onChangeText={setSearch} onClear={() => setSearch("")} />
       </View>
 
       {isLoading && !isRefetching ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#34d399" />
-        </View>
+        <TransactionSkeleton />
       ) : isError ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-red-400">Failed to load transactions</Text>
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-[#FF3B30] font-medium text-center">Failed to load transactions</Text>
         </View>
       ) : (
         <FlatList
-          data={allTransactions as Transaction[]}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <TransactionItem item={item} />}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          data={sections}
+          keyExtractor={(section) => section.title}
+          renderItem={renderSection}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
-          onEndReached={() => {
-            if (hasNextPage) {
-              fetchNextPage();
-            }
-          }}
+          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            isFetchingNextPage ? (
-              <ActivityIndicator size="small" color="#34d399" className="mt-4 mb-8" />
-            ) : null
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#34d399"
+            />
           }
           ListEmptyComponent={
-            <View className="items-center justify-center py-20">
-              <Text className="text-slate-500 text-lg">No transactions found</Text>
+            <View className="items-center justify-center py-24">
+              <Text className="text-[#636366] font-medium text-lg">
+                {search ? "No results found" : "No transactions yet"}
+              </Text>
             </View>
           }
-          refreshControl={
-            <RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={refetch} tintColor="#34d399" />
+          ListFooterComponent={
+            isFetchingNextPage
+              ? <ActivityIndicator size="small" color="#636366" className="mt-4 mb-8" />
+              : null
           }
         />
       )}
+
+      <EditModal
+        item={editingItem}
+        visible={editingItem !== null}
+        onClose={() => setEditingItem(null)}
+        onSave={(updates) => {
+          if (editingItem) updateMutation.mutate({ id: editingItem.id, updates });
+        }}
+        isSaving={updateMutation.isPending}
+      />
     </View>
   );
 }
-
