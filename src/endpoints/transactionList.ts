@@ -17,6 +17,14 @@ export class TransactionList extends OpenAPIRoute {
 					description: "Filter by type (expense/income)",
 					required: false,
 				}),
+				startDate: Str({
+					description: "Filter transactions from this date (YYYY-MM-DD)",
+					required: false,
+				}),
+				endDate: Str({
+					description: "Filter transactions up to this date (YYYY-MM-DD)",
+					required: false,
+				}),
 				page: Num({
 					description: "Page number for pagination",
 					required: false,
@@ -52,7 +60,7 @@ export class TransactionList extends OpenAPIRoute {
 
 	async handle(c: AppContext) {
 		const data = await this.getValidatedData<typeof this.schema>();
-		const { category, type, page, limit } = data.query;
+		const { category, type, startDate, endDate, page, limit } = data.query;
 		const userId = c.get("userId");
 
 		let query = `SELECT * FROM transactions WHERE user_id = ?`;
@@ -65,6 +73,14 @@ export class TransactionList extends OpenAPIRoute {
 		if (type) {
 			query += ` AND type = ?`;
 			binds.push(type);
+		}
+		if (startDate) {
+			query += ` AND date >= ?`;
+			binds.push(startDate);
+		}
+		if (endDate) {
+			query += ` AND date <= ?`;
+			binds.push(endDate);
 		}
 
 		query += ` ORDER BY date DESC, created_at DESC`;
