@@ -2,6 +2,7 @@ import {
   View, Text, FlatList, ActivityIndicator,
   RefreshControl, Alert, TouchableOpacity,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -70,7 +71,7 @@ export default function Recurring() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <View className="flex-1 bg-black">
+    <GestureHandlerRootView className="flex-1 bg-black">
       {/* Header */}
       <View className="px-4 pt-16 pb-4 bg-black">
         <View className="flex-row items-end justify-between mb-4">
@@ -156,6 +157,6 @@ export default function Recurring() {
         }}
         isSaving={isSaving}
       />
-    </View>
+    </GestureHandlerRootView>
   );
 }

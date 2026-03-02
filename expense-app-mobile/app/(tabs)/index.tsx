@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { MonthNavigator } from "../../components/dashboard/MonthNavigator";
 import { DonutChartCard } from "../../components/dashboard/DonutChartCard";
@@ -13,6 +14,8 @@ import { RecentExpenses } from "../../components/dashboard/RecentExpenses";
 import { DashboardSkeleton } from "../../components/dashboard/DashboardSkeleton";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useApi } from "../../lib/api";
+import { EditModal } from "../../components/transactions/EditModal";
+import { Transaction } from "../../app/types/transaction";
 
 // ── Upcoming recurring card ───────────────────────────────────────────────────
 function UpcomingRecurring() {
@@ -93,6 +96,7 @@ const BUDGET_KEY = "monthly_budget";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
+  const api = useApi();
 
   // ── Global State ──
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -124,7 +128,7 @@ export default function Dashboard() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["transactions", "dashboard"] });
+    await queryClient.invalidateQueries({ queryKey: ["transactions"] });
     await queryClient.invalidateQueries({ queryKey: ["recurring"] });
     setRefreshing(false);
   }, [queryClient]);
@@ -143,12 +147,36 @@ export default function Dashboard() {
     iconMap
   } = useDashboardData(currentDate, budget, selectedCategory);
 
+  // ── Edit / Delete Logic ──
+  const [editingItem, setEditingItem] = useState<Transaction | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/transactions/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+    onError: () => Alert.alert("Error", "Could not delete the transaction."),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: number; updates: Partial<Transaction> }) =>
+      api.put(`/transactions/${id}`, updates),
+    onSuccess: () => { setEditingItem(null); queryClient.invalidateQueries({ queryKey: ["transactions"] }); },
+    onError: () => Alert.alert("Error", "Could not update the transaction."),
+  });
+
+  const handleDelete = (id: number) =>
+    Alert.alert("Delete Transaction", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate(id) },
+    ]);
+
   return (
-    <ScrollView
-      className="flex-1 bg-black"
-      contentContainerStyle={{ paddingBottom: 120, paddingTop: 64 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#30D158" />}
-    >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View className="flex-1 bg-black">
+        <ScrollView
+          className="flex-1 bg-black"
+          contentContainerStyle={{ paddingBottom: 120, paddingTop: 64 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#30D158" />}
+        >
       <Animated.View entering={FadeInDown.duration(400).springify()}>
         <Text className="px-6 text-3xl font-extrabold text-white tracking-tight mb-2">Monthly Expense</Text>
       </Animated.View>
@@ -193,14 +221,26 @@ export default function Dashboard() {
         <RecentExpenses
           recentExpenses={recentExpenses}
           selectedCategory={selectedCategory}
-          colorMap={colorMap}
-          iconMap={iconMap}
+          onEdit={setEditingItem}
+          onDelete={handleDelete}
         />
       </Animated.View>
 
       <UpcomingRecurring />
         </>
       )}
-    </ScrollView>
+        </ScrollView>
+
+        <EditModal
+          item={editingItem}
+          visible={editingItem !== null}
+          onClose={() => setEditingItem(null)}
+          onSave={(updates) => {
+            if (editingItem) updateMutation.mutate({ id: editingItem.id, updates });
+          }}
+          isSaving={updateMutation.isPending}
+        />
+      </View>
+    </GestureHandlerRootView>
   );
 }

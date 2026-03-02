@@ -4,6 +4,7 @@ import {
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useDeferredValue } from "react";
 import { useApi } from "../../lib/api";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { SearchBar } from "../../components/transactions/SearchBar";
 import { TransactionGroup } from "../../components/transactions/TransactionGroup";
@@ -119,60 +120,62 @@ export default function Transactions() {
   );
 
   return (
-    <View className="flex-1 bg-black">
-      {/* Sticky header */}
-      <View className="px-4 pt-16 pb-2 bg-black">
-        <Text className="text-3xl text-white font-extrabold tracking-tight mb-1">Transactions</Text>
-        <Text className="text-[#636366] font-medium mb-4">Your complete history</Text>
-        <SearchBar value={search} onChangeText={setSearch} onClear={() => setSearch("")} />
-      </View>
-
-      {isLoading && !isRefetching ? (
-        <TransactionSkeleton />
-      ) : isError ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-[#FF3B30] font-medium text-center">Failed to load transactions</Text>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View className="flex-1 bg-black">
+        {/* Sticky header */}
+        <View className="px-4 pt-16 pb-2 bg-black">
+          <Text className="text-3xl text-white font-extrabold tracking-tight mb-1">Transactions</Text>
+          <Text className="text-[#636366] font-medium mb-4">Your complete history</Text>
+          <SearchBar value={search} onChangeText={setSearch} onClear={() => setSearch("")} />
         </View>
-      ) : (
-        <FlatList
-          data={sections}
-          keyExtractor={(section) => section.title}
-          renderItem={renderSection}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
-          showsVerticalScrollIndicator={false}
-          onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
-          onEndReachedThreshold={0.5}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#34d399"
-            />
-          }
-          ListEmptyComponent={
-            <View className="items-center justify-center py-24">
-              <Text className="text-[#636366] font-medium text-lg">
-                {search ? "No results found" : "No transactions yet"}
-              </Text>
-            </View>
-          }
-          ListFooterComponent={
-            isFetchingNextPage
-              ? <ActivityIndicator size="small" color="#636366" className="mt-4 mb-8" />
-              : null
-          }
-        />
-      )}
 
-      <EditModal
-        item={editingItem}
-        visible={editingItem !== null}
-        onClose={() => setEditingItem(null)}
-        onSave={(updates) => {
-          if (editingItem) updateMutation.mutate({ id: editingItem.id, updates });
-        }}
-        isSaving={updateMutation.isPending}
-      />
-    </View>
+        {isLoading && !isRefetching ? (
+          <TransactionSkeleton />
+        ) : isError ? (
+          <View className="flex-1 items-center justify-center px-6">
+            <Text className="text-[#FF3B30] font-medium text-center">Failed to load transactions</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={sections}
+            keyExtractor={(section) => section.title}
+            renderItem={renderSection}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 120 }}
+            showsVerticalScrollIndicator={false}
+            onEndReached={() => { if (hasNextPage) fetchNextPage(); }}
+            onEndReachedThreshold={0.5}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#34d399"
+              />
+            }
+            ListEmptyComponent={
+              <View className="items-center justify-center py-24">
+                <Text className="text-[#636366] font-medium text-lg">
+                  {search ? "No results found" : "No transactions yet"}
+                </Text>
+              </View>
+            }
+            ListFooterComponent={
+              isFetchingNextPage
+                ? <ActivityIndicator size="small" color="#636366" className="mt-4 mb-8" />
+                : null
+            }
+          />
+        )}
+
+        <EditModal
+          item={editingItem}
+          visible={editingItem !== null}
+          onClose={() => setEditingItem(null)}
+          onSave={(updates) => {
+            if (editingItem) updateMutation.mutate({ id: editingItem.id, updates });
+          }}
+          isSaving={updateMutation.isPending}
+        />
+      </View>
+    </GestureHandlerRootView>
   );
 }
