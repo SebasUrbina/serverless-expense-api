@@ -6,7 +6,7 @@ export class RecurringDelete extends OpenAPIRoute {
 	schema = {
 		tags: ["Recurring"],
 		summary: "Delete a recurring rule",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			params: z.object({ id: Num({ description: "Rule ID" }) }),
 		},

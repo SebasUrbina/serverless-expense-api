@@ -6,7 +6,7 @@ export class TransactionCreate extends OpenAPIRoute {
 	schema = {
 		tags: ["Transactions"],
 		summary: "Create a new Transaction",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			body: {
 				content: {

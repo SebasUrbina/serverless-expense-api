@@ -6,7 +6,7 @@ export class ApiKeyFetch extends OpenAPIRoute {
 	schema = {
 		tags: ["API Keys"],
 		summary: "Fetch User API Key",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		responses: {
 			"200": {
 				description: "Returns the user's static API key if it exists",

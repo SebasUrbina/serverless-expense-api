@@ -6,6 +6,7 @@ export class TransactionUpdate extends OpenAPIRoute {
 	schema = {
 		tags: ["Transactions"],
 		summary: "Update an existing Transaction",
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			params: z.object({
 				id: Num({ description: "Transaction ID" }),

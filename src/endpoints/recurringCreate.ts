@@ -6,7 +6,7 @@ export class RecurringCreate extends OpenAPIRoute {
 	schema = {
 		tags: ["Recurring"],
 		summary: "Create a recurring rule",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			body: {
 				content: {

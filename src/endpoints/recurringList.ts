@@ -6,7 +6,7 @@ export class RecurringList extends OpenAPIRoute {
 	schema = {
 		tags: ["Recurring"],
 		summary: "List all recurring rules",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		responses: {
 			"200": {
 				description: "Returns all recurring rules for the user",

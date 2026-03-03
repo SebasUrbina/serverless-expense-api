@@ -7,27 +7,30 @@ import type { AppContext } from "../types";
 // The JWT_SECRET is now accessed from the environment variables (c.env.JWT_SECRET)
 export const authMiddleware = async (c: AppContext, next: () => Promise<void>) => {
 	const authHeader = c.req.header("Authorization");
+	const apiKeyHeader = c.req.header("X-API-Key");
 
+	// 1. Try to authenticate via static API key (e.g., iOS Shortcuts)
+	if (apiKeyHeader) {
+		const keyResult = await c.env.DB.prepare(`SELECT user_id FROM api_keys WHERE key = ?`)
+			.bind(apiKeyHeader)
+			.first<{ user_id: string }>();
+
+		if (keyResult) {
+			c.set("userId", keyResult.user_id);
+			return next();
+		}
+		// If provided but invalid, fail fast
+		return c.json({ error: "Unauthorized: Invalid X-API-Key provided" }, 401);
+	}
+
+	// 2. No API Key provided, fallback to standard Bearer JWT Session
 	if (!authHeader || !authHeader.startsWith("Bearer ")) {
-		return c.json({ error: "Missing or invalid Authorization header" }, 401);
+		return c.json({ error: "Missing or invalid Authorization header / X-API-Key" }, 401);
 	}
 
 	const token = authHeader.split("Bearer ")[1];
 
-	// 1. Try to find a static API key for iOS Shortcuts
-	const keyResult = await c.env.DB.prepare(
-		`SELECT user_id FROM api_keys WHERE key = ?`
-	)
-		.bind(token)
-		.first<{ user_id: string }>();
-
-	if (keyResult) {
-		// Found static key
-		c.set("userId", keyResult.user_id);
-		return next();
-	}
-
-	// 2. Verify JWT using Supabase JWKS (JSON Web Key Set)
+	// 3. Verify JWT using Supabase JWKS (JSON Web Key Set)
 	try {
 		const JWKS = createRemoteJWKSet(
 			new URL(`${c.env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`)

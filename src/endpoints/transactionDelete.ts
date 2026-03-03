@@ -6,6 +6,7 @@ export class TransactionDelete extends OpenAPIRoute {
 	schema = {
 		tags: ["Transactions"],
 		summary: "Delete a Transaction",
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			params: z.object({
 				id: Num({ description: "Transaction ID" }),

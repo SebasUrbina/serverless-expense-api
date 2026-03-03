@@ -6,7 +6,7 @@ export class TransactionList extends OpenAPIRoute {
 	schema = {
 		tags: ["Transactions"],
 		summary: "List Transactions",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			query: z.object({
 				search: Str({

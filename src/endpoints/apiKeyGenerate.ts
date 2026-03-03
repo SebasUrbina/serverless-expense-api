@@ -6,7 +6,7 @@ export class ApiKeyGenerate extends OpenAPIRoute {
 	schema = {
 		tags: ["API Keys"],
 		summary: "Generate a new User API Key",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		responses: {
 			"200": {
 				description: "Creates and returns a new static API key for the user (revokes previous)",
@@ -32,9 +32,9 @@ export class ApiKeyGenerate extends OpenAPIRoute {
 		// Delete any existing keys for this user to ensure only 1 active key
 		await c.env.DB.prepare(`DELETE FROM api_keys WHERE user_id = ?`).bind(userId).run();
 
-		// Generate a new secure random token (e.g. sk_live_abc123)
-		const randomString = crypto.randomUUID().replace(/-/g, "");
-		const newKey = `ek_live_${randomString}`; // Expense Key Live
+		// Generate a shorter token (e.g. ek_live_1234abcd)
+		const randomString = crypto.randomUUID().split("-")[0];
+		const newKey = `sk-${randomString}`; // Expense Key Live
 
 		// Store in database
 		await c.env.DB.prepare(`INSERT INTO api_keys (key, user_id) VALUES (?, ?)`)

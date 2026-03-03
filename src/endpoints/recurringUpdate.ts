@@ -6,7 +6,7 @@ export class RecurringUpdate extends OpenAPIRoute {
 	schema = {
 		tags: ["Recurring"],
 		summary: "Update a recurring rule",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			params: z.object({ id: Num({ description: "Rule ID" }) }),
 			body: {

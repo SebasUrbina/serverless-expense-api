@@ -6,7 +6,7 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
 	schema = {
 		tags: ["Transactions"],
 		summary: "Get Monthly Transaction Summary",
-		security: [{ BearerAuth: [] }],
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			query: z.object({
 				months: Num({

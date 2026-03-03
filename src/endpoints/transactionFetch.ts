@@ -6,6 +6,7 @@ export class TransactionFetch extends OpenAPIRoute {
 	schema = {
 		tags: ["Transactions"],
 		summary: "Get a Transaction by ID",
+		security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
 		request: {
 			params: z.object({
 				id: Num({ description: "Transaction ID" }),

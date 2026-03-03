@@ -32,6 +32,11 @@ openapi.registry.registerComponent("securitySchemes", "BearerAuth", {
 	type: "http",
 	scheme: "bearer",
 });
+openapi.registry.registerComponent("securitySchemes", "ApiKeyAuth", {
+	type: "apiKey",
+	name: "X-API-Key",
+	in: "header",
+});
 
 // Protect all /api routes via middleware
 openapi.use("/api/*", authMiddleware);
