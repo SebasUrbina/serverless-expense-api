@@ -13,6 +13,7 @@ import { RecurringCreate } from "./endpoints/recurringCreate";
 import { RecurringUpdate } from "./endpoints/recurringUpdate";
 import { RecurringDelete } from "./endpoints/recurringDelete";
 import { TransactionMonthlySummary } from "./endpoints/transactionMonthlySummary";
+import { AppConfigFetch } from "./endpoints/appConfigFetch";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -58,6 +59,9 @@ openapi.delete("/api/recurring/:id", RecurringDelete);
 // ── API Keys ──
 openapi.get("/api/keys", ApiKeyFetch);
 openapi.post("/api/keys", ApiKeyGenerate);
+
+// ── App Config ──
+openapi.get("/api/config", AppConfigFetch);
 
 // Export the Hono app
 export default app;
