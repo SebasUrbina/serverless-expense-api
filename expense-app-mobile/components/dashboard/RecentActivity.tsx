@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import { Transaction } from "../../app/types/transaction";
+import { Transaction } from "../../types/transaction";
 import { TransactionItem } from "../transactions/TransactionItem";
 
 interface RecentActivityProps {

@@ -15,7 +15,7 @@ import { DashboardSkeleton } from "../../components/dashboard/DashboardSkeleton"
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useApi } from "../../lib/api";
 import { EditModal } from "../../components/transactions/EditModal";
-import { Transaction } from "../../app/types/transaction";
+import { Transaction } from "../../types/transaction";
 
 // ── Upcoming recurring card ───────────────────────────────────────────────────
 function UpcomingRecurring() {
@@ -182,7 +182,10 @@ export default function Dashboard() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#30D158" />}
         >
       <Animated.View entering={FadeInDown.duration(400).springify()}>
-        <Text className="px-6 text-3xl font-extrabold text-white tracking-tight mb-2">Monthly Expense</Text>
+        <Text className="px-6 text-3xl font-extrabold text-white tracking-tight">
+          Se<Text className="text-[#30D158]">va</Text>
+        </Text>
+        <Text className="px-6 text-[#8E8E93] text-sm mb-4">¿En que seva mi plata?</Text>
       </Animated.View>
 
       {/* ── Month Swiper ── */}

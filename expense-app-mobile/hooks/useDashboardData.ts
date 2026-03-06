@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApi } from "../lib/api";
 import { buildCategoryMeta } from "../constants/Categories";
-import { Transaction } from "../app/types/transaction";
+import { Transaction } from "../types/transaction";
 
 export function useDashboardData(currentDate: Date, budget: number, selectedCategory: string | null) {
   const api = useApi();
