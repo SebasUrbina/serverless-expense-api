@@ -24,9 +24,17 @@ export class RecurringList extends OpenAPIRoute {
 
 	async handle(c: AppContext) {
 		const userId = c.get("userId");
-		const result = await c.env.DB.prepare(
-			`SELECT * FROM recurring_rules WHERE user_id = ? ORDER BY created_at DESC`
-		).bind(userId).all();
+		const result = await c.env.DB.prepare(`
+			SELECT 
+				r.*, 
+				c.name as category,
+				c.icon as category_icon,
+				tag.name as tag
+			FROM recurring_rules r
+			LEFT JOIN categories c ON r.category_id = c.id
+			LEFT JOIN tags tag ON r.tag_id = tag.id
+			WHERE r.user_id = ? ORDER BY r.created_at DESC
+		`).bind(userId).all();
 
 		return { success: true, rules: result.results };
 	}

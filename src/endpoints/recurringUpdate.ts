@@ -49,26 +49,26 @@ export class RecurringUpdate extends OpenAPIRoute {
 		if (!existing) return c.json({ success: false, error: "Rule not found" }, 404);
 
 		const merged = {
-			title:         updates.title         ?? existing.title,
-			amount:        updates.amount        ?? existing.amount,
-			category:      updates.category      ?? existing.category,
-			type:          updates.type          ?? existing.type,
-			account:       updates.account       ?? existing.account,
-			tag:           updates.tag           ?? existing.tag,
-			frequency:     updates.frequency     ?? existing.frequency,
-			day_of_month:  updates.day_of_month  ?? existing.day_of_month,
-			next_run:      updates.next_run      ?? existing.next_run,
-			is_active:     updates.is_active     ?? existing.is_active,
+			title:         updates.title             ?? existing.title,
+			amount:        updates.amount            ?? existing.amount,
+			category_id:   updates.category_id       ?? existing.category_id,
+			type:          updates.type              ?? existing.type,
+			account:       updates.account           ?? existing.account,
+			tag_id:        updates.tag_id            ?? existing.tag_id,
+			frequency:     updates.frequency         ?? existing.frequency,
+			day_of_month:  updates.day_of_month      ?? existing.day_of_month,
+			next_run:      updates.next_run          ?? existing.next_run,
+			is_active:     updates.is_active         ?? existing.is_active,
 		};
 
 		const result = await c.env.DB.prepare(
 			`UPDATE recurring_rules
-			 SET title=?, amount=?, category=?, type=?, account=?, tag=?,
+			 SET title=?, amount=?, category_id=?, type=?, account=?, tag_id=?,
 			     frequency=?, day_of_month=?, next_run=?, is_active=?
 			 WHERE id=? AND user_id=? RETURNING *`
 		).bind(
-			merged.title, merged.amount, merged.category, merged.type,
-			merged.account, merged.tag, merged.frequency, merged.day_of_month,
+			merged.title, merged.amount, merged.category_id, merged.type,
+			merged.account, merged.tag_id, merged.frequency, merged.day_of_month,
 			merged.next_run, merged.is_active, id, userId
 		).first();
 

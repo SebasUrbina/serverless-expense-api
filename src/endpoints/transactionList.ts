@@ -13,8 +13,8 @@ export class TransactionList extends OpenAPIRoute {
 					description: "Search by title (case-insensitive)",
 					required: false,
 				}),
-				category: Str({
-					description: "Filter by category",
+				category_id: Num({
+					description: "Filter by category ID",
 					required: false,
 				}),
 				type: Str({
@@ -64,34 +64,44 @@ export class TransactionList extends OpenAPIRoute {
 
 	async handle(c: AppContext) {
 		const data = await this.getValidatedData<typeof this.schema>();
-		const { search, category, type, startDate, endDate, page, limit } = data.query;
+		const { search, category_id, type, startDate, endDate, page, limit } = data.query;
 		const userId = c.get("userId");
 
-		let query = `SELECT * FROM transactions WHERE user_id = ?`;
+		let query = `
+			SELECT 
+				t.*, 
+				c.name as category,
+				c.icon as category_icon,
+				tag.name as tag
+			FROM transactions t
+			LEFT JOIN categories c ON t.category_id = c.id
+			LEFT JOIN tags tag ON t.tag_id = tag.id
+			WHERE t.user_id = ?
+		`;
 		const binds: any[] = [userId];
 
 		if (search) {
-			query += ` AND LOWER(title) LIKE LOWER(?)`;
+			query += ` AND LOWER(t.title) LIKE LOWER(?)`;
 			binds.push(`%${search}%`);
 		}
-		if (category) {
-			query += ` AND category = ?`;
-			binds.push(category);
+		if (category_id) {
+			query += ` AND t.category_id = ?`;
+			binds.push(category_id);
 		}
 		if (type) {
-			query += ` AND type = ?`;
+			query += ` AND t.type = ?`;
 			binds.push(type);
 		}
 		if (startDate) {
-			query += ` AND date >= ?`;
+			query += ` AND t.date >= ?`;
 			binds.push(startDate);
 		}
 		if (endDate) {
-			query += ` AND date <= ?`;
+			query += ` AND t.date <= ?`;
 			binds.push(endDate);
 		}
 
-		query += ` ORDER BY date DESC, created_at DESC`;
+		query += ` ORDER BY t.date DESC, t.created_at DESC`;
 
 		// Pagination logic
 		const safePage = Math.max(1, page || 1);

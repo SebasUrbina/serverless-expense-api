@@ -13,7 +13,16 @@ import { RecurringCreate } from "./endpoints/recurringCreate";
 import { RecurringUpdate } from "./endpoints/recurringUpdate";
 import { RecurringDelete } from "./endpoints/recurringDelete";
 import { TransactionMonthlySummary } from "./endpoints/transactionMonthlySummary";
+import { TransactionCategorySummary } from "./endpoints/transactionCategorySummary";
+import { TransactionKpiSummary } from "./endpoints/transactionKpiSummary";
 import { AppConfigFetch } from "./endpoints/appConfigFetch";
+import { CategoryList } from "./endpoints/categoryList";
+import { CategoryCreate } from "./endpoints/categoryCreate";
+import { CategoryUpdate } from "./endpoints/categoryUpdate";
+import { CategoryDelete } from "./endpoints/categoryDelete";
+import { TagList } from "./endpoints/tagList";
+import { TagCreate } from "./endpoints/tagCreate";
+import { TagDelete } from "./endpoints/tagDelete";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -45,6 +54,8 @@ openapi.use("/api/*", authMiddleware);
 // ── Transactions ──
 openapi.get("/api/transactions", TransactionList);
 openapi.get("/api/transactions/summary/monthly", TransactionMonthlySummary);
+openapi.get("/api/transactions/summary/category", TransactionCategorySummary);
+openapi.get("/api/transactions/summary/kpi", TransactionKpiSummary);
 openapi.post("/api/transactions", TransactionCreate);
 openapi.get("/api/transactions/:id", TransactionFetch);
 openapi.put("/api/transactions/:id", TransactionUpdate);
@@ -55,6 +66,17 @@ openapi.get("/api/recurring", RecurringList);
 openapi.post("/api/recurring", RecurringCreate);
 openapi.put("/api/recurring/:id", RecurringUpdate);
 openapi.delete("/api/recurring/:id", RecurringDelete);
+
+// ── Categories ──
+openapi.get("/api/categories", CategoryList);
+openapi.post("/api/categories", CategoryCreate);
+openapi.put("/api/categories/:id", CategoryUpdate);
+openapi.delete("/api/categories/:id", CategoryDelete);
+
+// ── Tags ──
+openapi.get("/api/tags", TagList);
+openapi.post("/api/tags", TagCreate);
+openapi.delete("/api/tags/:id", TagDelete);
 
 // ── API Keys ──
 openapi.get("/api/keys", ApiKeyFetch);

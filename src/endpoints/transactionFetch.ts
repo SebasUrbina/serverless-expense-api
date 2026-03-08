@@ -47,7 +47,17 @@ export class TransactionFetch extends OpenAPIRoute {
 		const { id } = data.params;
 		const userId = c.get("userId");
 
-		const result = await c.env.DB.prepare(`SELECT * FROM transactions WHERE id = ? AND user_id = ?`).bind(id, userId).first();
+		const result = await c.env.DB.prepare(`
+			SELECT 
+				t.*, 
+				c.name as category,
+				c.icon as category_icon,
+				tag.name as tag
+			FROM transactions t
+			LEFT JOIN categories c ON t.category_id = c.id
+			LEFT JOIN tags tag ON t.tag_id = tag.id
+			WHERE t.id = ? AND t.user_id = ?
+		`).bind(id, userId).first();
 
 		if (!result) {
 			return c.json({ success: false, error: "Transaction not found" }, 404);
