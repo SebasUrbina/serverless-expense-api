@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" width="400" height="160">
+  <defs>
+    <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D9E6B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#5EEAAA;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4EDDA0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E7A4E;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#2D9E6B" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="400" height="160" rx="12" fill="#0A0F0D"/>
+
+  <circle cx="72" cy="80" r="46" fill="none" stroke="url(#coinGrad)" stroke-width="3.5" filter="url(#shadow)"/>
+  <circle cx="72" cy="80" r="37" fill="none" stroke="url(#coinGrad)" stroke-width="1.2" opacity="0.45"/>
+  <circle cx="72" cy="80" r="32" fill="#0F1A14"/>
+
+  <line x1="72" y1="60" x2="72" y2="90" stroke="url(#arrowGrad)" stroke-width="3.2" stroke-linecap="round"/>
+  <polyline points="60,80 72,95 84,80" fill="none" stroke="url(#arrowGrad)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="132" y="75" font-family="Georgia, 'Times New Roman', serif" font-size="46" font-weight="700" letter-spacing="6" fill="#EEF7F2">SEVA</text>
+  <text x="134" y="104" font-family="Georgia, 'Times New Roman', serif" font-size="13" font-weight="400" letter-spacing="3.5" fill="#2D9E6B">¿EN QUÉ VA TU PLATA?</text>
+  <line x1="132" y1="113" x2="352" y2="113" stroke="#2D9E6B" stroke-width="0.7" opacity="0.4"/>
+</svg>
