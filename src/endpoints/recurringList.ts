@@ -29,10 +29,12 @@ export class RecurringList extends OpenAPIRoute {
 				r.*, 
 				c.name as category,
 				c.icon as category_icon,
-				tag.name as tag
+				tag.name as tag,
+				a.name as account
 			FROM recurring_rules r
 			LEFT JOIN categories c ON r.category_id = c.id
 			LEFT JOIN tags tag ON r.tag_id = tag.id
+			LEFT JOIN accounts a ON r.account_id = a.id
 			WHERE r.user_id = ? ORDER BY r.created_at DESC
 		`).bind(userId).all();
 

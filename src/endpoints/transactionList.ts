@@ -72,10 +72,12 @@ export class TransactionList extends OpenAPIRoute {
 				t.*, 
 				c.name as category,
 				c.icon as category_icon,
-				tag.name as tag
+				tag.name as tag,
+				a.name as account
 			FROM transactions t
 			LEFT JOIN categories c ON t.category_id = c.id
 			LEFT JOIN tags tag ON t.tag_id = tag.id
+			LEFT JOIN accounts a ON t.account_id = a.id
 			WHERE t.user_id = ?
 		`;
 		const binds: any[] = [userId];

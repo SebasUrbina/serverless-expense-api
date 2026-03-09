@@ -53,7 +53,7 @@ export class RecurringUpdate extends OpenAPIRoute {
 			amount:        updates.amount            ?? existing.amount,
 			category_id:   updates.category_id       ?? existing.category_id,
 			type:          updates.type              ?? existing.type,
-			account:       updates.account           ?? existing.account,
+			account_id:    updates.account_id        ?? existing.account_id,
 			tag_id:        updates.tag_id            ?? existing.tag_id,
 			frequency:     updates.frequency         ?? existing.frequency,
 			day_of_month:  updates.day_of_month      ?? existing.day_of_month,
@@ -63,12 +63,12 @@ export class RecurringUpdate extends OpenAPIRoute {
 
 		const result = await c.env.DB.prepare(
 			`UPDATE recurring_rules
-			 SET title=?, amount=?, category_id=?, type=?, account=?, tag_id=?,
+			 SET title=?, amount=?, category_id=?, type=?, account_id=?, tag_id=?,
 			     frequency=?, day_of_month=?, next_run=?, is_active=?
 			 WHERE id=? AND user_id=? RETURNING *`
 		).bind(
 			merged.title, merged.amount, merged.category_id, merged.type,
-			merged.account, merged.tag_id, merged.frequency, merged.day_of_month,
+			merged.account_id, merged.tag_id, merged.frequency, merged.day_of_month,
 			merged.next_run, merged.is_active, id, userId
 		).first();
 

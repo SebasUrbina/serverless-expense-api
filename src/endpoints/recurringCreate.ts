@@ -38,11 +38,11 @@ export class RecurringCreate extends OpenAPIRoute {
 
 		const result = await c.env.DB.prepare(
 			`INSERT INTO recurring_rules
-			 (user_id, title, amount, category, type, account, tag, frequency, day_of_month, next_run, is_active)
+			 (user_id, title, amount, category_id, type, account_id, tag_id, frequency, day_of_month, next_run, is_active)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING *`
 		)
-			.bind(userId, r.title, r.amount, r.category, r.type, r.account,
-				r.tag ?? null, r.frequency, r.day_of_month ?? null, r.next_run)
+			.bind(userId, r.title, r.amount, r.category_id, r.type, r.account_id,
+				r.tag_id ?? null, r.frequency, r.day_of_month ?? null, r.next_run)
 			.first();
 
 		return { success: true, rule: result };

@@ -46,11 +46,11 @@ export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionC
 			// 1. Insert the transaction
 			env.DB.prepare(
 				`INSERT INTO transactions
-				 (title, amount, category_id, type, account, user_id, tag_id, date, recurring_rule_id)
+				 (title, amount, category_id, type, account_id, user_id, tag_id, date, recurring_rule_id)
 				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			).bind(
 				rule.title, rule.amount, rule.category_id, rule.type,
-				rule.account, rule.user_id, rule.tag_id ?? null, rule.next_run, rule.id
+				rule.account_id, rule.user_id, rule.tag_id ?? null, rule.next_run, rule.id
 			),
 			// 2. Advance next_run
 			env.DB.prepare(

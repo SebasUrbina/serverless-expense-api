@@ -65,12 +65,12 @@ export class TransactionUpdate extends OpenAPIRoute {
 		const newAmount = updates.amount ?? existing.amount;
 		const newCategory = updates.category_id ?? existing.category_id;
 		const newType = updates.type ?? existing.type;
-		const newAccount = updates.account ?? existing.account;
+		const newAccount = updates.account_id ?? existing.account_id;
 		const newTag = updates.tag_id ?? existing.tag_id;
 		const newDate = updates.date ?? existing.date;
 
 		const result = await c.env.DB.prepare(
-			`UPDATE transactions SET title = ?, amount = ?, category_id = ?, type = ?, account = ?, tag_id = ?, date = ? WHERE id = ? AND user_id = ? RETURNING *`
+			`UPDATE transactions SET title = ?, amount = ?, category_id = ?, type = ?, account_id = ?, tag_id = ?, date = ? WHERE id = ? AND user_id = ? RETURNING *`
 		)
 			.bind(newTitle, newAmount, newCategory, newType, newAccount, newTag, newDate, id, userId)
 			.first();

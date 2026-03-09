@@ -23,6 +23,11 @@ import { CategoryDelete } from "./endpoints/categoryDelete";
 import { TagList } from "./endpoints/tagList";
 import { TagCreate } from "./endpoints/tagCreate";
 import { TagDelete } from "./endpoints/tagDelete";
+import { AccountList } from "./endpoints/accountList";
+import { AccountCreate } from "./endpoints/accountCreate";
+import { AccountUpdate } from "./endpoints/accountUpdate";
+import { AccountDelete } from "./endpoints/accountDelete";
+import { UserSetup } from "./endpoints/userSetup";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -77,6 +82,15 @@ openapi.delete("/api/categories/:id", CategoryDelete);
 openapi.get("/api/tags", TagList);
 openapi.post("/api/tags", TagCreate);
 openapi.delete("/api/tags/:id", TagDelete);
+
+// ── Accounts ──
+openapi.get("/api/accounts", AccountList);
+openapi.post("/api/accounts", AccountCreate);
+openapi.put("/api/accounts/:id", AccountUpdate);
+openapi.delete("/api/accounts/:id", AccountDelete);
+
+// ── User Setup ──
+openapi.post("/api/user/setup", UserSetup);
 
 // ── API Keys ──
 openapi.get("/api/keys", ApiKeyFetch);

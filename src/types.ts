@@ -19,7 +19,7 @@ export const Transaction = z.object({
 	amount: Num({ example: 45.99 }),
 	category_id: Num({ example: 1 }),
 	type: z.enum(["expense", "income"]).openapi({ example: "expense" }),
-	account: Str({ example: "Main Checking" }),
+	account_id: Num({ example: 12 }),
 	tag_id: Num({ required: false, example: 5 }),
 	date: Str({ example: "2025-02-24", description: "YYYY-MM-DD" }),
 	recurring_rule_id: Num({ required: false, description: "Origin recurring rule ID" }),
@@ -32,7 +32,7 @@ export const RecurringRule = z.object({
 	amount: Num({ example: 15.99 }),
 	category_id: Num({ example: 2 }),
 	type: z.enum(["expense", "income"]).openapi({ example: "expense" }),
-	account: Str({ example: "Credit Card" }),
+	account_id: Num({ example: 14 }),
 	tag_id: Num({ required: false, example: 3 }),
 	frequency: z.enum(["daily", "weekly", "monthly", "yearly"]).openapi({ example: "monthly" }),
 	day_of_month: Num({ required: false, description: "Day 1-28 for monthly frequency" }),
@@ -53,6 +53,15 @@ export const Category = z.object({
 export const Tag = z.object({
 	id: Num({ required: false, description: "Auto-generated ID" }),
 	name: Str({ example: "vacation" }),
+	user_id: Str({ required: false }),
+	created_at: DateTime({ required: false }),
+});
+
+export const Account = z.object({
+	id: Num({ required: false, description: "Auto-generated ID" }),
+	name: Str({ example: "Banco de Chile" }),
+	type: z.enum(["checking", "savings", "credit", "cash"]).openapi({ example: "checking" }),
+	balance: Num({ required: false, example: 1500000 }),
 	user_id: Str({ required: false }),
 	created_at: DateTime({ required: false }),
 });

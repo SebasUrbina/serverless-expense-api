@@ -41,9 +41,9 @@ export class TransactionCreate extends OpenAPIRoute {
 		const userId = c.get("userId");
 
 		const result = await c.env.DB.prepare(
-			`INSERT INTO transactions (title, amount, category_id, type, account, user_id, tag_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+			`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, tag_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
 		)
-			.bind(t.title, t.amount, t.category_id, t.type, t.account, userId, t.tag_id ?? null, t.date)
+			.bind(t.title, t.amount, t.category_id, t.type, t.account_id, userId, t.tag_id ?? null, t.date)
 			.first();
 
 		return {
