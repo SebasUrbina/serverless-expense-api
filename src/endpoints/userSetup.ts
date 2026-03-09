@@ -42,7 +42,7 @@ export class UserSetup extends OpenAPIRoute {
 			];
 
 			// Default Tags
-			const defaultTags = [{ name: "Esencial" }, { name: "Gusto" }];
+			const defaultTags = [{ name: "Fijo" }, { name: "Variable" }];
 
 			// Default Categories
 			const defaultCategories = [
@@ -52,6 +52,22 @@ export class UserSetup extends OpenAPIRoute {
 				{ name: "Servicios", type: "expense", icon: "⚡" },
 				{ name: "Ocio", type: "expense", icon: "🎉" },
 				{ name: "Salud", type: "expense", icon: "⚕️" },
+				{ name: "Arriendo", type: "expense", icon: "🏠" },
+				{ name: "Gastos Comunes", type: "expense", icon: "🏢"},
+				{ name: "Comida", type: "expense", icon: "🍔" },
+				{ name: "Agua", type: "expense", icon: "💧"},
+				{ name: "Luz", type: "expense", icon: "⚡"},
+				{ name: "Gas", type: "expense", icon: "🔥"},
+				{ name: "Internet", type: "expense", icon: "📡"},
+				{ name: "Plan Movil", type: "expense", icon: "📱"},
+				{ name: "Suscripciones", type: "expense", icon: "📺"},
+				{ name: "Farmacia", type: "expense", icon: "💊"},
+				{ name: "Regalos", type: "expense", icon: "🎁"},
+				{ name: "Eventos", type: "expense", icon: "🎉"},
+				{ name: "Comisiones", type: "expense", icon: "💰"},
+				{ name: "Vacaciones", type: "expense", icon: "✈️"},
+				{ name: "Ropa", type: "expense", icon: "👗"},
+				{ name: "Otros", type: "expense", icon: "📦"}
 			];
 
 			// Insert Accounts

@@ -54,24 +54,39 @@ export class RecurringUpdate extends OpenAPIRoute {
 			category_id:   updates.category_id       ?? existing.category_id,
 			type:          updates.type              ?? existing.type,
 			account_id:    updates.account_id        ?? existing.account_id,
-			tag_id:        updates.tag_id            ?? existing.tag_id,
 			frequency:     updates.frequency         ?? existing.frequency,
 			day_of_month:  updates.day_of_month      ?? existing.day_of_month,
 			next_run:      updates.next_run          ?? existing.next_run,
 			is_active:     updates.is_active         ?? existing.is_active,
 		};
 
-		const result = await c.env.DB.prepare(
+		// Fetch existing tags to prefill if no change
+		let currentTagIds: number[] = [];
+		if (updates.tag_ids === undefined) {
+			const existingTagsResult = await c.env.DB.prepare(`SELECT tag_id FROM recurring_rule_tags WHERE recurring_rule_id = ?`).bind(id).all();
+			currentTagIds = existingTagsResult.results.map((r: any) => r.tag_id);
+		}
+
+		const txResult = await c.env.DB.prepare(
 			`UPDATE recurring_rules
-			 SET title=?, amount=?, category_id=?, type=?, account_id=?, tag_id=?,
+			 SET title=?, amount=?, category_id=?, type=?, account_id=?,
 			     frequency=?, day_of_month=?, next_run=?, is_active=?
 			 WHERE id=? AND user_id=? RETURNING *`
 		).bind(
 			merged.title, merged.amount, merged.category_id, merged.type,
-			merged.account_id, merged.tag_id, merged.frequency, merged.day_of_month,
+			merged.account_id, merged.frequency, merged.day_of_month,
 			merged.next_run, merged.is_active, id, userId
 		).first();
 
-		return { success: true, rule: result };
+		if (updates.tag_ids !== undefined) {
+			const stmts = [c.env.DB.prepare(`DELETE FROM recurring_rule_tags WHERE recurring_rule_id = ?`).bind(id)];
+			for (const tId of updates.tag_ids) {
+				stmts.push(c.env.DB.prepare(`INSERT INTO recurring_rule_tags (recurring_rule_id, tag_id) VALUES (?, ?)`).bind(id, tId));
+			}
+			await c.env.DB.batch(stmts);
+		}
+
+		const finalTags = updates.tag_ids !== undefined ? updates.tag_ids : currentTagIds;
+		return { success: true, rule: { ...txResult, tag_ids: finalTags } };
 	}
 }

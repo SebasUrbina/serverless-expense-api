@@ -72,11 +72,10 @@ export class TransactionList extends OpenAPIRoute {
 				t.*, 
 				c.name as category,
 				c.icon as category_icon,
-				tag.name as tag,
-				a.name as account
+				a.name as account,
+				(SELECT json_group_array(tag_id) FROM transaction_tags WHERE transaction_id = t.id) as tag_ids
 			FROM transactions t
 			LEFT JOIN categories c ON t.category_id = c.id
-			LEFT JOIN tags tag ON t.tag_id = tag.id
 			LEFT JOIN accounts a ON t.account_id = a.id
 			WHERE t.user_id = ?
 		`;
@@ -115,7 +114,10 @@ export class TransactionList extends OpenAPIRoute {
 		binds.push(safeLimit + 1, offset);
 
 		const result = await c.env.DB.prepare(query).bind(...binds).all();
-		const allTx = result.results;
+		const allTx = result.results.map((tx: any) => ({
+			...tx,
+			tag_ids: JSON.parse(tx.tag_ids || "[]")
+		}));
 
 		const hasMore = allTx.length > safeLimit;
 		const returnTx = hasMore ? allTx.slice(0, safeLimit) : allTx;

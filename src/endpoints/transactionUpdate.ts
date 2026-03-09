@@ -66,18 +66,36 @@ export class TransactionUpdate extends OpenAPIRoute {
 		const newCategory = updates.category_id ?? existing.category_id;
 		const newType = updates.type ?? existing.type;
 		const newAccount = updates.account_id ?? existing.account_id;
-		const newTag = updates.tag_id ?? existing.tag_id;
 		const newDate = updates.date ?? existing.date;
 
-		const result = await c.env.DB.prepare(
-			`UPDATE transactions SET title = ?, amount = ?, category_id = ?, type = ?, account_id = ?, tag_id = ?, date = ? WHERE id = ? AND user_id = ? RETURNING *`
+		// Fetch existing tags to prefill if no change
+		let currentTagIds: number[] = [];
+		if (updates.tag_ids === undefined) {
+			const existingTagsResult = await c.env.DB.prepare(`SELECT tag_id FROM transaction_tags WHERE transaction_id = ?`).bind(id).all();
+			currentTagIds = existingTagsResult.results.map((r: any) => r.tag_id);
+		}
+
+		const txResult = await c.env.DB.prepare(
+			`UPDATE transactions SET title = ?, amount = ?, category_id = ?, type = ?, account_id = ?, date = ? WHERE id = ? AND user_id = ? RETURNING *`
 		)
-			.bind(newTitle, newAmount, newCategory, newType, newAccount, newTag, newDate, id, userId)
+			.bind(newTitle, newAmount, newCategory, newType, newAccount, newDate, id, userId)
 			.first();
 
+		if (updates.tag_ids !== undefined) {
+			// Clear existing tags
+			const stmts = [c.env.DB.prepare(`DELETE FROM transaction_tags WHERE transaction_id = ?`).bind(id)];
+			// Insert new map
+			for (const tId of updates.tag_ids) {
+				stmts.push(c.env.DB.prepare(`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`).bind(id, tId));
+			}
+			await c.env.DB.batch(stmts);
+		}
+
+		const finalTags = updates.tag_ids !== undefined ? updates.tag_ids : currentTagIds;
+		
 		return {
 			success: true,
-			transaction: result,
+			transaction: { ...txResult, tag_ids: finalTags },
 		};
 	}
 }

@@ -36,15 +36,22 @@ export class RecurringCreate extends OpenAPIRoute {
 		const r = data.body;
 		const userId = c.get("userId");
 
-		const result = await c.env.DB.prepare(
+		const txResult = await c.env.DB.prepare(
 			`INSERT INTO recurring_rules
-			 (user_id, title, amount, category_id, type, account_id, tag_id, frequency, day_of_month, next_run, is_active)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING *`
+			 (user_id, title, amount, category_id, type, account_id, frequency, day_of_month, next_run, is_active)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1) RETURNING *`
 		)
 			.bind(userId, r.title, r.amount, r.category_id, r.type, r.account_id,
-				r.tag_id ?? null, r.frequency, r.day_of_month ?? null, r.next_run)
-			.first();
+				r.frequency, r.day_of_month ?? null, r.next_run)
+			.first() as any;
 
-		return { success: true, rule: result };
+		if (r.tag_ids && r.tag_ids.length > 0) {
+			const tagStmts = r.tag_ids.map(tagId =>
+				c.env.DB.prepare(`INSERT INTO recurring_rule_tags (recurring_rule_id, tag_id) VALUES (?, ?)`).bind(txResult.id, tagId)
+			);
+			await c.env.DB.batch(tagStmts);
+		}
+
+		return { success: true, rule: { ...txResult, tag_ids: r.tag_ids || [] } };
 	}
 }

@@ -52,14 +52,13 @@ export class TransactionFetch extends OpenAPIRoute {
 				t.*, 
 				c.name as category,
 				c.icon as category_icon,
-				tag.name as tag,
-				a.name as account
+				a.name as account,
+				(SELECT json_group_array(tag_id) FROM transaction_tags WHERE transaction_id = t.id) as tag_ids
 			FROM transactions t
 			LEFT JOIN categories c ON t.category_id = c.id
-			LEFT JOIN tags tag ON t.tag_id = tag.id
 			LEFT JOIN accounts a ON t.account_id = a.id
 			WHERE t.id = ? AND t.user_id = ?
-		`).bind(id, userId).first();
+		`).bind(id, userId).first() as any;
 
 		if (!result) {
 			return c.json({ success: false, error: "Transaction not found" }, 404);
@@ -67,7 +66,10 @@ export class TransactionFetch extends OpenAPIRoute {
 
 		return {
 			success: true,
-			transaction: result,
+			transaction: {
+				...result,
+				tag_ids: JSON.parse(result.tag_ids || "[]")
+			},
 		};
 	}
 }

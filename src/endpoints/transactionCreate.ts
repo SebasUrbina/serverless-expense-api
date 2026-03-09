@@ -40,15 +40,28 @@ export class TransactionCreate extends OpenAPIRoute {
 		const t = data.body;
 		const userId = c.get("userId");
 
-		const result = await c.env.DB.prepare(
-			`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, tag_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
+		// 1. Insert Transaction First
+		const txResult = await c.env.DB.prepare(
+			`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date) 
+			 VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`
 		)
-			.bind(t.title, t.amount, t.category_id, t.type, t.account_id, userId, t.tag_id ?? null, t.date)
-			.first();
+			.bind(t.title, t.amount, t.category_id, t.type, t.account_id, userId, t.date)
+			.first() as any;
+
+		// 2. Insert Tags if provided
+		if (t.tag_ids && t.tag_ids.length > 0) {
+			const tagStmts = t.tag_ids.map(tagId =>
+				c.env.DB.prepare(`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`).bind(txResult.id, tagId)
+			);
+			await c.env.DB.batch(tagStmts);
+		}
+
+		// Merge for frontend
+		const finalResult = { ...txResult, tag_ids: t.tag_ids || [] };
 
 		return {
 			success: true,
-			transaction: result,
+			transaction: finalResult,
 		};
 	}
 }
