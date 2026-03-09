@@ -73,13 +73,18 @@ export class TransactionList extends OpenAPIRoute {
 				c.name as category,
 				c.icon as category_icon,
 				a.name as account,
-				(SELECT json_group_array(tag_id) FROM transaction_tags WHERE transaction_id = t.id) as tag_ids
+				(SELECT json_group_array(tag_id) FROM transaction_tags WHERE transaction_id = t.id) as tag_ids,
+				ts_me.amount as my_split_amount,
+				ts_me.percentage as my_split_percentage,
+				sg.name as group_name
 			FROM transactions t
 			LEFT JOIN categories c ON t.category_id = c.id
 			LEFT JOIN accounts a ON t.account_id = a.id
-			WHERE t.user_id = ?
+			LEFT JOIN transaction_splits ts_me ON ts_me.transaction_id = t.id AND ts_me.user_id = ?
+			LEFT JOIN shared_groups sg ON t.group_id = sg.id
+			WHERE (t.user_id = ? OR t.id IN (SELECT transaction_id FROM transaction_splits WHERE user_id = ?))
 		`;
-		const binds: any[] = [userId];
+		const binds: any[] = [userId, userId, userId];
 
 		if (search) {
 			query += ` AND LOWER(t.title) LIKE LOWER(?)`;
@@ -116,7 +121,7 @@ export class TransactionList extends OpenAPIRoute {
 		const result = await c.env.DB.prepare(query).bind(...binds).all();
 		const allTx = result.results.map((tx: any) => ({
 			...tx,
-			tag_ids: JSON.parse(tx.tag_ids || "[]")
+			tag_ids: JSON.parse(tx.tag_ids || "[]"),
 		}));
 
 		const hasMore = allTx.length > safeLimit;

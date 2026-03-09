@@ -17,6 +17,7 @@ export const authMiddleware = async (c: AppContext, next: () => Promise<void>) =
 
 		if (keyResult) {
 			c.set("userId", keyResult.user_id);
+			c.set("userDisplayName", keyResult.user_id.slice(0, 8));
 			return next();
 		}
 		// If provided but invalid, fail fast
@@ -43,6 +44,10 @@ export const authMiddleware = async (c: AppContext, next: () => Promise<void>) =
 
 		if (payload && payload.sub) {
 			c.set("userId", payload.sub);
+			// Extract display name: try display_name, then full_name (Google), then email prefix
+			const meta = payload.user_metadata as any || {};
+			const displayName = meta.display_name || meta.full_name || meta.name || (payload.email as string || '').split('@')[0] || 'User';
+			c.set("userDisplayName", displayName);
 			return next();
 		} else {
 			return c.json({ error: "Session missing User ID (sub)" }, 401);

@@ -28,6 +28,10 @@ import { AccountCreate } from "./endpoints/accountCreate";
 import { AccountUpdate } from "./endpoints/accountUpdate";
 import { AccountDelete } from "./endpoints/accountDelete";
 import { UserSetup } from "./endpoints/userSetup";
+import { GroupCreate } from "./endpoints/groupCreate";
+import { GroupJoin } from "./endpoints/groupJoin";
+import { GroupList } from "./endpoints/groupList";
+import { GroupDelete } from "./endpoints/groupDelete";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -71,6 +75,12 @@ openapi.get("/api/recurring", RecurringList);
 openapi.post("/api/recurring", RecurringCreate);
 openapi.put("/api/recurring/:id", RecurringUpdate);
 openapi.delete("/api/recurring/:id", RecurringDelete);
+
+// ── Shared Groups ──
+openapi.get("/api/groups", GroupList);
+openapi.post("/api/groups", GroupCreate);
+openapi.post("/api/groups/join", GroupJoin);
+openapi.delete("/api/groups/:id", GroupDelete);
 
 // ── Categories ──
 openapi.get("/api/categories", CategoryList);

@@ -56,7 +56,7 @@ export class TransactionUpdate extends OpenAPIRoute {
 		const userId = c.get("userId");
 
 		// Fetch existing
-		const existing = await c.env.DB.prepare(`SELECT * FROM transactions WHERE id = ? AND user_id = ?`).bind(id, userId).first();
+		const existing = await c.env.DB.prepare(`SELECT * FROM transactions WHERE id = ? AND user_id = ?`).bind(id, userId).first() as any;
 		if (!existing) {
 			return c.json({ success: false, error: "Transaction not found" }, 404);
 		}
@@ -67,6 +67,8 @@ export class TransactionUpdate extends OpenAPIRoute {
 		const newType = updates.type ?? existing.type;
 		const newAccount = updates.account_id ?? existing.account_id;
 		const newDate = updates.date ?? existing.date;
+		const newIsShared = updates.is_shared !== undefined ? (updates.is_shared ? 1 : 0) : existing.is_shared;
+		const newGroupId = updates.group_id !== undefined ? updates.group_id : existing.group_id;
 
 		// Fetch existing tags to prefill if no change
 		let currentTagIds: number[] = [];
@@ -76,9 +78,9 @@ export class TransactionUpdate extends OpenAPIRoute {
 		}
 
 		const txResult = await c.env.DB.prepare(
-			`UPDATE transactions SET title = ?, amount = ?, category_id = ?, type = ?, account_id = ?, date = ? WHERE id = ? AND user_id = ? RETURNING *`
+			`UPDATE transactions SET title = ?, amount = ?, category_id = ?, type = ?, account_id = ?, date = ?, is_shared = ?, group_id = ? WHERE id = ? AND user_id = ? RETURNING *`
 		)
-			.bind(newTitle, newAmount, newCategory, newType, newAccount, newDate, id, userId)
+			.bind(newTitle, newAmount, newCategory, newType, newAccount, newDate, newIsShared, newGroupId, id, userId)
 			.first();
 
 		if (updates.tag_ids !== undefined) {
@@ -91,11 +93,38 @@ export class TransactionUpdate extends OpenAPIRoute {
 			await c.env.DB.batch(stmts);
 		}
 
+		// Handle splits update
+		let finalSplits: any[] = [];
+		if (updates.splits !== undefined) {
+			// Clear existing splits and re-insert
+			const splitStmts: any[] = [c.env.DB.prepare(`DELETE FROM transaction_splits WHERE transaction_id = ?`).bind(id)];
+			if (newIsShared && updates.splits.length > 0) {
+				for (const split of updates.splits) {
+					const splitAmount = Math.round((newAmount * split.percentage) / 100);
+					splitStmts.push(
+						c.env.DB.prepare(
+							`INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`
+						).bind(id, split.user_id, splitAmount, split.percentage)
+					);
+				}
+			}
+			await c.env.DB.batch(splitStmts);
+		}
+
+		// Fetch current splits for response
+		const splitsResult = await c.env.DB.prepare(`
+			SELECT ts.*, sgm.nickname 
+			FROM transaction_splits ts
+			LEFT JOIN shared_group_members sgm ON sgm.user_id = ts.user_id AND sgm.group_id = ?
+			WHERE ts.transaction_id = ?
+		`).bind(newGroupId, id).all();
+		finalSplits = splitsResult.results;
+
 		const finalTags = updates.tag_ids !== undefined ? updates.tag_ids : currentTagIds;
 		
 		return {
 			success: true,
-			transaction: { ...txResult, tag_ids: finalTags },
+			transaction: { ...txResult, tag_ids: finalTags, splits: finalSplits },
 		};
 	}
 }

@@ -10,6 +10,7 @@ export type AppContext = Context<{
 	};
 	Variables: {
 		userId: string;
+		userDisplayName: string;
 	};
 }>;
 
@@ -23,6 +24,14 @@ export const Transaction = z.object({
 	tag_ids: z.array(Num()).optional(),
 	date: Str({ example: "2025-02-24", description: "YYYY-MM-DD" }),
 	recurring_rule_id: Num({ required: false, description: "Origin recurring rule ID" }),
+	is_shared: Num({ required: false, description: "1 = shared, 0 = personal" }),
+	group_id: Num({ required: false, description: "Shared group ID" }),
+	splits: z.array(z.object({
+		user_id: Str(),
+		percentage: Num(),
+		amount: Num({ required: false }),
+		nickname: Str({ required: false }),
+	})).optional(),
 	created_at: DateTime({ required: false }),
 });
 
