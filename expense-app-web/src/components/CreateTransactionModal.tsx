@@ -212,7 +212,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex gap-4">
-               <div className="flex-1">
+               <div className="flex-1 min-w-0">
                   <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Amount</label>
                   <div className="relative group">
                      <span className="absolute left-4 top-3.5 text-zinc-400 font-bold group-focus-within:text-emerald-400 transition-colors">$</span>
@@ -234,7 +234,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                      />
                   </div>
                </div>
-               <div className="flex-1">
+               <div className="flex-1 min-w-0">
                   <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Date</label>
                   <div className="relative">
                     <div className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 flex items-center justify-between text-white transition-colors duration-200">
@@ -267,7 +267,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
             </div>
 
             <div className="flex gap-4">
-               <div className="flex-1">
+               <div className="flex-1 min-w-0">
                   <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Category</label>
                   <div className="relative z-20">
                     <CustomSelect
@@ -281,7 +281,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                     />
                   </div>
                </div>
-               <div className="flex-1">
+               <div className="flex-1 min-w-0">
                   <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Account</label>
                   <div className="relative z-10">
                     <CustomSelect

@@ -162,7 +162,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
              </div>
 
              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                    <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Amount</label>
                    <div className="relative group">
                       <span className="absolute left-4 top-3.5 text-zinc-400 font-bold group-focus-within:text-emerald-400 transition-colors">$</span>
@@ -184,7 +184,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                       />
                    </div>
                 </div>
-                <div className="flex-1 z-30">
+                <div className="flex-1 z-30 min-w-0">
                    <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Frequency</label>
                    <div className="relative">
                      <CustomSelect
@@ -224,7 +224,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
              )}
 
              <div className="flex flex-col sm:flex-row gap-4">
-               <div className="flex-1 z-20">
+               <div className="flex-1 z-20 min-w-0">
                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Category</label>
                    <div className="relative">
                      <CustomSelect
@@ -238,7 +238,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                      />
                    </div>
                </div>
-               <div className="flex-1 z-10">
+               <div className="flex-1 z-10 min-w-0">
                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Account</label>
                   <div className="relative">
                     <CustomSelect
@@ -253,7 +253,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                     />
                   </div>
                </div>
-               <div className="flex-1">
+               <div className="flex-1 min-w-0">
                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">First Run / Next Run</label>
                   <div className="relative">
                     <div className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 flex items-center justify-between text-white transition-colors duration-200">

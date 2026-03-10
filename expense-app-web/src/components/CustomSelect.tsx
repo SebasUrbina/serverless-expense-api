@@ -49,7 +49,7 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
           size === 'small' ? 'px-3 h-[42px]' : 'px-4 py-3'
         } text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
       >
-        <span className={`block truncate pr-2 text-sm font-medium ${selectedOption ? 'text-zinc-200' : 'text-zinc-500'}`}>
+        <span className={`flex-1 min-w-0 truncate pr-2 text-sm text-left font-medium ${selectedOption ? 'text-zinc-200' : 'text-zinc-500'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown 
@@ -80,8 +80,8 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
                         : 'text-zinc-300 font-medium hover:bg-zinc-800/50 hover:text-white'
                     }`}
                   >
-                    {option.label}
-                    {isSelected && <Check size={16} className="text-emerald-500" />}
+                    <span className="truncate text-left flex-1 pr-2">{option.label}</span>
+                    {isSelected && <Check size={16} className="shrink-0 text-emerald-500" />}
                   </button>
                 );
               })}
