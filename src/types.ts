@@ -19,6 +19,7 @@ export const Transaction = z.object({
 	title: Str({ example: "Groceries" }),
 	amount: Num({ example: 45.99 }),
 	category_id: Num({ example: 1 }),
+	category_icon: Str({ required: false }),
 	type: z.enum(["expense", "income"]).openapi({ example: "expense" }),
 	account_id: Num({ example: 12 }),
 	tag_ids: z.array(Num()).optional(),

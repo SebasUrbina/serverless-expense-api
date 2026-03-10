@@ -32,6 +32,9 @@ import { GroupCreate } from "./endpoints/groupCreate";
 import { GroupJoin } from "./endpoints/groupJoin";
 import { GroupList } from "./endpoints/groupList";
 import { GroupDelete } from "./endpoints/groupDelete";
+import { GroupBalances } from "./endpoints/groupBalances";
+import { GroupSettle } from "./endpoints/groupSettle";
+import { GroupUpdate } from "./endpoints/groupUpdate";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -81,6 +84,9 @@ openapi.get("/api/groups", GroupList);
 openapi.post("/api/groups", GroupCreate);
 openapi.post("/api/groups/join", GroupJoin);
 openapi.delete("/api/groups/:id", GroupDelete);
+openapi.put("/api/groups/:id", GroupUpdate);
+openapi.get("/api/groups/balances", GroupBalances);
+openapi.post("/api/groups/:group_id/settle", GroupSettle);
 
 // ── Categories ──
 openapi.get("/api/categories", CategoryList);
