@@ -38,18 +38,18 @@ export function AccountManager() {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
       <div className="flex items-center gap-3 mb-6">
         <Wallet className="text-blue-500" size={24} />
-        <h3 className="text-xl font-bold text-white">Accounts</h3>
+        <h3 className="text-xl font-bold text-white tracking-tight">Accounts</h3>
       </div>
       
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 mb-8 bg-black p-4 rounded-2xl border border-zinc-800">
-        <div className="flex flex-wrap lg:flex-nowrap gap-2 items-center">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 mb-8 bg-black p-4 rounded-2xl border border-zinc-800">
+        <div className="flex flex-col md:flex-row gap-3">
             <select
               value={type}
               onChange={(e) => setType(e.target.value as Account['type'])}
-              className="bg-zinc-900 border-none rounded-xl px-4 py-2 text-white focus:ring-1 focus:ring-zinc-700 text-sm font-medium"
+              className="w-full md:w-auto bg-zinc-900 border-none rounded-xl px-4 py-2.5 text-white focus:ring-1 focus:ring-zinc-700 text-sm font-medium"
             >
               <option value="checking">Checking</option>
               <option value="savings">Savings</option>
@@ -62,25 +62,25 @@ export function AccountManager() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Banco Estado"
-              className="flex-1 min-w-[150px] bg-zinc-900 rounded-xl border-none text-white px-4 py-2 focus:outline-none focus:ring-1 focus:ring-zinc-700 text-sm placeholder:text-zinc-500"
+              className="flex-1 w-full bg-zinc-900 rounded-xl border-none text-white px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-zinc-700 text-sm placeholder:text-zinc-500"
             />
-            <div className="relative flex-1 min-w-[150px]">
-                <span className="absolute left-3 top-2 text-zinc-500 text-sm font-bold">$</span>
+            <div className="relative w-full md:w-auto md:min-w-[150px]">
+                <span className="absolute left-3 top-2.5 text-zinc-500 text-sm font-bold">$</span>
                 <input
                 type="number"
                 value={balance}
                 step="0.01"
                 onChange={(e) => setBalance(e.target.value)}
                 placeholder="Initial balance..."
-                className="w-full bg-zinc-900 rounded-xl border-none text-white pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-700 placeholder:text-zinc-500"
+                className="w-full bg-zinc-900 rounded-xl border-none text-white pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-700 placeholder:text-zinc-500"
                 />
             </div>
             <button
               type="submit"
               disabled={!name.trim() || createMutation.isPending}
-              className="bg-blue-500 hover:bg-blue-400 disabled:bg-blue-500/50 text-white px-4 py-2 rounded-xl transition-colors flex items-center justify-center font-medium text-sm"
+              className="w-full md:w-auto bg-blue-500 hover:bg-blue-400 disabled:bg-blue-500/50 text-white px-6 py-2.5 rounded-xl transition-colors flex items-center justify-center font-medium text-sm"
             >
-              {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <><Plus size={16} className="md:mr-1" /> <span className="hidden md:inline">Add</span></>}
+              {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <><Plus size={16} className="mr-1" /> <span>Add</span></>}
             </button>
         </div>
       </form>

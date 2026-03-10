@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Calendar, X } from 'lucide-react';
-import { format, parseISO, subMonths } from 'date-fns';
+import { ChevronDown, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { format, parseISO, subMonths, addMonths } from 'date-fns';
 
 type MonthSelectorProps = {
   value: string; // YYYY-MM
   onChange: (value: string) => void;
   className?: string;
+  alignDropdown?: 'left' | 'right';
 };
 
-export function MonthSelector({ value, onChange, className = '' }: MonthSelectorProps) {
+export function MonthSelector({ value, onChange, className = '', alignDropdown = 'right' }: MonthSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +26,18 @@ export function MonthSelector({ value, onChange, className = '' }: MonthSelector
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handlePrevMonth = () => {
+    const currentDate = value ? parseISO(`${value}-01`) : new Date();
+    const prevDate = subMonths(currentDate, 1);
+    onChange(format(prevDate, 'yyyy-MM'));
+  };
+
+  const handleNextMonth = () => {
+    const currentDate = value ? parseISO(`${value}-01`) : new Date();
+    const nextDate = addMonths(currentDate, 1);
+    onChange(format(nextDate, 'yyyy-MM'));
+  };
+
   // Generate last 12 months for quick selection
   const last12Months = Array.from({ length: 12 }, (_, i) => {
     const d = subMonths(new Date(), i);
@@ -35,31 +48,36 @@ export function MonthSelector({ value, onChange, className = '' }: MonthSelector
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50 rounded-xl px-4 py-2 text-sm text-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-600 transition-all h-[42px] min-w-[140px]"
+      <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 h-[42px]">
+        <button 
+          onClick={handlePrevMonth}
+          className="flex items-center justify-center h-full w-9 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-colors"
+          title="Previous Month"
         >
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-zinc-500" />
-            <span className="font-medium whitespace-nowrap">{displayValue}</span>
-          </div>
-          <ChevronDown size={16} className={`text-zinc-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronLeft size={18} />
         </button>
 
-        {value && (
-          <button 
-            onClick={() => onChange('')}
-            className="flex items-center justify-center h-[42px] w-[42px] bg-zinc-900 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50 rounded-xl text-zinc-500 hover:text-white transition-colors shrink-0"
-            title="Clear filter"
-          >
-            <X size={16} />
-          </button>
-        )}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center justify-center gap-2 px-3 h-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-colors min-w-[110px]"
+        >
+          <Calendar size={14} className="text-emerald-500" />
+          <span className="whitespace-nowrap capitalize">{displayValue}</span>
+        </button>
+
+        <button 
+          onClick={handleNextMonth}
+          className="flex items-center justify-center h-full w-9 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-colors"
+          title="Next Month"
+        >
+          <ChevronRight size={18} />
+        </button>
       </div>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 right-0 lg:left-0 lg:right-auto w-56 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-xl p-2">
+        <div className={`absolute top-full mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-xl p-2 ${
+          alignDropdown === 'left' ? 'left-0' : 'right-0'
+        }`}>
           <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-3 py-2 mb-1">
             Quick Select
           </div>

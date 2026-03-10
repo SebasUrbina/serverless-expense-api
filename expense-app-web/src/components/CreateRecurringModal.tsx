@@ -1,19 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, addMonths } from 'date-fns';
 import { X, ChevronDown } from 'lucide-react';
 import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
 import { CustomSelect } from './CustomSelect';
+import { RecurringRule } from '@/app/recurring/page';
 
 type Props = {
   isOpen: boolean;
+  initialData?: RecurringRule | null;
   onClose: () => void;
 };
 
-export function CreateRecurringModal({ isOpen, onClose }: Props) {
+export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
@@ -36,10 +38,51 @@ export function CreateRecurringModal({ isOpen, onClose }: Props) {
   const [dayOfMonth, setDayOfMonth] = useState('1');
   const [nextRun, setNextRun] = useState(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
 
+  useEffect(() => {
+    if (initialData) {
+      setType(initialData.type);
+      setTitle(initialData.title);
+      setAmount(new Intl.NumberFormat('es-CL').format(initialData.amount));
+      
+      const category = categories.find(c => c.name === initialData.category);
+      setCategoryId(category ? category.id : '');
+      
+      const account = accounts.find(a => a.name === initialData.account);
+      setAccountId(account ? account.id : '');
+      
+      setFrequency(initialData.frequency);
+      setDayOfMonth(initialData.day_of_month ? initialData.day_of_month.toString() : '1');
+      
+      try {
+        setNextRun(format(new Date(initialData.next_run), 'yyyy-MM-dd'));
+      } catch (e) {
+        setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+      }
+
+      // We'd need to fetch tags if they were returned in initialData, but skipping for now
+      // as RecurringRule doesn't expose tagIds directly yet.
+    } else {
+      setType('expense');
+      setTitle('');
+      setAmount('');
+      setCategoryId('');
+      setAccountId('');
+      setFrequency('monthly');
+      setDayOfMonth('1');
+      setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+      setTagIds([]);
+    }
+  }, [initialData, categories.length, accounts.length, isOpen]);
+
   const mutation = useMutation({
-    mutationFn: async (newRule: any) => {
-      const res = await api.post('/recurring', newRule);
-      return res.data;
+    mutationFn: async (ruleData: any) => {
+      if (initialData?.id) {
+        const res = await api.put(`/recurring/${initialData.id}`, ruleData);
+        return res.data;
+      } else {
+        const res = await api.post('/recurring', ruleData);
+        return res.data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring'] });
@@ -60,6 +103,7 @@ export function CreateRecurringModal({ isOpen, onClose }: Props) {
       frequency,
       day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) : null,
       next_run: nextRun,
+      is_active: initialData ? initialData.is_active : 1
     }, {
        onSettled: () => setLoading(false)
     });
@@ -76,9 +120,9 @@ export function CreateRecurringModal({ isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-end lg:items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-0">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div 
-        className="bg-zinc-950 border border-zinc-800 rounded-t-3xl lg:rounded-3xl w-full max-w-lg overflow-y-auto max-h-[90vh] shadow-2xl transition-all"
+        className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-lg overflow-y-auto max-h-[90vh] shadow-2xl transition-all"
       >
         <div className="flex justify-between items-center p-6 border-b border-zinc-800 sticky top-0 bg-zinc-950/90 backdrop-blur z-10">
           <h2 className="text-xl font-bold text-white">New Recurring Rule</h2>
@@ -116,7 +160,7 @@ export function CreateRecurringModal({ isOpen, onClose }: Props) {
                 />
              </div>
 
-             <div className="flex gap-4">
+             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                    <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Amount</label>
                    <div className="relative group">
@@ -158,33 +202,40 @@ export function CreateRecurringModal({ isOpen, onClose }: Props) {
 
              {frequency === 'monthly' && (
                 <div>
-                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Day of Month</label>
-                   <input
-                     type="number"
-                     min="1"
-                     max="28"
-                     required
-                     value={dayOfMonth}
-                     onChange={(e) => setDayOfMonth(e.target.value)}
-                     className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-colors duration-200"
-                   />
+                  <div className="flex justify-between items-center mb-2 px-1">
+                     <label className="block text-[10px] font-bold uppercase text-zinc-500">Day of Month</label>
+                     <span className="text-sm font-bold text-emerald-400">{dayOfMonth}</span>
+                  </div>
+                  <div className="flex items-center gap-4 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3">
+                     <span className="text-xs text-zinc-500 font-medium">1</span>
+                     <input
+                       type="range"
+                       min="1"
+                       max="30"
+                       required
+                       value={dayOfMonth}
+                       onChange={(e) => setDayOfMonth(e.target.value)}
+                       className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                     />
+                     <span className="text-xs text-zinc-500 font-medium">30</span>
+                  </div>
                 </div>
              )}
 
-             <div className="flex gap-4">
+             <div className="flex flex-col sm:flex-row gap-4">
                <div className="flex-1 z-20">
                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Category</label>
-                  <div className="relative">
-                    <CustomSelect
-                      value={categoryId}
-                      onChange={setCategoryId}
-                      placeholder={isLoadingCategories ? 'Loading...' : 'Select category'}
-                      disabled={isLoadingCategories}
-                      options={categories
-                        .filter(cat => cat.type === type)
-                        .map(cat => ({ value: cat.id, label: `${cat.icon || ' '} ${cat.name}` }))}
-                    />
-                  </div>
+                   <div className="relative">
+                     <CustomSelect
+                       value={categoryId}
+                       onChange={setCategoryId}
+                       placeholder={isLoadingCategories ? 'Loading...' : 'Select category'}
+                       disabled={isLoadingCategories}
+                       options={categories
+                         .filter(cat => cat.type === type)
+                         .map(cat => ({ value: cat.id, label: `${cat.icon || '🏷️'} ${cat.name}` }))}
+                     />
+                   </div>
                </div>
                <div className="flex-1 z-10">
                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">Account</label>

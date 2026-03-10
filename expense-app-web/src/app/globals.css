@@ -11,6 +11,8 @@
 @layer base {
   body {
     @apply bg-zinc-950 text-white antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
   }
 }
 
@@ -31,4 +33,32 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #52525b; 
+}
+
+/* Range slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
 }

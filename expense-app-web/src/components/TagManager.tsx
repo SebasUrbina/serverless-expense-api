@@ -25,26 +25,26 @@ export function TagManager() {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
       <div className="flex items-center gap-3 mb-6">
         <Hash className="text-violet-500" size={24} />
-        <h3 className="text-xl font-bold text-white">Tags</h3>
+        <h3 className="text-xl font-bold text-white tracking-tight">Tags</h3>
       </div>
       
-      <form onSubmit={handleSubmit} className="flex gap-2 mb-8 items-center bg-black p-2 rounded-2xl border border-zinc-800">
+      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 mb-8 items-center bg-black p-4 rounded-2xl border border-zinc-800">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="New Tag Name (e.g. vacation)..."
-          className="flex-1 bg-transparent border-none text-white px-4 py-2 focus:outline-none focus:ring-0 text-sm placeholder:text-zinc-600"
+          className="w-full flex-1 bg-zinc-900 md:bg-transparent rounded-xl md:rounded-none border-none text-white px-4 md:px-2 py-2.5 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-zinc-700 text-sm placeholder:text-zinc-600"
         />
         <button
           type="submit"
           disabled={!name.trim() || createMutation.isPending}
-          className="bg-violet-500 hover:bg-violet-400 disabled:bg-violet-500/50 text-white p-2 rounded-xl transition-colors flex items-center justify-center"
+          className="w-full md:w-auto bg-violet-500 hover:bg-violet-400 disabled:bg-violet-500/50 text-white px-6 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium text-sm"
         >
-          {createMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+          {createMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <><Plus size={18} /> <span>Add</span></>}
         </button>
       </form>
 

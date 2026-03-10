@@ -146,3 +146,105 @@ export function useUserSetup() {
   });
 }
 
+// ── Shared Groups ──
+
+export type GroupMember = {
+  user_id: string;
+  nickname: string;
+};
+
+export type SharedGroup = {
+  id: number;
+  name: string;
+  invite_code: string | null;
+  created_by: string;
+  members: GroupMember[];
+};
+
+export function useGroups() {
+  return useQuery<{ groups: SharedGroup[] }>({
+    queryKey: ['groups'],
+    queryFn: async () => {
+      const res = await api.get('/groups');
+      return res.data;
+    },
+  });
+}
+
+export function useCreateGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { name: string; nickname: string }) => {
+      const res = await api.post('/groups', data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+export function useJoinGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { invite_code: string; nickname: string }) => {
+      const res = await api.post('/groups/join', data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+export function useDeleteGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await api.delete(`/groups/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+  });
+}
+
+export function useUpdateGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: number; name: string }) => {
+      const res = await api.put(`/groups/${id}`, { name });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+    },
+  });
+}
+
+// ── API Keys ──
+
+export function useApiKey() {
+  return useQuery<{ key: string }>({
+    queryKey: ['api_key'],
+    queryFn: async () => {
+      const res = await api.get('/keys');
+      return res.data;
+    },
+  });
+}
+
+export function useGenerateApiKey() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/keys');
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api_key'] });
+    },
+  });
+}

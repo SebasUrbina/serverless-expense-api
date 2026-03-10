@@ -10,12 +10,26 @@ export type Transaction = {
   amount: number;
   category: string;
   category_id: number;
+  category_icon?: string;
   type: 'expense' | 'income';
   account: string;
   account_id: number;
   tag_ids: number[];
+  tag_names?: string[];
   date: string;
   recurring_rule_id?: number;
+  is_shared?: number;
+  group_id?: number;
+  group_name?: string;
+  my_split_amount?: number;
+  my_split_percentage?: number;
+  is_owner?: boolean;
+  splits?: Array<{
+    user_id: string;
+    amount: number;
+    percentage: number;
+    nickname?: string;
+  }>;
   created_at: string;
 };
 
@@ -27,7 +41,10 @@ export type MonthlySummary = {
 
 export type CategorySummary = {
   category: string;
+  category_id: number;
+  category_icon?: string;
   amount: number;
+  previous_amount?: number;
   type: 'expense' | 'income';
 };
 

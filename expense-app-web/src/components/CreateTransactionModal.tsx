@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format } from 'date-fns';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Users } from 'lucide-react';
 import { Transaction, useDeleteTransaction } from '@/hooks/useDashboardData';
-import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
+import { useCategories, useAccounts, useTags, useGroups } from '@/hooks/usePreferences';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { CustomSelect } from './CustomSelect';
 import { Trash2 } from 'lucide-react';
@@ -32,6 +32,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   const { data: tagsData, isLoading: isLoadingTags } = useTags();
   const tags = tagsData?.tags || [];
 
+  // Fetch shared groups
+  const { data: groupsData } = useGroups();
+  const groups = groupsData?.groups || [];
+
   // Form State
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [title, setTitle] = useState('');
@@ -41,6 +45,12 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Shared expense state
+  const [isShared, setIsShared] = useState(false);
+  const [groupId, setGroupId] = useState<number | ''>('');
+  const [splitPercentages, setSplitPercentages] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (initialData) {
@@ -51,6 +61,14 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
       setAccountId(initialData.account_id || '');
       setTagIds(initialData.tag_ids || []);
       setDate(format(new Date(initialData.date), 'yyyy-MM-dd'));
+      setIsShared(!!initialData.is_shared);
+      setGroupId(initialData.group_id || '');
+      // Restore split percentages
+      if (initialData.splits && initialData.splits.length > 0) {
+        const pcts: Record<string, number> = {};
+        initialData.splits.forEach(s => { pcts[s.user_id] = s.percentage; });
+        setSplitPercentages(pcts);
+      }
     } else {
       resetForm();
     }
@@ -64,7 +82,27 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     setCategoryId('');
     setAccountId('');
     setTagIds([]);
+    setIsShared(false);
+    setGroupId('');
+    setSplitPercentages({});
+    setError(null);
   };
+
+  // Get currently selected group
+  const selectedGroup = groups.find(g => g.id === groupId);
+
+  // Auto-set equal splits when group changes
+  useEffect(() => {
+    if (selectedGroup) {
+      const memberCount = selectedGroup.members.length;
+      const equalPct = Math.floor(100 / memberCount);
+      const pcts: Record<string, number> = {};
+      selectedGroup.members.forEach((m, idx) => {
+        pcts[m.user_id] = idx === 0 ? 100 - equalPct * (memberCount - 1) : equalPct;
+      });
+      setSplitPercentages(pcts);
+    }
+  }, [groupId]);
 
   const mutation = useMutation({
     mutationFn: async (newTx: any) => {
@@ -79,6 +117,11 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
       resetAndClose();
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to save transaction. Try again.';
+      setError(msg);
+      setLoading(false);
     },
   });
 
@@ -96,17 +139,36 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     const parsedAmount = parseInt(amount.replace(/\./g, ''), 10);
-    mutation.mutate({
+    if (!parsedAmount || isNaN(parsedAmount)) {
+      setLoading(false);
+      return;
+    }
+    const payload: any = {
       title,
       amount: parsedAmount,
-      category_id: categoryId,
+      category_id: categoryId !== '' ? categoryId : undefined,
       type,
-      account_id: accountId,
+      account_id: accountId !== '' ? accountId : undefined,
       tag_ids: tagIds,
       date,
-    }, {
+    };
+
+    if (isShared && groupId && selectedGroup) {
+      payload.is_shared = 1;
+      payload.group_id = groupId;
+      payload.splits = selectedGroup.members.map(m => ({
+        user_id: m.user_id,
+        percentage: splitPercentages[m.user_id] || 0,
+      }));
+    } else {
+      payload.is_shared = 0;
+      payload.group_id = undefined;
+    }
+
+    mutation.mutate(payload, {
        onSettled: () => setLoading(false)
     });
   };
@@ -119,11 +181,11 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-end lg:items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-0">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div 
-        className="bg-zinc-950 border border-zinc-800 rounded-t-3xl lg:rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl transition-all"
+        className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-lg overflow-y-auto max-h-[90vh] shadow-2xl transition-all"
       >
-        <div className="flex justify-between items-center p-6 border-b border-zinc-800">
+        <div className="flex justify-between items-center p-6 border-b border-zinc-800 sticky top-0 bg-zinc-950/90 backdrop-blur z-30">
           <h2 className="text-xl font-bold text-white">{initialData ? 'Edit Transaction' : 'New Transaction'}</h2>
           <button onClick={resetAndClose} className="p-2 bg-zinc-900 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
             <X size={20} />
@@ -206,7 +268,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                       disabled={isLoadingCategories}
                       options={categories
                         .filter((cat) => cat.type === type)
-                        .map((cat) => ({ value: cat.id, label: `${cat.icon || ' '} ${cat.name}` }))}
+                        .map((cat) => ({ value: cat.id, label: `${cat.icon || '🏷️'} ${cat.name}` }))}
                     />
                   </div>
                </div>
@@ -260,9 +322,188 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
               </div>
             </div>
 
+            {/* Shared Expense Section */}
+            {groups.length > 0 && (
+              <div className="border-t border-zinc-800 pt-4 mt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center gap-2 text-xs font-bold uppercase text-zinc-500">
+                    <Users size={14} className={isShared ? 'text-violet-400' : ''} />
+                    Shared Expense
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsShared(!isShared)}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                      isShared ? 'bg-violet-500' : 'bg-zinc-700'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                      isShared ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {isShared && (
+                  <div className="space-y-3 animate-in fade-in duration-200">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Group</label>
+                      <CustomSelect
+                        value={groupId}
+                        onChange={(val) => setGroupId(val as number)}
+                        placeholder="Select group"
+                        options={groups.map(g => ({ value: g.id, label: `👥 ${g.name}` }))}
+                      />
+                    </div>
+
+                    {selectedGroup && (() => {
+                      const members = selectedGroup.members;
+                      const is2Members = members.length === 2;
+                      const parsedAmt = amount ? parseInt(amount.replace(/\./g, ''), 10) : 0;
+                      const firstPct = splitPercentages[members[0]?.user_id] || 0;
+
+                      // Preset buttons config
+                      const presets = is2Members
+                        ? [
+                            { label: '50 / 50', values: [50, 50] },
+                            { label: '60 / 40', values: [60, 40] },
+                            { label: '70 / 30', values: [70, 30] },
+                            { label: '80 / 20', values: [80, 20] },
+                            { label: '100 / 0', values: [100, 0] },
+                          ]
+                        : [
+                            { label: 'Equal', values: members.map(() => Math.floor(100 / members.length)) },
+                          ];
+
+                      const applyPreset = (values: number[]) => {
+                        const pcts: Record<string, number> = {};
+                        members.forEach((m, i) => {
+                          if (i < values.length) {
+                            pcts[m.user_id] = values[i];
+                          } else {
+                            // Distribute remainder for equal split
+                            pcts[m.user_id] = values[0];
+                          }
+                        });
+                        // Fix rounding: ensure total = 100
+                        const total = Object.values(pcts).reduce((a, b) => a + b, 0);
+                        if (total !== 100 && members.length > 0) {
+                          pcts[members[0].user_id] += (100 - total);
+                        }
+                        setSplitPercentages(pcts);
+                      };
+
+                      const handleSliderChange = (value: number) => {
+                        if (is2Members) {
+                          setSplitPercentages({
+                            [members[0].user_id]: value,
+                            [members[1].user_id]: 100 - value,
+                          });
+                        }
+                      };
+
+                      return (
+                        <div className="space-y-3">
+                          <label className="block text-xs font-semibold uppercase text-zinc-500">Split</label>
+
+                          {/* Preset Buttons */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {presets.map((preset) => {
+                              const isActive = is2Members
+                                ? firstPct === preset.values[0]
+                                : false;
+                              return (
+                                <button
+                                  key={preset.label}
+                                  type="button"
+                                  onClick={() => applyPreset(preset.values)}
+                                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
+                                    isActive
+                                      ? 'bg-violet-500 text-white border-violet-500'
+                                      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-violet-500/50 hover:text-violet-300'
+                                  }`}
+                                >
+                                  {preset.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Slider for 2-member groups */}
+                          {is2Members && (
+                            <div className="space-y-2">
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={5}
+                                value={firstPct}
+                                onChange={(e) => handleSliderChange(parseInt(e.target.value))}
+                                className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                                style={{
+                                  background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${firstPct}%, #3f3f46 ${firstPct}%, #3f3f46 100%)`,
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          {/* Member breakdown */}
+                          {members.map((member, idx) => {
+                            const pct = splitPercentages[member.user_id] || 0;
+                            const splitAmt = Math.round((parsedAmt * pct) / 100);
+                            return (
+                              <div key={member.user_id} className="flex items-center gap-3 bg-zinc-900/50 rounded-xl px-3 py-2">
+                                <span className="text-violet-400 text-sm font-medium flex-1 truncate">{member.nickname}</span>
+                                {!is2Members && (
+                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={100}
+                                    step={5}
+                                    value={pct}
+                                    onChange={(e) => {
+                                      setSplitPercentages(prev => ({
+                                        ...prev,
+                                        [member.user_id]: parseInt(e.target.value) || 0,
+                                      }));
+                                    }}
+                                    className="w-20 h-1.5 rounded-full appearance-none cursor-pointer"
+                                    style={{
+                                      background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${pct}%, #3f3f46 ${pct}%, #3f3f46 100%)`,
+                                    }}
+                                  />
+                                )}
+                                <span className="text-white text-sm font-bold w-10 text-center">{pct}%</span>
+                                <span className="text-zinc-400 text-sm font-mono w-24 text-right">
+                                  ${splitAmt.toLocaleString('es-CL')}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          {/* Validation */}
+                          {(() => {
+                            const total = Object.values(splitPercentages).reduce((a, b) => a + b, 0);
+                            return total !== 100 ? (
+                              <p className="text-red-400 text-xs">⚠ Must add up to 100% (currently {total}%)</p>
+                            ) : null;
+                          })()}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                ⚠️ {error}
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading || !title || !amount}
+              disabled={loading || !title || !amount || categoryId === '' || accountId === ''}
               className={`w-full py-4 rounded-xl font-bold flex items-center justify-center transition-colors mt-6 ${
                 type === 'expense' 
                   ? 'bg-red-500 hover:bg-red-400 text-white disabled:bg-red-500/50' 

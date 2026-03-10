@@ -14,9 +14,10 @@ type Props = {
   options: Option[];
   placeholder?: string;
   disabled?: boolean;
+  size?: 'default' | 'small';
 };
 
-export function CustomSelect({ value, onChange, options, placeholder = 'Select an option', disabled = false }: Props) {
+export function CustomSelect({ value, onChange, options, placeholder = 'Select an option', disabled = false, size = 'default' }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -42,11 +43,13 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between bg-zinc-900 border ${
-          isOpen ? 'border-zinc-500 ring-1 ring-zinc-500' : 'border-zinc-800 hover:border-zinc-700'
-        } rounded-xl px-4 py-3 text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+        className={`w-full flex items-center justify-between bg-zinc-900/80 border ${
+          isOpen ? 'border-zinc-600 ring-1 ring-zinc-600/50' : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/50'
+        } rounded-xl ${
+          size === 'small' ? 'px-3 h-[42px]' : 'px-4 py-3'
+        } text-left transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
       >
-        <span className={selectedOption ? 'text-white' : 'text-zinc-500'}>
+        <span className={`block truncate pr-2 text-sm font-medium ${selectedOption ? 'text-zinc-200' : 'text-zinc-500'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown 
@@ -56,11 +59,11 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-2 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 max-h-60 overflow-y-auto">
+        <div className="absolute z-50 w-full min-w-[140px] mt-2 left-0 sm:right-auto bg-zinc-900 border border-zinc-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto backdrop-blur-xl p-1.5">
           {options.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-zinc-500">No options available</div>
+            <div className="px-3 py-2 text-sm text-zinc-500 font-medium">No options available</div>
           ) : (
-            <div className="py-1 relative">
+            <div className="flex flex-col gap-0.5 relative">
               {options.map((option) => {
                 const isSelected = option.value === value;
                 return (
@@ -71,10 +74,10 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
                       isSelected 
-                        ? 'bg-zinc-800 text-white font-medium' 
-                        : 'text-zinc-300 hover:bg-zinc-800/50 hover:text-white'
+                        ? 'bg-emerald-500/10 text-emerald-400 font-medium' 
+                        : 'text-zinc-300 font-medium hover:bg-zinc-800/50 hover:text-white'
                     }`}
                   >
                     {option.label}

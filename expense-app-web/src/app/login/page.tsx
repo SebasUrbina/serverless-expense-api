@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Mail, Key, Loader2, LogIn } from 'lucide-react';
-import Image from 'next/image';
+import { Mail, Key, Loader2, LogIn, UserPlus, User } from 'lucide-react';
 
 export default function LoginPage() {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -35,6 +37,34 @@ export default function LoginPage() {
     }
   };
 
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || !displayName.trim()) return;
+    
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: displayName.trim(),
+        },
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      setSuccess('Account created! Check your email to confirm, then sign in.');
+      setLoading(false);
+      setMode('login');
+    }
+  };
+
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
     setError(null);
@@ -52,6 +82,13 @@ export default function LoginPage() {
     }
   };
 
+  const resetForm = () => {
+    setEmail('');
+    setPassword('');
+    setDisplayName('');
+    setError(null);
+  };
+
   return (
     <div className="relative flex items-center justify-center min-h-screen w-full bg-zinc-950 overflow-hidden font-sans">
       
@@ -64,12 +101,36 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-zinc-900/40 backdrop-blur-2xl border border-white/5 rounded-[2rem] shadow-2xl shadow-black/50" />
         
         <div className="relative z-20">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 mb-6 shadow-lg shadow-emerald-500/20">
               <span className="text-3xl font-black text-white">$</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Welcome Back</h1>
-            <p className="text-zinc-400 text-sm">Sign in to your financial dashboard</p>
+            <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
+              {mode === 'login' ? 'Welcome Back' : 'Create Account'}
+            </h1>
+            <p className="text-zinc-400 text-sm">
+              {mode === 'login' ? 'Sign in to your financial dashboard' : 'Start tracking your finances today'}
+            </p>
+          </div>
+
+          {/* Mode Toggle */}
+          <div className="flex bg-zinc-950/50 rounded-xl p-1 mb-6 border border-white/5">
+            <button
+              onClick={() => { setMode('login'); resetForm(); }}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                mode === 'login' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setMode('signup'); resetForm(); }}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
+                mode === 'signup' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              Sign Up
+            </button>
           </div>
 
           {error && (
@@ -78,7 +139,35 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          {success && (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl mb-6 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={mode === 'login' ? handleLogin : handleSignup} className="space-y-5">
+            {mode === 'signup' && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 pl-1" htmlFor="displayName">
+                  Your Name
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
+                    <User size={18} />
+                  </span>
+                  <input
+                    id="displayName"
+                    type="text"
+                    required
+                    className="w-full bg-zinc-950/50 border border-white/5 rounded-xl pl-11 pr-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600 font-medium"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="e.g. Sebastian"
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 pl-1" htmlFor="email">
                 Email Address
@@ -111,6 +200,7 @@ export default function LoginPage() {
                   id="password"
                   type="password"
                   required
+                  minLength={6}
                   className="w-full bg-zinc-950/50 border border-white/5 rounded-xl pl-11 pr-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-zinc-600 font-medium"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -127,7 +217,11 @@ export default function LoginPage() {
               <span className="absolute inset-0 w-full h-full bg-gradient-to-tr from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:animate-[shimmer_1.5s_infinite]" />
               {loading ? <Loader2 size={20} className="animate-spin" /> : (
                 <span className="flex items-center gap-2">
-                  Sign In <LogIn size={18} className="opacity-80" />
+                  {mode === 'login' ? (
+                    <>Sign In <LogIn size={18} className="opacity-80" /></>
+                  ) : (
+                    <>Create Account <UserPlus size={18} className="opacity-80" /></>
+                  )}
                 </span>
               )}
             </button>
