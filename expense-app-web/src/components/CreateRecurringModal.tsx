@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, addMonths } from 'date-fns';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Calendar } from 'lucide-react';
+import { formatDateAbbreviated } from '@/lib/utils';
 import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
 import { CustomSelect } from './CustomSelect';
 import { RecurringRule } from '@/app/recurring/page';
@@ -254,13 +255,21 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                </div>
                <div className="flex-1">
                   <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-1 ml-1">First Run / Next Run</label>
-                  <input
-                    type="date"
-                    required
-                    value={nextRun}
-                    onChange={(e) => setNextRun(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-colors duration-200 scheme-dark"
-                  />
+                  <div className="relative">
+                    <div className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 flex items-center justify-between text-white transition-colors duration-200">
+                      <span className="text-sm font-medium">
+                        {formatDateAbbreviated(nextRun)}
+                      </span>
+                      <Calendar size={16} className="text-zinc-500" />
+                    </div>
+                    <input
+                      type="date"
+                      required
+                      value={nextRun}
+                      onChange={(e) => setNextRun(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
                </div>
              </div>
 

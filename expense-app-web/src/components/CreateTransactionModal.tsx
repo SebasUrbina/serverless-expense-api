@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format } from 'date-fns';
-import { X, ChevronDown, Users } from 'lucide-react';
+import { X, ChevronDown, Users, Calendar } from 'lucide-react';
+import { formatDateAbbreviated } from '@/lib/utils';
 import { Transaction, useDeleteTransaction } from '@/hooks/useDashboardData';
 import { useCategories, useAccounts, useTags, useGroups } from '@/hooks/usePreferences';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
@@ -235,13 +236,21 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                </div>
                <div className="flex-1">
                   <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 text-lg transition-colors duration-200 scheme-dark"
-                  />
+                  <div className="relative">
+                    <div className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 flex items-center justify-between text-white transition-colors duration-200">
+                      <span className="text-lg font-medium">
+                        {formatDateAbbreviated(date)}
+                      </span>
+                      <Calendar size={18} className="text-zinc-500" />
+                    </div>
+                    <input
+                      type="date"
+                      required
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                  </div>
                </div>
             </div>
             
