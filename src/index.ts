@@ -35,6 +35,8 @@ import { GroupDelete } from "./endpoints/groupDelete";
 import { GroupBalances } from "./endpoints/groupBalances";
 import { GroupSettle } from "./endpoints/groupSettle";
 import { GroupUpdate } from "./endpoints/groupUpdate";
+import { ShortcutInit } from "./endpoints/shortcuts/shortcutInit";
+import { ShortcutTransactionCreate } from "./endpoints/shortcuts/shortcutTransactionCreate";
 import { authMiddleware } from "./middleware/auth";
 export { scheduled } from "./cron";
 
@@ -62,6 +64,10 @@ openapi.registry.registerComponent("securitySchemes", "ApiKeyAuth", {
 
 // Protect all /api routes via middleware
 openapi.use("/api/*", authMiddleware);
+
+// ── Shortcuts ──
+openapi.get("/api/shortcuts/init", ShortcutInit);
+openapi.post("/api/shortcuts/transactions", ShortcutTransactionCreate);
 
 // ── Transactions ──
 openapi.get("/api/transactions", TransactionList);
