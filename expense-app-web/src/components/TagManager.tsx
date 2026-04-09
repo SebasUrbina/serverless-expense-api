@@ -18,54 +18,67 @@ export function TagManager() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
     createMutation.mutate({ name: name.trim() }, {
       onSuccess: () => setName('')
     });
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Hash className="text-violet-500" size={24} />
-        <h3 className="text-xl font-bold text-white tracking-tight">Tags</h3>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 mb-8 items-center bg-black p-4 rounded-2xl border border-zinc-800">
+    <div className="space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="flex gap-2 items-center rounded-2xl p-3"
+        style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
+      >
+        <Hash size={15} style={{ color: 'var(--text-muted)' }} className="shrink-0 ml-1" />
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="New Tag Name (e.g. vacation)..."
-          className="w-full flex-1 bg-zinc-900 md:bg-transparent rounded-xl md:rounded-none border-none text-white px-4 md:px-2 py-2.5 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-zinc-700 text-sm placeholder:text-zinc-600"
+          placeholder="Nueva etiqueta (ej. vacaciones)…"
+          className="flex-1 bg-transparent text-sm focus:outline-none"
+          style={{ color: 'var(--text-primary)' }}
         />
         <button
           type="submit"
           disabled={!name.trim() || createMutation.isPending}
-          className="w-full md:w-auto bg-violet-500 hover:bg-violet-400 disabled:bg-violet-500/50 text-white px-6 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium text-sm"
+          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0"
         >
-          {createMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <><Plus size={18} /> <span>Add</span></>}
+          {createMutation.isPending
+            ? <Loader2 size={14} className="animate-spin" />
+            : <><Plus size={14} /><span>Añadir</span></>
+          }
         </button>
       </form>
 
       {isLoading ? (
-        <div className="flex justify-center py-6 text-zinc-500"><Loader2 className="animate-spin" /></div>
+        <div className="flex justify-center py-4">
+          <Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+        </div>
       ) : (
-        <div className="flex flex-wrap gap-3">
-            {tags.map(tag => (
-                <div key={tag.id} className="flex items-center gap-2 bg-zinc-950 px-4 py-2 rounded-xl border border-zinc-800 group">
-                    <Hash size={14} className="text-zinc-500" />
-                    <span className="text-zinc-300 font-medium text-sm pr-2">{tag.name}</span>
-                    <button 
-                        onClick={() => setTagToDelete(tag.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-zinc-600 hover:text-red-400 transition-colors"
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
-            ))}
-            {tags.length === 0 && <p className="text-sm text-zinc-600 italic w-full">No tags created yet. Start organizing your expenses!</p>}
+        <div className="flex flex-wrap gap-2">
+          {tags.map(tag => (
+            <div
+              key={tag.id}
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            >
+              <Hash size={12} style={{ color: 'var(--text-muted)' }} />
+              <span>{tag.name}</span>
+              <button
+                onClick={() => setTagToDelete(tag.id)}
+                disabled={deleteMutation.isPending}
+                className="ml-0.5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          {tags.length === 0 && (
+            <p className="text-sm w-full py-2" style={{ color: 'var(--text-muted)' }}>
+              Sin etiquetas aún. Añade una para empezar a organizar.
+            </p>
+          )}
         </div>
       )}
 
@@ -75,8 +88,8 @@ export function TagManager() {
         onConfirm={() => {
           if (tagToDelete !== null) deleteMutation.mutate(tagToDelete);
         }}
-        title="Delete Tag"
-        message="¿Estás seguro? Borrar este tag eliminará permanentemente su asociación en todas las transacciones."
+        title="Eliminar etiqueta"
+        message="¿Estás seguro? Borrar esta etiqueta eliminará su asociación en todas las transacciones."
       />
     </div>
   );

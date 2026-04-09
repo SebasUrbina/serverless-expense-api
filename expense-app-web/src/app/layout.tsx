@@ -1,18 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Sidebar } from "@/components/Sidebar";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Seva Web | Financial Tracker",
-  description: "Professional Web Dashboard for your personal finances",
+  title: "Seva | Finanzas personales",
+  description: "Controla tus gastos, ingresos y finanzas personales de forma simple.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -32,14 +26,34 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+// Script to apply theme before first paint (prevents flash)
+const themeScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('seva-theme');
+    var parsed = stored ? JSON.parse(stored) : null;
+    var theme = parsed?.state?.theme ?? 'system';
+    if (theme === 'system') {
+      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased bg-zinc-950 text-white`}>
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="font-sans antialiased">
         <Providers>
           <LayoutWrapper>
             {children}

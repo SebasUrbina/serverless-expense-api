@@ -182,127 +182,187 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-500">
       <div 
-        className="bg-zinc-950 border border-zinc-800 rounded-3xl w-full max-w-lg overflow-y-auto max-h-[90vh] shadow-2xl transition-all"
+        className="bg-card border-t sm:border border-border rounded-t-4xl sm:rounded-3xl w-full max-w-lg overflow-y-auto max-h-[95vh] sm:max-h-[90vh] shadow-2xl transition-all animate-in slide-in-from-bottom-[100%] sm:slide-in-from-bottom-0 sm:fade-in sm:zoom-in-95 duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] pb-safe sm:pb-0"
       >
-        <div className="flex justify-between items-center p-6 border-b border-zinc-800 sticky top-0 bg-zinc-950/90 backdrop-blur z-30">
-          <h2 className="text-xl font-bold text-white">{initialData ? 'Edit Transaction' : 'New Transaction'}</h2>
-          <button onClick={resetAndClose} className="p-2 bg-zinc-900 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+        <div className="flex justify-between items-center p-4 sm:p-6 sticky top-0 bg-card/90 backdrop-blur z-30">
+          <button type="button" onClick={resetAndClose} className="px-5 py-2.5 bg-inset text-primary rounded-full font-semibold text-sm sm:hidden hover:bg-border transition-colors">
+            Cancelar
+          </button>
+          
+          <h2 className="text-lg sm:text-xl font-bold text-primary absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0">
+            {initialData ? 'Editar' : (type === 'expense' ? 'Agregar gasto' : 'Agregar ingreso')}
+          </h2>
+          
+          <button 
+            type="submit" 
+            form="transaction-form" 
+            disabled={loading || !title || !amount || categoryId === '' || accountId === ''} 
+            className="px-5 py-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full font-bold text-sm sm:hidden disabled:opacity-50 transition-colors"
+          >
+            Guardar
+          </button>
+
+          <button onClick={resetAndClose} className="hidden sm:block p-2 bg-inset rounded-full text-muted hover:text-white hover:bg-card-hover transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-6">
           {/* Type Toggle */}
-          <div className="flex bg-zinc-900 rounded-xl p-1 mb-6">
+          <div className="flex bg-inset rounded-xl p-1 mb-6">
             <button
               onClick={() => setType('expense')}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'expense' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
             >
               Expense
             </button>
             <button
               onClick={() => setType('income')}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'income' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
             >
               Income
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex gap-4">
-               <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Amount</label>
-                  <div className="relative group">
-                     <span className="absolute left-4 top-3.5 text-zinc-400 font-bold group-focus-within:text-emerald-400 transition-colors">$</span>
-                     <input
-                       type="text"
-                       inputMode="numeric"
-                       required
-                       value={amount}
-                       onChange={(e) => {
-                         const rawValue = e.target.value.replace(/\D/g, '');
-                         if (!rawValue) {
-                           setAmount('');
-                           return;
-                         }
-                         setAmount(new Intl.NumberFormat('es-CL').format(parseInt(rawValue, 10)));
-                       }}
-                       className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 font-bold text-lg transition-colors duration-200"
-                       placeholder="0"
-                     />
-                  </div>
-               </div>
-               <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Date</label>
-                  <div className="relative">
-                    <div className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 flex items-center justify-between text-white transition-colors duration-200">
-                      <span className="text-lg font-medium">
-                        {formatDateAbbreviated(date)}
-                      </span>
-                      <Calendar size={18} className="text-zinc-500" />
-                    </div>
-                    <input
-                      type="date"
-                      required
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                    />
-                  </div>
-               </div>
-            </div>
+          <form id="transaction-form" onSubmit={handleSubmit} className="space-y-6">
             
+            {/* Amount & Date - Ultra minimalist top */}
+            <div className="flex flex-col items-center justify-center mb-6 mt-4">
+              <div className="relative inline-flex items-baseline mb-3">
+                <span className="text-2xl text-muted font-bold mr-1">$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  required
+                  value={amount}
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/\D/g, '');
+                    if (!rawValue) {
+                      setAmount('');
+                      return;
+                    }
+                    setAmount(new Intl.NumberFormat('es-CL').format(parseInt(rawValue, 10)));
+                  }}
+                  className="bg-transparent text-primary text-center focus:outline-none font-extrabold text-5xl p-0 min-w-[100px] max-w-[250px]"
+                  style={{ width: `${Math.max(amount.length, 1) * 1.1}ch` }}
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Center Date Pill */}
+              <div className="relative inline-block">
+                <div className="bg-black dark:bg-white text-white dark:text-black rounded-full px-4 py-2 flex items-center gap-2 text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity shadow-sm">
+                  <Calendar size={14} />
+                  <span>{formatDateAbbreviated(date)}</span>
+                  <ChevronDown size={14} />
+                </div>
+                <input
+                  type="date"
+                  required
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Detail */}
             <div>
-              <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Description / Title</label>
+              <label className="block text-sm font-semibold text-secondary mb-2">Detalle de la compra (opcional)</label>
               <input
                 type="text"
-                required
+                required={false}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 transition-colors duration-200 font-medium"
-                placeholder="e.g. Netflix Subscription"
+                className="w-full bg-inset rounded-full px-5 py-3.5 text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-medium text-sm"
+                placeholder="Algún detalle para no olvidar?..."
               />
             </div>
 
-            <div className="flex gap-4">
-               <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Category</label>
-                  <div className="relative z-20">
-                    <CustomSelect
-                      value={categoryId}
-                      onChange={setCategoryId}
-                      placeholder={isLoadingCategories ? 'Loading...' : 'Select category'}
-                      disabled={isLoadingCategories}
-                      options={categories
-                        .filter((cat) => cat.type === type)
-                        .map((cat) => ({ value: cat.id, label: `${cat.icon || '🏷️'} ${cat.name}` }))}
-                    />
-                  </div>
-               </div>
-               <div className="flex-1 min-w-0">
-                  <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Account</label>
-                  <div className="relative z-10">
-                    <CustomSelect
-                      value={accountId}
-                      onChange={setAccountId}
-                      placeholder={isLoadingAccounts ? 'Loading...' : 'Select account'}
-                      disabled={isLoadingAccounts}
-                      options={accounts.map((acc) => ({
-                        value: acc.id,
-                        label: `${acc.name} (${acc.type})`,
-                      }))}
-                    />
-                  </div>
-               </div>
+
+
+            {/* Category Bento Grid */}
+            <div>
+              <label className="block text-sm font-semibold text-secondary mb-3">Categoría</label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {isLoadingCategories ? (
+                  Array(6).fill(0).map((_, i) => <div key={i} className="aspect-square bg-inset animate-pulse rounded-2xl" />)
+                ) : (
+                  categories
+                    .filter((cat) => cat.type === type)
+                    .map((cat) => {
+                      const isSelected = categoryId === cat.id;
+                      // Determine palette based on index to give colorful look like reference image
+                      // Using emerald as generic nice colorful look for now
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setCategoryId(cat.id)}
+                          className={`flex flex-col items-center justify-center p-2 pt-4 pb-3 aspect-square rounded-2xl border transition-all ${
+                            isSelected
+                              ? 'bg-orange-500/10 border-orange-400/50 scale-[1.02] shadow-sm'
+                              : 'bg-card border-border hover:bg-card-hover'
+                          }`}
+                        >
+                          <span className="text-2xl mb-1">{cat.icon || '🏷️'}</span>
+                          <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-center px-1 leading-tight ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}>
+                            {cat.name}
+                          </span>
+                        </button>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+
+            {/* Accounts Bento Grid */}
+            <div>
+              <label className="block text-sm font-semibold text-secondary mb-3">Cuenta</label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {isLoadingAccounts ? (
+                  Array(3).fill(0).map((_, i) => <div key={i} className="h-16 bg-inset animate-pulse rounded-2xl" />)
+                ) : (
+                  accounts.map((acc) => {
+                    const isSelected = accountId === acc.id;
+                    const getIcon = (t: string) => {
+                       switch(t.toLowerCase()) {
+                         case 'cash': return '💵';
+                         case 'bank': return '🏦';
+                         case 'credit': return '💳';
+                         case 'investment': return '📈';
+                         default: return '💰';
+                       }
+                    };
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => setAccountId(acc.id)}
+                        className={`flex flex-col items-center justify-center p-2 pt-3 pb-2 rounded-2xl border transition-all ${
+                          isSelected
+                            ? 'bg-blue-500/10 border-blue-400/50 scale-[1.02] shadow-sm'
+                            : 'bg-card border-border hover:bg-card-hover'
+                        }`}
+                      >
+                        <span className="text-xl mb-1">{getIcon(acc.type)}</span>
+                        <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-center px-1 leading-tight ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
+                          {acc.name}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold uppercase text-zinc-500 mb-2 ml-1">Tags</label>
+              <label className="block text-[10px] font-bold uppercase text-secondary mb-2 ml-1">Tags</label>
               <div className="flex flex-wrap gap-2">
                 {isLoadingTags ? (
-                  <div className="h-8 w-full animate-pulse bg-zinc-900 rounded-lg"></div>
+                  <div className="h-8 w-full animate-pulse bg-inset rounded-lg"></div>
                 ) : (
                   tags.map(tag => {
                     const isSelected = tagIds.includes(tag.id);
@@ -319,8 +379,8 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                         }}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
                           isSelected 
-                            ? 'bg-zinc-100 text-zinc-950 border-zinc-100 shadow-sm scale-105' 
-                            : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                            ? 'bg-primary text-card border-primary shadow-sm scale-105' 
+                            : 'bg-inset text-muted border-border hover:border-border-subtle'
                         }`}
                       >
                         {tag.name}
@@ -333,17 +393,17 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
             {/* Shared Expense Section */}
             {groups.length > 0 && (
-              <div className="border-t border-zinc-800 pt-4 mt-2">
+              <div className="border-t border-border pt-4 mt-2">
                 <div className="flex items-center justify-between mb-3">
-                  <label className="flex items-center gap-2 text-xs font-bold uppercase text-zinc-500">
+                  <label className="flex items-center gap-2 text-xs font-bold uppercase text-secondary">
                     <Users size={14} className={isShared ? 'text-violet-400' : ''} />
-                    Shared Expense
+                    Gasto Compartido
                   </label>
                   <button
                     type="button"
                     onClick={() => setIsShared(!isShared)}
                     className={`relative w-11 h-6 rounded-full transition-colors ${
-                      isShared ? 'bg-violet-500' : 'bg-zinc-700'
+                      isShared ? 'bg-violet-500' : 'bg-border'
                     }`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
@@ -355,7 +415,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                 {isShared && (
                   <div className="space-y-3 animate-in fade-in duration-200">
                     <div>
-                      <label className="block text-xs font-semibold uppercase text-zinc-500 mb-1">Group</label>
+                      <label className="block text-xs font-semibold uppercase text-secondary mb-1">Group</label>
                       <CustomSelect
                         value={groupId}
                         onChange={(val) => setGroupId(val as number)}
@@ -412,7 +472,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
                       return (
                         <div className="space-y-3">
-                          <label className="block text-xs font-semibold uppercase text-zinc-500">Split</label>
+                          <label className="block text-xs font-semibold uppercase text-secondary">Split</label>
 
                           {/* Preset Buttons */}
                           <div className="flex flex-wrap gap-1.5">
@@ -428,7 +488,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                                   className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
                                     isActive
                                       ? 'bg-violet-500 text-white border-violet-500'
-                                      : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-violet-500/50 hover:text-violet-300'
+                                      : 'bg-inset text-muted border-border hover:border-violet-500/50 hover:text-violet-300'
                                   }`}
                                 >
                                   {preset.label}
@@ -460,7 +520,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                             const pct = splitPercentages[member.user_id] || 0;
                             const splitAmt = Math.round((parsedAmt * pct) / 100);
                             return (
-                              <div key={member.user_id} className="flex items-center gap-3 bg-zinc-900/50 rounded-xl px-3 py-2">
+                              <div key={member.user_id} className="flex items-center gap-3 bg-inset/50 rounded-xl px-3 py-2">
                                 <span className="text-violet-400 text-sm font-medium flex-1 truncate">{member.nickname}</span>
                                 {!is2Members && (
                                   <input
@@ -482,7 +542,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                                   />
                                 )}
                                 <span className="text-white text-sm font-bold w-10 text-center">{pct}%</span>
-                                <span className="text-zinc-400 text-sm font-mono w-24 text-right">
+                                <span className="text-muted text-sm font-mono w-24 text-right">
                                   ${splitAmt.toLocaleString('es-CL')}
                                 </span>
                               </div>
@@ -513,7 +573,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
             <button
               type="submit"
               disabled={loading || !title || !amount || categoryId === '' || accountId === ''}
-              className={`w-full py-4 rounded-xl font-bold flex items-center justify-center transition-colors mt-6 ${
+              className={`hidden sm:flex w-full py-4 rounded-xl font-bold items-center justify-center transition-colors mt-6 ${
                 type === 'expense' 
                   ? 'bg-red-500 hover:bg-red-400 text-white disabled:bg-red-500/50' 
                   : 'bg-emerald-500 hover:bg-emerald-400 text-white disabled:bg-emerald-500/50'
@@ -530,10 +590,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
               <button
                 type="button"
                 onClick={() => setIsDeleteModalOpen(true)}
-                className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 text-secondary hover:text-red-500 hover:bg-red-500/10 transition-all"
               >
                 <Trash2 size={18} />
-                Delete Transaction
+                Borrar movimiento
               </button>
             )}
           </form>

@@ -5,13 +5,14 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { LayoutDashboard, Receipt, Repeat, Settings, PieChart } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { ThemeToggle } from './ThemeToggle';
 
-const navigationConst = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Transactions', href: '/transactions', icon: Receipt },
-  { name: 'Recurring', href: '/recurring', icon: Repeat },
-  { name: 'Analytics', href: '/analytics', icon: PieChart },
-  { name: 'Settings', href: '/settings', icon: Settings },
+const navigation = [
+  { name: 'Inicio', href: '/', icon: LayoutDashboard },
+  { name: 'Movimientos', href: '/transactions', icon: Receipt },
+  { name: 'Recurrentes', href: '/recurring', icon: Repeat },
+  { name: 'Análisis', href: '/analytics', icon: PieChart },
+  { name: 'Ajustes', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -22,71 +23,94 @@ export function Sidebar() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
+  const initials = (user?.user_metadata?.full_name || user?.email || 'U')
+    .split(' ')
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
     <div className="hidden lg:flex lg:shrink-0">
-      <div className="flex flex-col w-64 border-r border-zinc-800 bg-black h-screen">
-        <div className="flex items-center h-16 px-6 bg-black">
-          <span className="text-2xl font-bold tracking-tight text-white">Seva</span>
-          <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">WEB</span>
+      <div
+        className="flex flex-col w-64 h-screen"
+        style={{ background: 'var(--bg-card)', borderRight: '1px solid var(--border)' }}
+      >
+        {/* Logo */}
+        <div className="flex items-center h-16 px-6" style={{ borderBottom: '1px solid var(--border)' }}>
+          <span className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            Seva
+          </span>
+          <span
+            className="ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider"
+            style={{ background: 'var(--bg-inset)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+          >
+            WEB
+          </span>
         </div>
-        
-        <div className="flex-1 overflow-y-auto pt-5 pb-4">
-          <nav className="mt-5 flex-1 px-4 space-y-1 bg-black">
-            {navigationConst.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`group flex items-center px-3 py-3 text-sm font-medium rounded-xl transition-colors ${
-                    isActive
-                      ? 'bg-zinc-900 text-white'
-                      : 'text-zinc-400 hover:bg-zinc-900/50 hover:text-white'
-                  }`}
-                >
-                  <item.icon
-                    className={`flex-shrink-0 mr-3 h-5 w-5 ${
-                      isActive ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'
-                    }`}
-                    aria-hidden="true"
-                  />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-        
-        {/* User Profile View */}
-        <div className="shrink-0 flex border-t border-zinc-800 p-4">
-          <Link href="/settings" className="shrink-0 w-full group block">
-            <div className="flex items-center">
-              {user?.user_metadata?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.user_metadata.avatar_url}
-                  alt="Avatar"
-                  className="inline-block h-9 w-9 rounded-full object-cover"
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="group flex items-center px-3 py-2.5 text-sm font-medium rounded-2xl transition-all"
+                style={{
+                  background: isActive ? 'var(--bg-inset)' : 'transparent',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  border: isActive ? '1px solid var(--border)' : '1px solid transparent',
+                }}
+              >
+                <item.icon
+                  className="flex-shrink-0 mr-3 h-4 w-4 transition-colors"
+                  style={{ color: isActive ? '#10b981' : 'var(--text-muted)' }}
+                  aria-hidden="true"
                 />
-              ) : (
-                <div className="h-9 w-9 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-bold uppercase shrink-0">
-                  {user?.email?.[0] || 'U'}
-                </div>
-              )}
-              <div className="ml-3 truncate">
-                <p className="text-sm font-medium text-white truncate">
-                  {user?.user_metadata?.full_name || user?.email || 'User'}
-                </p>
-                <p className="text-xs font-medium text-zinc-500 group-hover:text-zinc-400">View profile</p>
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Footer: theme toggle + user */}
+        <div className="shrink-0 p-3 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Apariencia</span>
+            <ThemeToggle compact />
+          </div>
+
+          <Link href="/settings" className="flex items-center gap-3 p-2 rounded-2xl transition-all hover:opacity-80 group">
+            {user?.user_metadata?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.user_metadata.avatar_url}
+                alt="Avatar"
+                className="h-8 w-8 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div
+                className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{ background: 'var(--bg-inset)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                {initials}
               </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                {user?.user_metadata?.full_name || user?.email || 'Usuario'}
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                Ver perfil
+              </p>
             </div>
           </Link>
         </div>

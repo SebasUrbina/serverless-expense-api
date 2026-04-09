@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Transaction } from '@/hooks/useDashboardData';
 import { format, parseISO, endOfMonth, isValid, isToday, isYesterday } from 'date-fns';
-import { ArrowUpRight, ArrowDownRight, Receipt, Plus, Search, SlidersHorizontal, X, User } from 'lucide-react';
+import { es } from 'date-fns/locale';
+import { ArrowUpRight, ArrowDownRight, Receipt, Plus, Search, SlidersHorizontal, X, Settings } from 'lucide-react';
 import { MonthSelector } from '@/components/MonthSelector';
 import Link from 'next/link';
 import { useTags, useCategories } from '@/hooks/usePreferences';
@@ -17,7 +18,7 @@ export default function TransactionsPage() {
   return (
     <Suspense fallback={
       <div className="px-4 py-8 h-full flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
       </div>
     }>
       <TransactionsContent />
@@ -27,15 +28,15 @@ export default function TransactionsPage() {
 
 function formatGroupDate(dateStr: string): string {
   const date = parseISO(dateStr);
-  if (isToday(date)) return 'Today';
-  if (isYesterday(date)) return 'Yesterday';
-  return format(date, 'EEEE, MMM d');
+  if (isToday(date)) return 'Hoy';
+  if (isYesterday(date)) return 'Ayer';
+  return format(date, "EEEE, d 'de' MMMM", { locale: es });
 }
 
 function groupTransactionsByDate(transactions: Transaction[]): { date: string; label: string; items: Transaction[] }[] {
   const groups: Record<string, Transaction[]> = {};
   for (const tx of transactions) {
-    const key = tx.date.slice(0, 10); // YYYY-MM-DD
+    const key = tx.date.slice(0, 10);
     if (!groups[key]) groups[key] = [];
     groups[key].push(tx);
   }
@@ -51,19 +52,15 @@ function TransactionsContent() {
   const { openModal } = useTransactionModal();
   const [showFilters, setShowFilters] = useState(false);
 
-  // Search State
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 400);
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
   const initialCategory = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : '';
-
   const [filterMonth, setFilterMonth] = useState(initialMonth);
   const [filterCategory, setFilterCategory] = useState<number | ''>(initialCategory);
   const [filterTag, setFilterTag] = useState<number | ''>('');
@@ -81,10 +78,8 @@ function TransactionsContent() {
       let url = debouncedSearch
         ? `/transactions?limit=50&search=${encodeURIComponent(debouncedSearch)}`
         : '/transactions?limit=50';
-
       if (filterCategory !== '') url += `&category_id=${filterCategory}`;
       if (filterTag !== '') url += `&tag_id=${filterTag}`;
-
       if (filterMonth) {
         const start = `${filterMonth}-01`;
         const dateObj = parseISO(start);
@@ -93,7 +88,6 @@ function TransactionsContent() {
           url += `&startDate=${start}&endDate=${end}`;
         }
       }
-
       const res = await api.get(url);
       return res.data;
     }
@@ -101,63 +95,73 @@ function TransactionsContent() {
 
   const transactions = response?.transactions || [];
   const grouped = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
-
   const activeFilterCount = [filterCategory !== '', filterTag !== '', filterMonth !== ''].filter(Boolean).length;
 
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-4">
+      <div className="px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Transactions</h1>
-            <p className="text-zinc-500 text-sm mt-0.5 hidden sm:block">View and manage your financial activity.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Mis movimientos
+            </h1>
+            <p className="text-sm mt-0.5 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
+              Todo lo que entra y sale de tus cuentas.
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href="/settings"
-              className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-sm"
-              aria-label="Settings"
+              className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              aria-label="Ajustes"
             >
-              <User size={18} />
+              <Settings size={18} />
             </Link>
             <button
               onClick={() => openModal()}
               className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors items-center gap-2 shadow-lg shadow-emerald-500/20 text-sm"
             >
               <Plus size={16} />
-              <span>Add New</span>
+              <span>Añadir</span>
             </button>
           </div>
         </div>
 
-        {/* ── Search + Filter Toggle Row ── */}
+        {/* Search + Filter Toggle */}
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={15} style={{ color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search transactions..."
+              placeholder="Buscar un gasto o ingreso..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 w-full transition-all"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
             />
             {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors">
+              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'var(--text-muted)' }}>
                 <X size={14} />
               </button>
             )}
           </div>
           <button
             onClick={() => setShowFilters(v => !v)}
-            className={`relative flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-              showFilters || activeFilterCount > 0
-                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
-            }`}
+            className="relative flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+            style={{
+              background: (showFilters || activeFilterCount > 0) ? 'rgba(16,185,129,0.08)' : 'var(--bg-card)',
+              border: `1px solid ${(showFilters || activeFilterCount > 0) ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`,
+              color: (showFilters || activeFilterCount > 0) ? '#10b981' : 'var(--text-secondary)',
+            }}
           >
-            <SlidersHorizontal size={16} />
-            <span className="hidden sm:inline">Filters</span>
+            <SlidersHorizontal size={15} />
+            <span className="hidden sm:inline">Filtros</span>
             {activeFilterCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                 {activeFilterCount}
@@ -166,37 +170,32 @@ function TransactionsContent() {
           </button>
         </div>
 
-        {/* ── Expandable Filters ── */}
+        {/* Expandable Filters */}
         {showFilters && (
-          <div className="animate-in slide-in-from-top-4 fade-in duration-200 bg-zinc-900/40 border border-zinc-800/60 rounded-2xl p-2.5 flex flex-wrap items-center gap-2.5">
-            <div className="flex-1 min-w-[140px]">
-              <MonthSelector
-                value={filterMonth}
-                onChange={setFilterMonth}
-                className="w-full"
-                alignDropdown="left"
-              />
+          <div className="animate-in slide-in-from-top-4 fade-in duration-200 flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex-1 min-w-[130px]">
+              <MonthSelector value={filterMonth} onChange={setFilterMonth} className="w-full" alignDropdown="left" />
             </div>
             <div className="flex-1 min-w-[140px] z-20">
               <CustomSelect
                 value={filterCategory}
                 onChange={setFilterCategory}
-                placeholder="All Categories"
+                placeholder="Todas las categorías"
                 size="small"
                 options={[
-                  { value: '', label: 'All Categories' },
+                  { value: '', label: 'Todas las categorías' },
                   ...categoriesList.map(c => ({ value: c.id, label: `${c.icon || ''} ${c.name}` }))
                 ]}
               />
             </div>
-            <div className="flex-1 min-w-[120px] z-10">
+            <div className="flex-1 min-w-[130px] z-10">
               <CustomSelect
                 value={filterTag}
                 onChange={setFilterTag}
-                placeholder="All Tags"
+                placeholder="Todas las etiquetas"
                 size="small"
                 options={[
-                  { value: '', label: 'All Tags' },
+                  { value: '', label: 'Todas las etiquetas' },
                   ...tagsList.map(t => ({ value: t.id, label: t.name }))
                 ]}
               />
@@ -204,9 +203,9 @@ function TransactionsContent() {
             {activeFilterCount > 0 && (
               <button
                 onClick={() => { setFilterMonth(''); setFilterCategory(''); setFilterTag(''); }}
-                className="text-xs font-medium text-zinc-500 hover:text-white transition-colors px-3 py-2 h-[42px] rounded-xl hover:bg-zinc-800/50 flex items-center justify-center gap-1.5 self-center shrink-0 border border-transparent hover:border-zinc-700/50"
+                className="text-xs font-semibold px-3 py-2 h-[42px] rounded-xl flex items-center justify-center gap-1.5 self-center shrink-0 transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20"
               >
-                <X size={14} /> Clear list
+                <X size={13} /> Limpiar
               </button>
             )}
           </div>
@@ -216,118 +215,120 @@ function TransactionsContent() {
       {/* ── Transaction List ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
         <div className="max-w-7xl mx-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30"></div>
-          </div>
-        ) : grouped.length > 0 ? (
-          <div className="space-y-6">
-            {grouped.map(({ date, label, items }) => (
-              <div key={date}>
-                {/* Date Group Header */}
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{label}</span>
-                  <div className="flex-1 h-px bg-zinc-800" />
-                  <span className="text-xs text-zinc-600">
-                    {items.length} {items.length === 1 ? 'item' : 'items'}
-                  </span>
-                </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
+            </div>
+          ) : grouped.length > 0 ? (
+            <div className="space-y-6">
+              {grouped.map(({ date, label, items }) => (
+                <div key={date}>
+                  {/* Date Group Header */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs font-semibold capitalize" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {items.length} {items.length === 1 ? 'movimiento' : 'movimientos'}
+                    </span>
+                  </div>
 
-                {/* Cards */}
-                <div className="space-y-2">
-                  {items.map((tx) => {
-                    const canEdit = tx.is_owner !== false;
-                    return (
-                      <div
-                        key={tx.id}
-                        onClick={() => {
-                          if (!canEdit) return;
-                          openModal(tx);
-                        }}
-                        className={`
-                          bg-zinc-900 border border-zinc-800/60 rounded-2xl px-4 py-3.5
-                          flex items-center gap-3 min-h-[68px]
-                          transition-all duration-150
-                          ${canEdit
-                            ? 'cursor-pointer hover:bg-zinc-800/50 hover:border-zinc-700 active:scale-[0.99]'
-                            : 'cursor-default'}
-                        `}
-                      >
-                        {/* Icon */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                          tx.category_icon
-                            ? 'bg-zinc-800'
-                            : tx.type === 'income'
-                              ? 'bg-emerald-500/10 text-emerald-500'
-                              : 'bg-red-500/10 text-red-500'
-                        }`}>
-                          {tx.category_icon
-                            ? <span>{tx.category_icon}</span>
-                            : tx.type === 'income'
-                              ? <ArrowUpRight size={18} />
-                              : <ArrowDownRight size={18} />
-                          }
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-white font-medium text-sm leading-tight truncate">{tx.title}</p>
-                            {!!tx.is_shared && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-400 text-[10px] font-bold border border-violet-500/20 flex-shrink-0">
-                                👥 {tx.group_name || 'Split'}
-                              </span>
-                            )}
+                  {/* Cards */}
+                  <div className="space-y-2">
+                    {items.map((tx) => {
+                      const canEdit = tx.is_owner !== false;
+                      return (
+                        <div
+                          key={tx.id}
+                          onClick={() => { if (!canEdit) return; openModal(tx); }}
+                          className="rounded-2xl px-4 py-3.5 flex items-center gap-3 min-h-[68px] transition-all duration-150"
+                          style={{
+                            background: 'var(--bg-card)',
+                            border: '1px solid var(--border)',
+                            cursor: canEdit ? 'pointer' : 'default',
+                          }}
+                        >
+                          {/* Icon */}
+                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                            tx.category_icon ? '' : tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                          }`} style={tx.category_icon ? { background: 'var(--bg-inset)' } : {}}>
+                            {tx.category_icon
+                              ? <span>{tx.category_icon}</span>
+                              : tx.type === 'income'
+                                ? <ArrowUpRight size={18} />
+                                : <ArrowDownRight size={18} />
+                            }
                           </div>
 
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            {tx.category && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[11px] font-medium border border-zinc-700/40">
-                                {tx.category}
-                              </span>
-                            )}
-                            {(tx.tag_names && tx.tag_names.length > 0
-                              ? tx.tag_names
-                              : tx.tag_ids?.map((id: number) => tagsMap.get(id) || 'Unknown') || []
-                            ).map((name: string, i: number) => (
-                              <span key={i} className="px-1.5 py-0.5 rounded-md bg-zinc-800/80 text-[10px] text-zinc-500 font-medium border border-zinc-700/30">
-                                {name}
-                              </span>
-                            ))}
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-medium text-sm leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                                {tx.title}
+                              </p>
+                              {!!tx.is_shared && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-400 text-[10px] font-bold border border-violet-500/20 flex-shrink-0">
+                                  👥 {tx.group_name || 'Compartido'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              {tx.category && (
+                                <span
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                                  style={{ background: 'var(--bg-inset)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                                >
+                                  {tx.category}
+                                </span>
+                              )}
+                              {(tx.tag_names && tx.tag_names.length > 0
+                                ? tx.tag_names
+                                : tx.tag_ids?.map((id: number) => tagsMap.get(id) || 'Desconocido') || []
+                              ).map((name: string, i: number) => (
+                                <span
+                                  key={i}
+                                  className="px-1.5 py-0.5 rounded-md text-[10px] font-medium"
+                                  style={{ background: 'var(--bg-inset)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Amount */}
-                        <div className="flex-shrink-0 text-right">
-                          <p className={`font-bold text-sm ${tx.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
-                            {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString('es-CL')}
-                          </p>
-                          {!!tx.is_shared && tx.my_split_amount != null && (
-                            <p className="text-violet-400 text-xs mt-0.5">
-                              ${tx.my_split_amount.toLocaleString('es-CL')} ({tx.my_split_percentage}%)
+                          {/* Amount */}
+                          <div className="flex-shrink-0 text-right">
+                            <p
+                              className="font-bold text-sm"
+                              style={{ color: tx.type === 'income' ? '#10b981' : 'var(--text-primary)' }}
+                            >
+                              {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString('es-CL')}
                             </p>
-                          )}
+                            {!!tx.is_shared && tx.my_split_amount != null && (
+                              <p className="text-violet-400 text-xs mt-0.5">
+                                ${tx.my_split_amount.toLocaleString('es-CL')} ({tx.my_split_percentage}%)
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-48 text-zinc-500 text-center">
-            <Receipt className="w-14 h-14 mb-4 opacity-20" />
-            <h3 className="text-lg font-bold text-zinc-400 mb-1">
-              {debouncedSearch ? 'No matches found' : 'No transactions found'}
-            </h3>
-            <p className="text-sm max-w-xs text-zinc-600">
-              {debouncedSearch
-                ? `No transaction matched "${debouncedSearch}".`
-                : 'Once you start tracking, they\'ll appear here.'}
-            </p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              <Receipt className="w-12 h-12 mb-4 opacity-20" style={{ color: 'var(--text-muted)' }} />
+              <h3 className="text-base font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                {debouncedSearch ? 'Nada encontrado' : 'Aún no hay movimientos'}
+              </h3>
+              <p className="text-sm max-w-xs" style={{ color: 'var(--text-muted)' }}>
+                {debouncedSearch
+                  ? `No encontramos nada con "${debouncedSearch}".`
+                  : 'Cuando empieces a registrar, aparecerán aquí.'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

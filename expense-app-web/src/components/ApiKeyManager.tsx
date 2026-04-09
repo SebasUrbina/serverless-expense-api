@@ -34,24 +34,24 @@ export function ApiKeyManager() {
   const shortcutUrl = "https://www.icloud.com/shortcuts/placeholder"; // The user didn't provide a specific link, so we will use a placeholder or generic link. Wait, there was a previous conversation about shortening API keys.
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
+    <div className="bg-inset border border-border rounded-4xl p-5 md:p-6 shadow-xl">
       <div className="flex items-center gap-3 mb-6">
         <Key className="text-emerald-500" size={24} />
-        <h3 className="text-xl font-bold text-white tracking-tight">Apple Shortcuts API</h3>
+        <h3 className="text-xl font-bold text-primary tracking-tight">Apple Shortcuts API</h3>
       </div>
       
-      <p className="text-zinc-400 text-sm mb-6">
+      <p className="text-muted text-sm mb-6">
         Add transactions on the go using your custom iOS shortcuts. Connect them seamlessly to your accounts using your distinct API Key. Keep this key secret.
       </p>
 
-      <div className="bg-black border border-zinc-800 rounded-2xl p-4 mb-6">
-        <p className="text-xs font-semibold uppercase text-zinc-500 mb-2">Your Secret API Key</p>
+      <div className="bg-black border border-border rounded-2xl p-4 mb-6">
+        <p className="text-xs font-semibold uppercase text-secondary mb-2">Your Secret API Key</p>
         
         {isLoading ? (
-          <div className="h-10 bg-zinc-900 animate-pulse rounded-xl"></div>
+          <div className="h-10 bg-inset animate-pulse rounded-xl"></div>
         ) : apiKey ? (
           <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-1 flex items-center bg-zinc-900 rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden">
+            <div className="flex-1 flex items-center bg-inset rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden">
               <span className="font-mono text-emerald-400 truncate text-sm">
                 {showKey ? apiKey : '••••••••••••••••••••••••'}
               </span>
@@ -59,14 +59,14 @@ export function ApiKeyManager() {
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="flex items-center justify-center w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-colors"
+                className="flex items-center justify-center w-11 h-11 bg-card-hover hover:bg-border text-muted hover:text-primary rounded-xl transition-colors"
                 title={showKey ? "Hide Key" : "Reveal Key"}
               >
                 {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center w-11 h-11 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-xl transition-colors"
+                className="flex items-center justify-center w-11 h-11 bg-card-hover hover:bg-border text-muted hover:text-primary rounded-xl transition-colors"
                 title="Copy Key"
               >
                 {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} />}
@@ -74,7 +74,7 @@ export function ApiKeyManager() {
             </div>
           </div>
         ) : (
-          <div className="text-sm text-zinc-500 italic py-2">No API Key generated yet.</div>
+          <div className="text-sm text-secondary italic py-2">No API Key generated yet.</div>
         )}
       </div>
 
@@ -83,7 +83,7 @@ export function ApiKeyManager() {
           <button 
             onClick={() => setConfirmRegenerate(true)}
             disabled={generateMutation.isPending || isLoading}
-            className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 border border-zinc-700"
+            className="flex-1 bg-card-hover hover:bg-border text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 border border-border-subtle"
           >
             <RefreshCw size={16} className={generateMutation.isPending ? "animate-spin" : ""} />
             {apiKey ? 'Regenerate Key' : 'Generate Key'}
@@ -98,7 +98,7 @@ export function ApiKeyManager() {
             </button>
             <button 
               onClick={() => setConfirmRegenerate(false)}
-              className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center"
+              className="flex-1 bg-card-hover hover:bg-border text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center"
             >
               Cancel
             </button>

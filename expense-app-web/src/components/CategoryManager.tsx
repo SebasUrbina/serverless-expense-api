@@ -2,21 +2,23 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useCategories, useCreateCategory, useDeleteCategory } from '@/hooks/usePreferences';
-import { Plus, Trash2, Loader2, Tag as TagIcon, SmilePlus } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+import { useTheme } from '@/store/useTheme';
 
 export function CategoryManager() {
   const { data, isLoading } = useCategories();
   const createMutation = useCreateCategory();
   const deleteMutation = useDeleteCategory();
+  const { resolvedTheme } = useTheme();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [icon, setIcon] = useState('💰');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
-  
+
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,22 +27,22 @@ export function CategoryManager() {
         setShowEmojiPicker(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const categories = data?.categories || [];
   const expenses = categories.filter(c => c.type === 'expense');
   const incomes = categories.filter(c => c.type === 'income');
+  const isDark = resolvedTheme() === 'dark';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
     createMutation.mutate({ name: name.trim(), type, icon }, {
       onSuccess: () => {
         setName('');
-        setIcon('💰'); // reset to default
+        setIcon('💰');
       }
     });
   };
@@ -51,117 +53,168 @@ export function CategoryManager() {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
-      <div className="flex items-center gap-3 mb-6">
-        <TagIcon className="text-emerald-500" size={24} />
-        <h3 className="text-xl font-bold text-white tracking-tight">Categories</h3>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 mb-8 items-center bg-black p-4 rounded-2xl border border-zinc-800">
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as 'expense' | 'income')}
-          className="w-full md:w-auto bg-zinc-900 border-none rounded-xl px-4 py-2.5 text-white focus:ring-1 focus:ring-zinc-700 text-sm font-medium"
+    <div className="space-y-5">
+      {/* Add form */}
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl p-3.5 flex flex-wrap gap-2 items-center"
+        style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
+      >
+        {/* Type toggle */}
+        <div
+          className="flex rounded-xl p-0.5 gap-0.5 shrink-0"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
         >
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
-        
-        <div className="flex w-full flex-1 relative items-center gap-2">
+          {(['expense', 'income'] as const).map(t => (
             <button
+              key={t}
               type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2.5 text-xl flex items-center justify-center transition-colors shadow-sm"
+              onClick={() => setType(t)}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+              style={{
+                background: type === t ? (t === 'expense' ? '#f43f5e' : '#10b981') : 'transparent',
+                color: type === t ? 'white' : 'var(--text-muted)',
+              }}
             >
-              {icon}
+              {t === 'expense' ? 'Gasto' : 'Ingreso'}
             </button>
-            {showEmojiPicker && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden" 
-                  onClick={() => setShowEmojiPicker(false)}
-                />
-                <div 
-                  ref={emojiPickerRef} 
-                  className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center bg-zinc-950 border-t border-zinc-800 rounded-t-3xl pt-2 pb-8 shadow-2xl animate-in slide-in-from-bottom-full md:absolute md:inset-auto md:top-14 md:left-0 md:bg-transparent md:border-none md:p-0 md:rounded-xl md:animate-none"
-                >
-                  <div className="w-12 h-1.5 bg-zinc-800 rounded-full mb-4 md:hidden" />
-                  <div className="w-full max-w-sm px-4 md:px-0">
-                    <EmojiPicker 
-                      onEmojiClick={onEmojiClick} 
-                      theme={Theme.DARK}
-                      width="100%"
-                      height={400}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-            
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="New Category Name..."
-              className="w-full flex-1 bg-zinc-900 md:bg-transparent rounded-xl md:rounded-none border-none text-white px-4 md:px-2 py-2.5 focus:outline-none focus:ring-1 md:focus:ring-0 focus:ring-zinc-700 text-sm placeholder:text-zinc-600 shadow-sm md:shadow-none"
-            />
+          ))}
         </div>
+
+        {/* Emoji picker */}
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="w-10 h-10 rounded-xl text-lg flex items-center justify-center transition-all hover:scale-110"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            {icon}
+          </button>
+          {showEmojiPicker && (
+            <>
+              <div
+                className="fixed inset-0 z-40 md:hidden"
+                style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+                onClick={() => setShowEmojiPicker(false)}
+              />
+              <div
+                ref={emojiPickerRef}
+                className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center rounded-t-3xl pt-2 pb-8 shadow-2xl animate-in slide-in-from-bottom-full md:absolute md:inset-auto md:top-12 md:left-0 md:bg-transparent md:border-none md:p-0 md:rounded-xl md:animate-none"
+                style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)' }}
+              >
+                <div className="w-10 h-1 rounded-full mb-3 md:hidden" style={{ background: 'var(--border)' }} />
+                <div className="w-full max-w-sm px-4 md:px-0">
+                  <EmojiPicker
+                    onEmojiClick={onEmojiClick}
+                    theme={isDark ? Theme.DARK : Theme.LIGHT}
+                    width="100%"
+                    height={380}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Name input */}
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Nombre de la categoría…"
+          className="flex-1 min-w-[140px] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+          }}
+        />
+
         <button
           type="submit"
           disabled={!name.trim() || createMutation.isPending}
-          className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-white px-6 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 font-medium text-sm"
+          className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5"
         >
-          {createMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <><Plus size={18} /> <span>Add</span></>}
+          {createMutation.isPending
+            ? <Loader2 size={15} className="animate-spin" />
+            : <><Plus size={15} /><span>Añadir</span></>
+          }
         </button>
       </form>
 
+      {/* Category lists */}
       {isLoading ? (
-        <div className="flex justify-center py-6 text-zinc-500"><Loader2 className="animate-spin" /></div>
+        <div className="flex justify-center py-6">
+          <Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div>
-              <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">Expenses</h4>
-              <div className="space-y-2">
-                 {expenses.map(cat => (
-                   <div key={cat.id} className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-zinc-800/50 group">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl leading-none">{cat.icon || '🏷️'}</span>
-                        <span className="text-zinc-300 font-medium text-sm">{cat.name}</span>
-                      </div>
-                      <button 
-                        onClick={() => setCategoryToDelete(cat.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all font-semibold p-1"
-                      >
-                         <Trash2 size={16} />
-                      </button>
-                   </div>
-                 ))}
-                 {expenses.length === 0 && <p className="text-sm text-zinc-600 italic">No expense categories yet.</p>}
-              </div>
-           </div>
-           
-           <div>
-              <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-3">Incomes</h4>
-              <div className="space-y-2">
-                 {incomes.map(cat => (
-                   <div key={cat.id} className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-zinc-800/50 group">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl leading-none">{cat.icon || '🏷️'}</span>
-                        <span className="text-zinc-300 font-medium text-sm">{cat.name}</span>
-                      </div>
-                      <button 
-                        onClick={() => setCategoryToDelete(cat.id)}
-                        disabled={deleteMutation.isPending}
-                        className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all font-semibold p-1"
-                      >
-                         <Trash2 size={16} />
-                      </button>
-                   </div>
-                 ))}
-                 {incomes.length === 0 && <p className="text-sm text-zinc-600 italic">No income categories yet.</p>}
-              </div>
-           </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Gastos */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5 px-0.5" style={{ color: 'var(--text-muted)' }}>
+              Gastos ({expenses.length})
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {expenses.map(cat => (
+                <div
+                  key={cat.id}
+                  className="group flex flex-col items-center text-center p-3 rounded-2xl gap-1.5 relative transition-all"
+                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <span className="text-2xl leading-none">{cat.icon || '🏷️'}</span>
+                  <span className="text-xs font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    {cat.name}
+                  </span>
+                  <button
+                    onClick={() => setCategoryToDelete(cat.id)}
+                    disabled={deleteMutation.isPending}
+                    className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg text-red-400 hover:bg-red-500/10"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+              {expenses.length === 0 && (
+                <p className="col-span-2 text-xs py-3 text-center" style={{ color: 'var(--text-muted)' }}>
+                  Sin categorías de gasto aún.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Ingresos */}
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2.5 px-0.5" style={{ color: 'var(--text-muted)' }}>
+              Ingresos ({incomes.length})
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {incomes.map(cat => (
+                <div
+                  key={cat.id}
+                  className="group flex flex-col items-center text-center p-3 rounded-2xl gap-1.5 relative transition-all"
+                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                >
+                  <span className="text-2xl leading-none">{cat.icon || '🏷️'}</span>
+                  <span className="text-xs font-medium leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    {cat.name}
+                  </span>
+                  <button
+                    onClick={() => setCategoryToDelete(cat.id)}
+                    disabled={deleteMutation.isPending}
+                    className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg text-red-400 hover:bg-red-500/10"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+              {incomes.length === 0 && (
+                <p className="col-span-2 text-xs py-3 text-center" style={{ color: 'var(--text-muted)' }}>
+                  Sin categorías de ingreso aún.
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -171,8 +224,8 @@ export function CategoryManager() {
         onConfirm={() => {
           if (categoryToDelete !== null) deleteMutation.mutate(categoryToDelete);
         }}
-        title="Delete Category"
-        message="¿Estás seguro? Borrar esta categoría eliminará permanentemente todas las transacciones y reglas automáticas asociadas."
+        title="Eliminar categoría"
+        message="¿Estás seguro? Borrar esta categoría eliminará permanentemente todas las transacciones y reglas asociadas."
       />
     </div>
   );

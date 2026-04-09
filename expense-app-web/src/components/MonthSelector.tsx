@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { format, parseISO, subMonths, addMonths } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type MonthSelectorProps = {
   value: string; // YYYY-MM
@@ -44,22 +45,27 @@ export function MonthSelector({ value, onChange, className = '', alignDropdown =
     return format(d, 'yyyy-MM');
   });
 
-  const displayValue = value ? format(parseISO(`${value}-01`), 'MMM yyyy') : 'All Time';
+  const displayValue = value ? format(parseISO(`${value}-01`), 'MMM yyyy', { locale: es }) : 'Todos';
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 h-[42px]">
+      <div 
+        className="flex items-center rounded-xl p-0.5 h-[42px] transition-colors"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
         <button 
           onClick={handlePrevMonth}
-          className="flex items-center justify-center h-full w-9 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-colors"
-          title="Previous Month"
+          className="flex items-center justify-center h-full w-9 rounded-lg hover:bg-(--bg-inset) transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          title="Mes anterior"
         >
           <ChevronLeft size={18} />
         </button>
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-center gap-2 px-3 h-full text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/50 rounded-lg transition-colors min-w-[110px]"
+          className="flex flex-1 items-center justify-center gap-2 px-3 h-full text-sm font-medium hover:bg-(--bg-inset) rounded-lg transition-colors min-w-[110px]"
+          style={{ color: 'var(--text-primary)' }}
         >
           <Calendar size={14} className="text-emerald-500" />
           <span className="whitespace-nowrap capitalize">{displayValue}</span>
@@ -67,19 +73,23 @@ export function MonthSelector({ value, onChange, className = '', alignDropdown =
 
         <button 
           onClick={handleNextMonth}
-          className="flex items-center justify-center h-full w-9 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800/50 transition-colors"
-          title="Next Month"
+          className="flex items-center justify-center h-full w-9 rounded-lg hover:bg-(--bg-inset) transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          title="Mes siguiente"
         >
           <ChevronRight size={18} />
         </button>
       </div>
 
       {isOpen && (
-        <div className={`absolute top-full mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] z-50 overflow-hidden backdrop-blur-xl p-2 ${
-          alignDropdown === 'left' ? 'left-0' : 'right-0'
-        }`}>
-          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-3 py-2 mb-1">
-            Quick Select
+        <div 
+          className={`absolute top-full mt-2 w-56 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] z-50 overflow-hidden p-2 ${
+            alignDropdown === 'left' ? 'left-0' : 'right-0'
+          }`}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        >
+          <div className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 mb-1" style={{ color: 'var(--text-muted)' }}>
+            Selección rápida
           </div>
           <div className="flex flex-col gap-0.5 max-h-[300px] overflow-y-auto">
             <button
@@ -89,11 +99,12 @@ export function MonthSelector({ value, onChange, className = '', alignDropdown =
               }}
               className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 !value 
-                  ? 'bg-emerald-500/10 text-emerald-400' 
-                  : 'text-zinc-300 hover:bg-zinc-800/50 hover:text-white'
+                  ? 'bg-emerald-500/10 text-emerald-500' 
+                  : 'hover:bg-(--bg-inset)'
               }`}
+              style={{ color: !value ? '' : 'var(--text-primary)' }}
             >
-              All Time
+              Todos los meses
             </button>
             {last12Months.map((monthStr) => (
               <button
@@ -104,11 +115,12 @@ export function MonthSelector({ value, onChange, className = '', alignDropdown =
                 }}
                 className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   value === monthStr 
-                    ? 'bg-emerald-500/10 text-emerald-400' 
-                    : 'text-zinc-300 hover:bg-zinc-800/50 hover:text-white'
+                    ? 'bg-emerald-500/10 text-emerald-500' 
+                    : 'hover:bg-(--bg-inset)'
                 }`}
+                style={{ color: value === monthStr ? '' : 'var(--text-primary)' }}
               >
-                {format(parseISO(`${monthStr}-01`), 'MMMM yyyy')}
+                {format(parseISO(`${monthStr}-01`), 'MMMM yyyy', { locale: es })}
               </button>
             ))}
           </div>

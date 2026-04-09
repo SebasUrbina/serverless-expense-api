@@ -2,8 +2,15 @@
 
 import { useState } from 'react';
 import { useAccounts, useCreateAccount, useDeleteAccount, Account } from '@/hooks/usePreferences';
-import { Plus, Trash2, Loader2, Wallet } from 'lucide-react';
+import { Plus, Trash2, Loader2, Banknote, CreditCard, PiggyBank, Wallet } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+
+const accountTypeConfig: Record<Account['type'], { label: string; icon: React.ElementType; color: string; bg: string }> = {
+  checking: { label: 'Cuenta corriente', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  savings: { label: 'Ahorros', icon: PiggyBank, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  credit: { label: 'Tarjeta de crédito', icon: CreditCard, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+  cash: { label: 'Efectivo', icon: Wallet, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+};
 
 export function AccountManager() {
   const { data, isLoading } = useAccounts();
@@ -20,11 +27,10 @@ export function AccountManager() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
-    createMutation.mutate({ 
-      name: name.trim(), 
-      type, 
-      balance: balance ? parseFloat(balance) : 0 
+    createMutation.mutate({
+      name: name.trim(),
+      type,
+      balance: balance ? parseFloat(balance) : 0
     }, {
       onSuccess: () => {
         setName('');
@@ -33,82 +39,139 @@ export function AccountManager() {
     });
   };
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val);
-  };
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val);
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Wallet className="text-blue-500" size={24} />
-        <h3 className="text-xl font-bold text-white tracking-tight">Accounts</h3>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 mb-8 bg-black p-4 rounded-2xl border border-zinc-800">
-        <div className="flex flex-col md:flex-row gap-3">
-            <select
-              value={type}
-              onChange={(e) => setType(e.target.value as Account['type'])}
-              className="w-full md:w-auto bg-zinc-900 border-none rounded-xl px-4 py-2.5 text-white focus:ring-1 focus:ring-zinc-700 text-sm font-medium"
-            >
-              <option value="checking">Checking</option>
-              <option value="savings">Savings</option>
-              <option value="credit">Credit Card</option>
-              <option value="cash">Cash</option>
-            </select>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Banco Estado"
-              className="flex-1 w-full bg-zinc-900 rounded-xl border-none text-white px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-zinc-700 text-sm placeholder:text-zinc-500"
-            />
-            <div className="relative w-full md:w-auto md:min-w-[150px]">
-                <span className="absolute left-3 top-2.5 text-zinc-500 text-sm font-bold">$</span>
-                <input
-                type="number"
-                value={balance}
-                step="0.01"
-                onChange={(e) => setBalance(e.target.value)}
-                placeholder="Initial balance..."
-                className="w-full bg-zinc-900 rounded-xl border-none text-white pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-700 placeholder:text-zinc-500"
-                />
-            </div>
-            <button
-              type="submit"
-              disabled={!name.trim() || createMutation.isPending}
-              className="w-full md:w-auto bg-blue-500 hover:bg-blue-400 disabled:bg-blue-500/50 text-white px-6 py-2.5 rounded-xl transition-colors flex items-center justify-center font-medium text-sm"
-            >
-              {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <><Plus size={16} className="mr-1" /> <span>Add</span></>}
-            </button>
+    <div className="space-y-5">
+      {/* Add form */}
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-2xl p-3.5 flex flex-wrap gap-2 items-end"
+        style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
+      >
+        {/* Type selector */}
+        <div className="flex-1 min-w-[130px]">
+          <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>
+            Tipo
+          </label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as Account['type'])}
+            className="w-full rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <option value="checking">Cuenta corriente</option>
+            <option value="savings">Ahorros</option>
+            <option value="credit">Tarjeta de crédito</option>
+            <option value="cash">Efectivo</option>
+          </select>
         </div>
+
+        {/* Name */}
+        <div className="flex-1 min-w-[140px]">
+          <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>
+            Nombre
+          </label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. Banco Estado"
+            className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          />
+        </div>
+
+        {/* Balance */}
+        <div className="flex-1 min-w-[110px]">
+          <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block" style={{ color: 'var(--text-muted)' }}>
+            Saldo inicial
+          </label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: 'var(--text-muted)' }}>$</span>
+            <input
+              type="number"
+              value={balance}
+              step="1"
+              onChange={(e) => setBalance(e.target.value)}
+              placeholder="0"
+              className="w-full rounded-xl pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              style={{
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={!name.trim() || createMutation.isPending}
+          className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0 self-end"
+        >
+          {createMutation.isPending
+            ? <Loader2 size={15} className="animate-spin" />
+            : <><Plus size={15} /><span>Añadir</span></>
+          }
+        </button>
       </form>
 
+      {/* Accounts grid */}
       {isLoading ? (
-        <div className="flex justify-center py-6 text-zinc-500"><Loader2 className="animate-spin" /></div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {accounts.map(acc => (
-                <div key={acc.id} className="flex flex-col bg-zinc-950 p-4 rounded-xl border border-zinc-800 group">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                           <span className="text-zinc-200 font-bold text-base">{acc.name}</span>
-                           <span className="text-[10px] uppercase font-bold text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded-md">{acc.type}</span>
-                        </div>
-                        <button 
-                            onClick={() => setAccountToDelete(acc.id)}
-                            disabled={deleteMutation.isPending}
-                            className="text-zinc-600 hover:text-red-400 transition-colors p-1 opacity-0 group-hover:opacity-100"
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    </div>
-                    <span className="text-zinc-400 font-medium text-sm">Balance: <span className={acc.balance >= 0 ? "text-emerald-400" : "text-red-400"}>{formatCurrency(acc.balance)}</span></span>
-                </div>
-            ))}
-            {accounts.length === 0 && <p className="text-sm text-zinc-600 italic">No accounts setup. Create one to track your budget!</p>}
+        <div className="flex justify-center py-6">
+          <Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} />
         </div>
+      ) : accounts.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {accounts.map(acc => {
+            const cfg = accountTypeConfig[acc.type] || accountTypeConfig.checking;
+            const Icon = cfg.icon;
+            return (
+              <div
+                key={acc.id}
+                className="group relative rounded-2xl p-4 flex items-center gap-3 transition-all"
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
+                  <Icon size={18} className={cfg.color} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                    {acc.name}
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{cfg.label}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`font-bold text-sm ${acc.balance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {formatCurrency(acc.balance)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAccountToDelete(acc.id)}
+                  disabled={deleteMutation.isPending}
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-red-400 hover:bg-red-500/10"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+          Sin cuentas aún. Añade una para empezar a registrar tus movimientos.
+        </p>
       )}
 
       <ConfirmDeleteModal
@@ -117,8 +180,8 @@ export function AccountManager() {
         onConfirm={() => {
           if (accountToDelete !== null) deleteMutation.mutate(accountToDelete);
         }}
-        title="Delete Account"
-        message="¿Estás seguro? Borrar esta cuenta eliminará permanentemente TODAS las transacciones y reglas asociadas a ella. Esta acción no se puede deshacer."
+        title="Eliminar cuenta"
+        message="¿Estás seguro? Borrar esta cuenta eliminará permanentemente TODAS las transacciones y reglas asociadas. Esta acción no se puede deshacer."
       />
     </div>
   );

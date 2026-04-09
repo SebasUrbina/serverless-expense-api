@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050608"/>
+      <stop offset="100%" stop-color="#0F1A14"/>
+    </linearGradient>
+
+    <linearGradient id="coinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D9E6B"/>
+      <stop offset="100%" stop-color="#5EEAAA"/>
+    </linearGradient>
+
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4EDDA0"/>
+      <stop offset="100%" stop-color="#1E7A4E"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#2D9E6B" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" rx="56" fill="url(#bgGrad)"/>
+
+  <!-- Coin -->
+  <circle cx="128" cy="128" r="64" fill="none" stroke="url(#coinGrad)" stroke-width="6" filter="url(#shadow)"/>
+  <circle cx="128" cy="128" r="52" fill="none" stroke="url(#coinGrad)" stroke-width="2" opacity="0.4"/>
+  <circle cx="128" cy="128" r="44" fill="#0A120D"/>
+
+  <!-- Arrow (money going down) -->
+  <line x1="128" y1="100" x2="128" y2="140" stroke="url(#arrowGrad)" stroke-width="6" stroke-linecap="round"/>
+  <polyline points="110,130 128,150 146,130" fill="none" stroke="url(#arrowGrad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

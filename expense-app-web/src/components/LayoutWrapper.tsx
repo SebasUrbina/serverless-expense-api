@@ -25,16 +25,23 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }, [isLoginPage, runSetup]);
 
   if (isLoginPage) {
-    return <main className="flex-1 h-screen overflow-hidden bg-zinc-950">{children}</main>;
+    return (
+      <main className="flex-1 h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+        {children}
+      </main>
+    );
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
       <Sidebar />
       <div className="flex flex-col flex-1 w-0 overflow-hidden">
-        <main 
-          className="flex-1 relative z-0 overflow-y-auto focus:outline-none bg-zinc-950 lg:pb-0"
-          style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
+        <main
+          className="flex-1 relative z-0 overflow-y-auto focus:outline-none lg:pb-0"
+          style={{
+            background: 'var(--bg-base)',
+            paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))',
+          }}
         >
           {children}
         </main>

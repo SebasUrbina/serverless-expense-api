@@ -3,7 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, parseISO } from 'date-fns';
-import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, TrendingDown, User } from 'lucide-react';
+import { es } from 'date-fns/locale';
+import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, TrendingDown, Settings } from 'lucide-react';
 import { useRecurringModal } from '@/store/useRecurringModal';
 import Link from 'next/link';
 
@@ -22,10 +23,10 @@ export type RecurringRule = {
 };
 
 const frequencyLabel: Record<string, string> = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
-  yearly: 'Yearly',
+  daily: 'Diario',
+  weekly: 'Semanal',
+  monthly: 'Mensual',
+  yearly: 'Anual',
 };
 
 const frequencyColors: Record<string, string> = {
@@ -71,51 +72,59 @@ export default function RecurringPage() {
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
       <div className="px-4 sm:px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Recurring</h1>
-            <p className="text-zinc-500 text-sm mt-0.5 hidden sm:block">
-              Automate subscriptions, salaries & payments.
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Gastos fijos
+            </h1>
+            <p className="text-sm mt-0.5 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
+              Lo que sale automáticamente cada mes.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href="/settings"
-              className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-white sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors shadow-sm"
-              aria-label="Settings"
+              className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              aria-label="Ajustes"
             >
-              <User size={18} />
+              <Settings size={18} />
             </Link>
             <button
               onClick={() => openModal()}
               className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors items-center gap-2 shadow-lg shadow-emerald-500/20 text-sm"
             >
               <Plus size={16} />
-              <span>New Rule</span>
+              <span>Nueva regla</span>
             </button>
           </div>
         </div>
 
-        {/* ── Summary Pills ── */}
+        {/* Summary Pills */}
         {rules.length > 0 && (
-          <div className="flex gap-3 flex-wrap">
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2">
-              <Zap size={14} className="text-emerald-400" />
-              <span className="text-xs text-zinc-400">{activeRules.length} active</span>
+          <div className="flex gap-2 flex-wrap">
+            <div
+              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <Zap size={13} className="text-emerald-400" />
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {activeRules.length} activos
+              </span>
             </div>
             {totalMonthlyExpenses > 0 && (
-              <div className="flex items-center gap-2 bg-red-500/5 border border-red-500/15 rounded-xl px-3 py-2">
-                <TrendingDown size={14} className="text-red-400" />
-                <span className="text-xs text-red-400 font-medium">
-                  −${totalMonthlyExpenses.toLocaleString('es-CL')}/mo
+              <div className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-red-500/5 border border-red-500/15">
+                <TrendingDown size={13} className="text-red-400" />
+                <span className="text-xs font-medium text-red-400">
+                  −${totalMonthlyExpenses.toLocaleString('es-CL')}/mes
                 </span>
               </div>
             )}
             {totalMonthlyIncome > 0 && (
-              <div className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/15 rounded-xl px-3 py-2">
-                <TrendingUp size={14} className="text-emerald-400" />
-                <span className="text-xs text-emerald-400 font-medium">
-                  +${totalMonthlyIncome.toLocaleString('es-CL')}/mo
+              <div className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/15">
+                <TrendingUp size={13} className="text-emerald-400" />
+                <span className="text-xs font-medium text-emerald-400">
+                  +${totalMonthlyIncome.toLocaleString('es-CL')}/mes
                 </span>
               </div>
             )}
@@ -131,62 +140,69 @@ export default function RecurringPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
             </div>
           ) : rules.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4">
-              <Repeat className="w-8 h-8 text-zinc-600" />
+            <div className="flex flex-col items-center justify-center h-48 text-center">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              >
+                <Repeat className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
+              </div>
+              <h3 className="text-base font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>
+                Sin gastos fijos aún
+              </h3>
+              <p className="text-sm max-w-xs mb-5" style={{ color: 'var(--text-muted)' }}>
+                Añade tus suscripciones y pagos recurrentes para que se registren solos.
+              </p>
+              <button
+                onClick={() => openModal()}
+                className="bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+              >
+                <Plus size={15} /> Crear primera regla
+              </button>
             </div>
-            <h3 className="text-lg font-bold text-zinc-400 mb-1">No rules yet</h3>
-            <p className="text-sm text-zinc-600 max-w-xs">
-              Set up recurring transactions to automate your tracking and save time.
-            </p>
-            <button
-              onClick={() => openModal()}
-              className="mt-5 bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20"
-            >
-              <Plus size={15} /> Create first rule
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Active Rules */}
-            {activeRules.length > 0 && (
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Active</span>
-                  <div className="flex-1 h-px bg-zinc-800" />
+          ) : (
+            <div className="space-y-6">
+              {activeRules.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                      Activos
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {activeRules.map(rule => (
+                      <RuleCard
+                        key={rule.id}
+                        rule={rule}
+                        onToggle={() => toggleMutation.mutate({ id: rule.id, is_active: rule.is_active === 1 ? 0 : 1 })}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {activeRules.map(rule => (
-                    <RuleCard
-                      key={rule.id}
-                      rule={rule}
-                      onToggle={() => toggleMutation.mutate({ id: rule.id, is_active: rule.is_active === 1 ? 0 : 1 })}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Inactive Rules */}
-            {inactiveRules.length > 0 && (
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-zinc-600">Paused</span>
-                  <div className="flex-1 h-px bg-zinc-800/60" />
+              {inactiveRules.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                      Pausados
+                    </span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 opacity-60">
+                    {inactiveRules.map(rule => (
+                      <RuleCard
+                        key={rule.id}
+                        rule={rule}
+                        onToggle={() => toggleMutation.mutate({ id: rule.id, is_active: rule.is_active === 1 ? 0 : 1 })}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 opacity-60">
-                  {inactiveRules.map(rule => (
-                    <RuleCard
-                      key={rule.id}
-                      rule={rule}
-                      onToggle={() => toggleMutation.mutate({ id: rule.id, is_active: rule.is_active === 1 ? 0 : 1 })}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -199,20 +215,22 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
   const { openModal } = useRecurringModal();
 
   return (
-    <div 
+    <div
       onClick={() => openModal(rule)}
-      className={`bg-zinc-900 border rounded-2xl p-4 flex flex-col gap-4 transition-all duration-150 hover:border-zinc-700 cursor-pointer ${
-      rule.is_active === 1 ? 'border-zinc-800' : 'border-zinc-800/50'
-    }`}>
-      {/* Top Row: icon + title + status toggle */}
+      className="rounded-2xl p-4 flex flex-col gap-4 transition-all duration-150 cursor-pointer"
+      style={{
+        background: 'var(--bg-card)',
+        border: `1px solid var(--border)`,
+      }}
+    >
+      {/* Top Row */}
       <div className="flex items-start gap-3">
-        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-          rule.category_icon
-            ? 'bg-zinc-800'
-            : isIncome
-              ? 'bg-emerald-500/10 text-emerald-500'
-              : 'bg-red-500/10 text-red-500'
-        }`}>
+        <div
+          className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+            rule.category_icon ? '' : isIncome ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+          }`}
+          style={rule.category_icon ? { background: 'var(--bg-inset)' } : {}}
+        >
           {rule.category_icon
             ? <span>{rule.category_icon}</span>
             : isIncome ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />
@@ -220,20 +238,25 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm leading-tight truncate">{rule.title}</p>
+          <p className="font-semibold text-sm leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+            {rule.title}
+          </p>
           {rule.category && (
-            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[11px] font-medium border border-zinc-700/40">
+            <span
+              className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+              style={{ background: 'var(--bg-inset)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            >
               {rule.category}
             </span>
           )}
         </div>
 
-        {/* Active toggle */}
+        {/* Toggle */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
-          title={rule.is_active === 1 ? 'Pause rule' : 'Activate rule'}
+          title={rule.is_active === 1 ? 'Pausar' : 'Activar'}
           className={`flex-shrink-0 w-9 h-5 rounded-full transition-colors relative ${
-            rule.is_active === 1 ? 'bg-emerald-500' : 'bg-zinc-700'
+            rule.is_active === 1 ? 'bg-emerald-500' : 'bg-zinc-600'
           }`}
         >
           <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
@@ -245,25 +268,29 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
       {/* Amount + Frequency */}
       <div className="flex items-end justify-between">
         <div>
-          <p className={`text-2xl font-bold tracking-tight ${isIncome ? 'text-emerald-400' : 'text-white'}`}>
+          <p className={`text-2xl font-bold tracking-tight ${isIncome ? 'text-emerald-500' : ''}`}
+            style={{ color: isIncome ? '#10b981' : 'var(--text-primary)' }}>
             {isIncome ? '+' : '−'}${rule.amount.toLocaleString('es-CL')}
           </p>
           <div className="flex items-center gap-1.5 mt-1">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${freqColor}`}>
-              <Repeat size={10} />
+              <Repeat size={9} />
               {frequencyLabel[rule.frequency]}
-              {rule.frequency === 'monthly' && rule.day_of_month ? ` · day ${rule.day_of_month}` : ''}
+              {rule.frequency === 'monthly' && rule.day_of_month ? ` · día ${rule.day_of_month}` : ''}
             </span>
           </div>
         </div>
       </div>
 
       {/* Next Run */}
-      <div className="flex items-center gap-2 bg-black/40 border border-zinc-800/50 rounded-xl px-3 py-2">
-        <Calendar size={13} className="text-zinc-500 flex-shrink-0" />
-        <span className="text-zinc-500 text-xs">Next run</span>
-        <span className="text-zinc-300 text-xs font-semibold ml-auto">
-          {format(parseISO(rule.next_run), 'MMM d, yyyy')}
+      <div
+        className="flex items-center gap-2 rounded-xl px-3 py-2"
+        style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
+      >
+        <Calendar size={12} style={{ color: 'var(--text-muted)' }} className="flex-shrink-0" />
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Próxima ejecución</span>
+        <span className="text-xs font-semibold ml-auto" style={{ color: 'var(--text-secondary)' }}>
+          {format(parseISO(rule.next_run), "d 'de' MMM yyyy", { locale: es })}
         </span>
       </div>
     </div>
