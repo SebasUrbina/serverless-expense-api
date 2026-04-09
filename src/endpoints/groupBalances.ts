@@ -1,6 +1,6 @@
 import { Bool, OpenAPIRoute, Str } from "chanfana";
 import { z } from "zod";
-import { type AppContext } from "../types";
+import { GroupBalancesResponse, type AppContext } from "../types";
 
 export class GroupBalances extends OpenAPIRoute {
 	schema = {
@@ -17,10 +17,7 @@ export class GroupBalances extends OpenAPIRoute {
 				description: "Returns balance summary per group",
 				content: {
 					"application/json": {
-						schema: z.object({
-							success: Bool(),
-							balances: z.array(z.any()),
-						}),
+						schema: GroupBalancesResponse,
 					},
 				},
 			},

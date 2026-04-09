@@ -75,3 +75,40 @@ export const Account = z.object({
 	user_id: Str({ required: false }),
 	created_at: DateTime({ required: false }),
 });
+
+export const ErrorResponse = z.object({
+	success: z.literal(false).openapi({ example: false }),
+	error: Str(),
+});
+
+export const GroupBalanceMember = z.object({
+	user_id: Str(),
+	nickname: Str(),
+	total_paid: Num(),
+	total_share: Num(),
+	net: Num({ description: "Positive = overpaid, Negative = underpaid" }),
+});
+
+export const GroupBalanceGroup = z.object({
+	group_id: Num(),
+	group_name: Str(),
+	month: Str({ description: "YYYY-MM" }),
+	transaction_count: Num(),
+	members: z.array(GroupBalanceMember),
+});
+
+export const GroupBalancesResponse = z.object({
+	success: Bool(),
+	balances: z.array(GroupBalanceGroup),
+});
+
+export const GroupSettlement = z.object({
+	debtor: Str(),
+	creditor: Str(),
+	amount: Num(),
+});
+
+export const GroupSettleResponse = z.object({
+	success: Bool(),
+	settlements: z.array(GroupSettlement),
+});

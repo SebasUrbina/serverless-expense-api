@@ -1,6 +1,6 @@
 import { Bool, OpenAPIRoute, Num, Str } from "chanfana";
 import { z } from "zod";
-import { type AppContext } from "../types";
+import { ErrorResponse, GroupSettleResponse, type AppContext } from "../types";
 
 export class GroupSettle extends OpenAPIRoute {
 	schema = {
@@ -27,10 +27,31 @@ export class GroupSettle extends OpenAPIRoute {
 				description: "Settlement transaction created",
 				content: {
 					"application/json": {
-						schema: z.object({
-							success: Bool(),
-							settlement: z.any(),
-						}),
+						schema: GroupSettleResponse,
+					},
+				},
+			},
+			"400": {
+				description: "Bad request (nothing to settle)",
+				content: {
+					"application/json": {
+						schema: ErrorResponse,
+					},
+				},
+			},
+			"403": {
+				description: "Forbidden (not a member)",
+				content: {
+					"application/json": {
+						schema: ErrorResponse,
+					},
+				},
+			},
+			"404": {
+				description: "Group not found",
+				content: {
+					"application/json": {
+						schema: ErrorResponse,
 					},
 				},
 			},
