@@ -163,13 +163,13 @@ export default function AnalyticsPage() {
                       onClick={(data: any) => { if (data?.originalMonth) router.push(`/transactions?month=${data.originalMonth}`); }}
                       cursor="pointer"
                     >
-                      <LabelList dataKey="Ingresos" position="top" fill="var(--text-muted)" fontSize={9} formatter={(val: any) => val ? formatCompactValue(Number(val)) : ''} />
+                      <LabelList dataKey="Ingresos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val: any) => val ? formatCompactValue(Number(val)) : ''} />
                     </Bar>
                     <Bar dataKey="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]}
                       onClick={(data: any) => { if (data?.originalMonth) router.push(`/transactions?month=${data.originalMonth}`); }}
                       cursor="pointer"
                     >
-                      <LabelList dataKey="Gastos" position="top" fill="var(--text-muted)" fontSize={9} formatter={(val: any) => val ? formatCompactValue(Number(val)) : ''} />
+                      <LabelList dataKey="Gastos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val: any) => val ? formatCompactValue(Number(val)) : ''} />
                     </Bar>
                     <Line type="monotone" dataKey="Balance" name="Ahorro" stroke="#a855f7" strokeWidth={2.5} dot={{ fill: '#a855f7', strokeWidth: 2, r: 3 }} activeDot={{ r: 5, fill: '#c084fc' }} />
                   </ComposedChart>
