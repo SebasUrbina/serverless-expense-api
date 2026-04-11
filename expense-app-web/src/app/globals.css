@@ -155,3 +155,87 @@ select option {
   background-color: var(--bg-card);
   color: var(--text-primary);
 }
+
+/* ── Modal Sheet Open Transition ────────────────────── */
+/* CSS transitions driven by React state + rAF             */
+/* (more reliable than @keyframes on conditional mounts)  */
+.modal-backdrop {
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.modal-backdrop.modal-open {
+  opacity: 1;
+}
+
+.modal-sheet {
+  opacity: 0;
+  transform: translateY(100%);
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.22s ease;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+}
+.modal-sheet.modal-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (min-width: 640px) {
+  .modal-sheet {
+    transform: scale(0.93) translateY(12px);
+  }
+  .modal-sheet.modal-open {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Transaction Success Animation ───────────────────── */
+@keyframes tx-success-scale {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tx-circle-draw {
+  from { stroke-dashoffset: 340; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes tx-check-draw {
+  0%   { stroke-dashoffset: 80; opacity: 0; }
+  30%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes tx-glow-ring {
+  0%   { transform: scale(1); opacity: 0.3; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+
+@keyframes tx-amount-in {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.animate-tx-success {
+  animation: tx-success-scale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.animate-tx-circle {
+  animation: tx-circle-draw 0.55s ease-out 0.05s both;
+}
+.animate-tx-check {
+  animation: tx-check-draw 0.35s ease-out 0.45s both;
+}
+.animate-tx-glow-1 {
+  animation: tx-glow-ring 1s ease-out 0.3s forwards;
+}
+.animate-tx-glow-2 {
+  animation: tx-glow-ring 1.2s ease-out 0.5s forwards;
+}
+.animate-tx-amount {
+  animation: tx-amount-in 0.4s ease-out 0.7s both;
+}
+.animate-tx-label {
+  animation: tx-amount-in 0.4s ease-out 0.85s both;
+}
