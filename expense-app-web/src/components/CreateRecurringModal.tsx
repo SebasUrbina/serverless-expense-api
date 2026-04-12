@@ -8,19 +8,13 @@ import { X, ChevronDown, Calendar } from 'lucide-react';
 import { formatDateAbbreviated } from '@/lib/utils';
 import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
 import { CustomSelect } from './CustomSelect';
-import { RecurringRule } from '@/app/recurring/page';
 import { BaseModal } from './ui/BaseModal';
+import type { RecurringRule } from '@/types/api';
 
 type Props = {
   isOpen: boolean;
   initialData?: RecurringRule | null;
   onClose: () => void;
-};
-
-type EditableRecurringRule = RecurringRule & {
-  category_id?: number | null;
-  account_id?: number | null;
-  tag_ids?: number[];
 };
 
 type RecurringPayload = {
@@ -37,7 +31,6 @@ type RecurringPayload = {
 };
 
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
-  const editableInitialData = initialData as EditableRecurringRule | null | undefined;
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
@@ -50,24 +43,24 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const tags = tagsData?.tags || [];
 
   // Form State
-  const [type, setType] = useState<'expense' | 'income'>(editableInitialData?.type ?? 'expense');
-  const [title, setTitle] = useState(editableInitialData?.title ?? '');
-  const [amount, setAmount] = useState(editableInitialData ? new Intl.NumberFormat('es-CL').format(editableInitialData.amount) : '');
-  const [categoryId, setCategoryId] = useState<number | ''>(editableInitialData?.category_id || '');
-  const [accountId, setAccountId] = useState<number | ''>(editableInitialData?.account_id || '');
-  const [tagIds, setTagIds] = useState<number[]>(editableInitialData?.tag_ids || []);
-  const [frequency, setFrequency] = useState(editableInitialData?.frequency ?? 'monthly');
-  const [dayOfMonth, setDayOfMonth] = useState(editableInitialData?.day_of_month ? editableInitialData.day_of_month.toString() : '1');
+  const [type, setType] = useState<'expense' | 'income'>(initialData?.type ?? 'expense');
+  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [amount, setAmount] = useState(initialData ? new Intl.NumberFormat('es-CL').format(initialData.amount) : '');
+  const [categoryId, setCategoryId] = useState<number | ''>(initialData?.category_id || '');
+  const [accountId, setAccountId] = useState<number | ''>(initialData?.account_id || '');
+  const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
+  const [frequency, setFrequency] = useState(initialData?.frequency ?? 'monthly');
+  const [dayOfMonth, setDayOfMonth] = useState(initialData?.day_of_month ? initialData.day_of_month.toString() : '1');
   const [nextRun, setNextRun] = useState(
-    editableInitialData?.next_run
-      ? format(new Date(editableInitialData.next_run), 'yyyy-MM-dd')
+    initialData?.next_run
+      ? format(new Date(initialData.next_run), 'yyyy-MM-dd')
       : format(addMonths(new Date(), 1), 'yyyy-MM-dd')
   );
 
   const mutation = useMutation({
     mutationFn: async (ruleData: RecurringPayload) => {
-      if (editableInitialData?.id) {
-        const res = await api.put(`/recurring/${editableInitialData.id}`, ruleData);
+      if (initialData?.id) {
+        const res = await api.put(`/recurring/${initialData.id}`, ruleData);
         return res.data;
       } else {
         const res = await api.post('/recurring', ruleData);
@@ -93,7 +86,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       frequency,
       day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) : null,
       next_run: nextRun,
-      is_active: editableInitialData ? editableInitialData.is_active : 1
+      is_active: initialData ? initialData.is_active : 1
     }, {
        onSettled: () => setLoading(false)
     });

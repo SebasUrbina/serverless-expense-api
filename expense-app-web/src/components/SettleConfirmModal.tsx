@@ -3,14 +3,8 @@
 import { useState } from 'react';
 import { X, ArrowRight, CheckCircle2, Loader2, Wallet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { Account } from '@/hooks/usePreferences';
 import { BaseModal } from './ui/BaseModal';
-
-type SettlementPair = {
-  debtor: string;
-  creditor: string;
-  amount: number;
-};
+import type { Account, SettlementPair } from '@/types/api';
 
 type Props = {
   isOpen: boolean;

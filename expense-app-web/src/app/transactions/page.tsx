@@ -2,7 +2,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Transaction } from '@/hooks/useDashboardData';
 import { format, parseISO, endOfMonth, isValid, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ArrowUpRight, ArrowDownRight, Receipt, Plus, Search, SlidersHorizontal, X, Settings, Users } from 'lucide-react';
@@ -14,6 +13,7 @@ import { useSearchParams } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { formatCurrency } from '@/lib/utils';
+import type { Transaction } from '@/types/api';
 
 export default function TransactionsPage() {
   return (

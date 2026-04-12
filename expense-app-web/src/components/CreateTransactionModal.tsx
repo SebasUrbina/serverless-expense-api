@@ -8,13 +8,14 @@ import api from '@/lib/api';
 import { format } from 'date-fns';
 import { X, ChevronDown, Users, Calendar } from 'lucide-react';
 import { formatDateAbbreviated } from '@/lib/utils';
-import { Transaction, useDeleteTransaction } from '@/hooks/useDashboardData';
+import { useDeleteTransaction } from '@/hooks/useDashboardData';
 import { useCategories, useAccounts, useTags, useGroups } from '@/hooks/usePreferences';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
 import { CustomSelect } from './CustomSelect';
 import { Trash2 } from 'lucide-react';
 import { BaseModal } from './ui/BaseModal';
+import type { Transaction } from '@/types/api';
 
 type Props = {
   isOpen: boolean;

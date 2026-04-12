@@ -1,32 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-
-export type Category = {
-  id: number;
-  name: string;
-  type: 'expense' | 'income';
-  icon?: string;
-};
-
-export type Tag = {
-  id: number;
-  name: string;
-};
-
-export type Account = {
-  id: number;
-  name: string;
-  type: 'checking' | 'savings' | 'credit' | 'cash';
-  balance: number;
-};
-
-type UserSetupResponse = {
-  setup: boolean;
-  message: string;
-};
+import type {
+  Category,
+  Account,
+  UserSetupResponse,
+  CategoriesResponse,
+  TagsResponse,
+  AccountsResponse,
+  GroupsResponse,
+  ApiKeyResponse,
+} from '@/types/api';
 
 export function useCategories() {
-  return useQuery<{ categories: Category[] }>({
+  return useQuery<CategoriesResponse>({
     queryKey: ['categories'],
     queryFn: async () => {
       const res = await api.get('/categories');
@@ -36,7 +22,7 @@ export function useCategories() {
 }
 
 export function useTags() {
-  return useQuery<{ tags: Tag[] }>({
+  return useQuery<TagsResponse>({
     queryKey: ['tags'],
     queryFn: async () => {
       const res = await api.get('/tags');
@@ -98,7 +84,7 @@ export function useDeleteTag() {
 }
 
 export function useAccounts() {
-  return useQuery<{ accounts: Account[] }>({
+  return useQuery<AccountsResponse>({
     queryKey: ['accounts'],
     queryFn: async () => {
       const res = await api.get('/accounts');
@@ -151,23 +137,8 @@ export function useUserSetup() {
   });
 }
 
-// ── Shared Groups ──
-
-export type GroupMember = {
-  user_id: string;
-  nickname: string;
-};
-
-export type SharedGroup = {
-  id: number;
-  name: string;
-  invite_code: string | null;
-  created_by: string;
-  members: GroupMember[];
-};
-
 export function useGroups() {
-  return useQuery<{ groups: SharedGroup[] }>({
+  return useQuery<GroupsResponse>({
     queryKey: ['groups'],
     queryFn: async () => {
       const res = await api.get('/groups');
@@ -232,7 +203,7 @@ export function useUpdateGroup() {
 // ── API Keys ──
 
 export function useApiKey() {
-  return useQuery<{ key: string }>({
+  return useQuery<ApiKeyResponse>({
     queryKey: ['api_key'],
     queryFn: async () => {
       const res = await api.get('/keys');

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { RecurringRule } from '@/app/recurring/page';
+import type { RecurringRule } from '@/types/api';
 
 interface RecurringModalState {
   isOpen: boolean;

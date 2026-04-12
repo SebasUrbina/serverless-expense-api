@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Transaction } from '@/hooks/useDashboardData';
+import type { Transaction } from '@/types/api';
 
 interface TransactionModalState {
   isOpen: boolean;

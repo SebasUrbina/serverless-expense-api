@@ -3,60 +3,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, parseISO, endOfMonth, isValid } from 'date-fns';
-
-export type Transaction = {
-  id: number;
-  title: string;
-  amount: number;
-  category: string;
-  category_id: number;
-  category_icon?: string;
-  type: 'expense' | 'income';
-  account: string;
-  account_id: number;
-  tag_ids: number[];
-  tag_names?: string[];
-  date: string;
-  recurring_rule_id?: number;
-  is_shared?: number;
-  group_id?: number;
-  group_name?: string;
-  my_split_amount?: number;
-  my_split_percentage?: number;
-  is_owner?: boolean;
-  splits?: Array<{
-    user_id: string;
-    amount: number;
-    percentage: number;
-    nickname?: string;
-  }>;
-  created_at: string;
-};
-
-export type MonthlySummary = {
-  month: string;
-  total_expense: number;
-  total_income: number;
-};
-
-export type CategorySummary = {
-  category: string;
-  category_id: number;
-  category_icon?: string;
-  amount: number;
-  previous_amount?: number;
-  type: 'expense' | 'income';
-};
-
-export type KPISummary = {
-  largest_expense: number | null;
-  largest_expense_title: string | null;
-  largest_income: number | null;
-  transaction_count: number;
-};
+import type {
+  TransactionsResponse,
+  MonthlySummaryResponse,
+  CategorySummaryResponse,
+  KpiSummaryResponse,
+} from '@/types/api';
 
 export function useDashboardData(filterMonth?: string) {
-  const { data: recentTransactions, isLoading: isLoadingRecent } = useQuery<{ transactions: Transaction[] }>({
+  const { data: recentTransactions, isLoading: isLoadingRecent } = useQuery<TransactionsResponse>({
     queryKey: ['transactions', 'recent', filterMonth],
     queryFn: async () => {
       let url = '/transactions?limit=15'; // fetch a bit more for a specific month
@@ -75,7 +30,7 @@ export function useDashboardData(filterMonth?: string) {
     }
   });
 
-  const { data: monthlySummaryResp, isLoading: isLoadingSummary } = useQuery<{ summary: MonthlySummary[] }>({
+  const { data: monthlySummaryResp, isLoading: isLoadingSummary } = useQuery<MonthlySummaryResponse>({
     queryKey: ['transactions', 'monthlySummary'],
     queryFn: async () => {
       const res = await api.get('/transactions/summary/monthly?months=6');
@@ -83,7 +38,7 @@ export function useDashboardData(filterMonth?: string) {
     }
   });
 
-  const { data: categorySummaryResp, isLoading: isLoadingCategory } = useQuery<{ summary: CategorySummary[] }>({
+  const { data: categorySummaryResp, isLoading: isLoadingCategory } = useQuery<CategorySummaryResponse>({
     queryKey: ['transactions', 'categorySummary', filterMonth],
     queryFn: async () => {
       let url = '/transactions/summary/category?type=expense';
@@ -93,7 +48,7 @@ export function useDashboardData(filterMonth?: string) {
     }
   });
 
-  const { data: kpiSummaryResp, isLoading: isLoadingKpi } = useQuery<{ kpis: KPISummary }>({
+  const { data: kpiSummaryResp, isLoading: isLoadingKpi } = useQuery<KpiSummaryResponse>({
     queryKey: ['transactions', 'kpiSummary', filterMonth],
     queryFn: async () => {
       let url = '/transactions/summary/kpi';

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccounts, useCreateAccount, useDeleteAccount, Account } from '@/hooks/usePreferences';
+import { useAccounts, useCreateAccount, useDeleteAccount } from '@/hooks/usePreferences';
 import { Plus, Trash2, Loader2, Banknote, CreditCard, PiggyBank, Wallet } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import type { Account } from '@/types/api';
 
 const accountTypeConfig: Record<Account['type'], { label: string; icon: React.ElementType; color: string; bg: string }> = {
   checking: { label: 'Cuenta corriente', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },

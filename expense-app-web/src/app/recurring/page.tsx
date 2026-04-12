@@ -8,20 +8,7 @@ import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, 
 import { useRecurringModal } from '@/store/useRecurringModal';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-
-export type RecurringRule = {
-  id: number;
-  title: string;
-  amount: number;
-  category: string;
-  category_icon?: string;
-  type: 'expense' | 'income';
-  account: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
-  day_of_month: number | null;
-  next_run: string;
-  is_active: number;
-};
+import type { RecurringRule, RecurringRulesResponse } from '@/types/api';
 
 const frequencyLabel: Record<string, string> = {
   daily: 'Diario',
@@ -47,7 +34,7 @@ export default function RecurringPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const { data: response, isLoading } = useQuery<{ rules: RecurringRule[] }>({
+  const { data: response, isLoading } = useQuery<RecurringRulesResponse>({
     queryKey: ['recurring', 'list'],
     queryFn: async () => {
       const res = await api.get('/recurring');

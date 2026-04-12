@@ -5,13 +5,13 @@ import api from '@/lib/api';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar, Cell, ComposedChart, LabelList, Line } from 'recharts';
 import { format, parseISO, isValid, addMonths, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { MonthlySummary, CategorySummary } from '@/hooks/useDashboardData';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthSelector } from '@/components/MonthSelector';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings } from 'lucide-react';
 import { formatCompactValue } from '@/lib/utils';
 import Link from 'next/link';
+import type { MonthlySummary, CategorySummary } from '@/types/api';
 
 type ChartDatum = {
   name: string;

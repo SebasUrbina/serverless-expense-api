@@ -10,25 +10,10 @@ import { formatCurrency } from '@/lib/utils';
 import { useState } from 'react';
 import Link from 'next/link';
 import { SettleConfirmModal } from './SettleConfirmModal';
-
-type MemberBalance = {
-  user_id: string;
-  nickname: string;
-  total_paid: number;
-  total_share: number;
-  net: number;
-};
-
-type GroupBalance = {
-  group_id: number;
-  group_name: string;
-  month: string;
-  transaction_count: number;
-  members: MemberBalance[];
-};
+import type { GroupBalance, SettlementPair, GroupBalancesResponse } from '@/types/api';
 
 function useGroupBalances(month: string) {
-  return useQuery<{ balances: GroupBalance[] }>({
+  return useQuery<GroupBalancesResponse>({
     queryKey: ['group-balances', month],
     queryFn: async () => {
       const res = await api.get(`/groups/balances?month=${month}`);
@@ -50,7 +35,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
 
   const [settleTarget, setSettleTarget] = useState<{
     group: GroupBalance;
-    pairs: { debtor: string; creditor: string; amount: number }[];
+    pairs: SettlementPair[];
   } | null>(null);
 
   const settleMutation = useMutation({
@@ -58,7 +43,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
       groupId: number;
       month: string;
       accountId: number;
-      settlements?: { debtor: string; creditor: string; amount: number }[];
+      settlements?: SettlementPair[];
     }) => {
       const res = await api.post(`/groups/${groupId}/settle`, {
         month,
@@ -77,7 +62,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
 
   if (!isLoading && balances.length === 0) return null;
 
-  const handleConfirmSettle = (accountId: number, selectedPairs: { debtor: string; creditor: string; amount: number }[]) => {
+  const handleConfirmSettle = (accountId: number, selectedPairs: SettlementPair[]) => {
     if (!settleTarget || settleMutation.isPending) return;
     settleMutation.mutate({
       groupId: settleTarget.group.group_id,
