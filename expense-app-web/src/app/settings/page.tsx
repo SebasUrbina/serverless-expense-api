@@ -269,7 +269,7 @@ export default function SettingsPage() {
 
           {/* Footer */}
           <p className="text-center text-xs pb-4" style={{ color: 'var(--text-muted)' }}>
-            Seva Web · Tus finanzas, tu control.
+            Seva Web · Tus finanzas, tu control · Versión {process.env.NEXT_PUBLIC_APP_VERSION}
           </p>
 
         </div>
