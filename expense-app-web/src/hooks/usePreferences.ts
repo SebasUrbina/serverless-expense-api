@@ -20,6 +20,11 @@ export type Account = {
   balance: number;
 };
 
+type UserSetupResponse = {
+  setup: boolean;
+  message: string;
+};
+
 export function useCategories() {
   return useQuery<{ categories: Category[] }>({
     queryKey: ['categories'],
@@ -131,12 +136,12 @@ export function useDeleteAccount() {
 
 export function useUserSetup() {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useMutation<UserSetupResponse>({
     mutationFn: async () => {
       const res = await api.post('/user/setup');
       return res.data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       if (data?.setup) {
         queryClient.invalidateQueries({ queryKey: ['accounts'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
