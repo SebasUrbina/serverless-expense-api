@@ -289,7 +289,7 @@ export default function AnalyticsPage() {
               ) : categorySummary.length > 0 ? (
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1">
                   {categorySummary.map((cat, idx) => {
-                    const percentage = ((cat.amount / totalExpense) * 100).toFixed(1);
+                    const percentage = totalExpense > 0 ? ((cat.amount / totalExpense) * 100).toFixed(1) : '0.0';
                     const delta = cat.previous_amount !== undefined ? cat.amount - cat.previous_amount! : 0;
                     const isIncrease = delta > 0;
 
