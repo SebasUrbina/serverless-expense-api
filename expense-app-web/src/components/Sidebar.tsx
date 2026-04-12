@@ -1,5 +1,6 @@
 'use client';
 
+import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -17,7 +18,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -29,7 +30,9 @@ export function Sidebar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const initials = (user?.user_metadata?.full_name || user?.email || 'U')
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.email || 'Usuario';
+
+  const initials = displayName
     .split(' ')
     .map((w: string) => w[0])
     .slice(0, 2)
@@ -106,7 +109,7 @@ export function Sidebar() {
             )}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                {user?.user_metadata?.full_name || user?.email || 'Usuario'}
+                {displayName}
               </p>
               <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
                 Ver perfil
