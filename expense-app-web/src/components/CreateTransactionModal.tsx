@@ -227,7 +227,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
         />
       }
     >
-        <div className="flex justify-between items-center p-4 sm:p-6 sticky top-0 bg-card/90 backdrop-blur z-30">
+        <div className="sticky top-0 z-30 flex items-center justify-between bg-card/90 px-4 pb-4 pt-5 backdrop-blur sm:p-6">
           <button type="button" onClick={resetAndClose} className="px-5 py-2.5 bg-inset text-primary rounded-full font-semibold text-sm sm:hidden hover:bg-border transition-colors">
             Cancelar
           </button>

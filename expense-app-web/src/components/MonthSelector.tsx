@@ -50,34 +50,34 @@ export function MonthSelector({ value, onChange, className = '', alignDropdown =
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <div 
-        className="flex items-center rounded-xl p-0.5 h-[42px] transition-colors"
+        className="flex items-center rounded-xl p-0.5 h-10 sm:h-[42px] transition-colors max-w-full"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
       >
         <button 
           onClick={handlePrevMonth}
-          className="flex items-center justify-center h-full w-9 rounded-lg hover:bg-(--bg-inset) transition-colors"
+          className="flex items-center justify-center h-full w-8 sm:w-9 rounded-lg hover:bg-(--bg-inset) transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           title="Mes anterior"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
         </button>
 
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex flex-1 items-center justify-center gap-2 px-3 h-full text-sm font-medium hover:bg-(--bg-inset) rounded-lg transition-colors min-w-[110px]"
+          className="flex flex-1 items-center justify-center gap-1.5 px-2.5 sm:px-3 h-full text-xs sm:text-sm font-medium hover:bg-(--bg-inset) rounded-lg transition-colors min-w-[88px] sm:min-w-[110px]"
           style={{ color: 'var(--text-primary)' }}
         >
-          <Calendar size={14} className="text-emerald-500" />
+          <Calendar size={13} className="text-emerald-500 sm:w-[14px] sm:h-[14px]" />
           <span className="whitespace-nowrap capitalize">{displayValue}</span>
         </button>
 
         <button 
           onClick={handleNextMonth}
-          className="flex items-center justify-center h-full w-9 rounded-lg hover:bg-(--bg-inset) transition-colors"
+          className="flex items-center justify-center h-full w-8 sm:w-9 rounded-lg hover:bg-(--bg-inset) transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           title="Mes siguiente"
         >
-          <ChevronRight size={18} />
+          <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px]" />
         </button>
       </div>
 

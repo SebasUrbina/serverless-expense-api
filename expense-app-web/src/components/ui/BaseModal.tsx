@@ -35,6 +35,9 @@ export function BaseModal({
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({ startY: 0, isDragging: false, offset: 0 });
   const sheetRef = useRef<HTMLDivElement>(null);
+  const backdropPaddingTop = 'max(0.75rem, env(safe-area-inset-top))';
+  const backdropPaddingBottom = 'max(0.75rem, env(safe-area-inset-bottom))';
+  const sheetMaxHeight = 'calc(100dvh - max(0.75rem, env(safe-area-inset-top)) - max(0.75rem, env(safe-area-inset-bottom)))';
 
   // Animate in with double rAF
   useEffect(() => {
@@ -127,7 +130,11 @@ export function BaseModal({
   return (
     <div
       className={`fixed inset-0 ${zIndex} flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 modal-backdrop ${isVisible ? 'modal-open' : ''}`}
-      style={dragOffset > 0 ? { backgroundColor: `rgba(0,0,0,${Math.max(0.1, 0.6 - dragOffset / 600)})` } : undefined}
+      style={{
+        backgroundColor: `rgba(0,0,0,${dragOffset > 0 ? Math.max(0.1, 0.6 - dragOffset / 600) : 0.6})`,
+        paddingTop: backdropPaddingTop,
+        paddingBottom: backdropPaddingBottom,
+      }}
       onClick={animateClose}
     >
       <div
@@ -136,10 +143,13 @@ export function BaseModal({
         onTouchEnd={onTouchEnd}
         onClick={(e) => e.stopPropagation()}
         className={`bg-card border-t sm:border border-border rounded-t-4xl sm:rounded-3xl w-full ${maxWidth} overflow-y-auto max-h-[95vh] sm:max-h-[90vh] shadow-2xl modal-sheet pb-safe sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
-        style={dragOffset > 0 ? {
-          transform: `translateY(${dragOffset}px)`,
-          transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
-        } : undefined}
+        style={{
+          maxHeight: sheetMaxHeight,
+          ...(dragOffset > 0 ? {
+            transform: `translateY(${dragOffset}px)`,
+            transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+          } : {}),
+        }}
       >
         {/* Drag handle — mobile only */}
         {draggable && (

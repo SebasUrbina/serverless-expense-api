@@ -43,18 +43,35 @@ export default function Home() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-6 pt-6 pb-4">
-        <div className="max-w-7xl mx-auto flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              {firstName ? `Hola, ${firstName} 👋` : 'Mi resumen 👋'}
-            </h1>
-            <p className="text-sm mt-0.5 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
-              Aquí puedes ver en que Seva tu dinero.
-            </p>
+      <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:items-start sm:gap-4">
+          <div className="min-w-0 flex-1 pr-1">
+            <div className="sm:hidden">
+              <p
+                className="text-[0.68rem] font-semibold uppercase tracking-[0.24em]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Bienvenido 👋
+              </p>
+              <h1
+                className="truncate text-[1.2rem] leading-tight font-semibold tracking-[-0.02em]"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {firstName || 'Mi resumen'}
+              </h1>
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="truncate text-[1.4rem] leading-tight font-bold tracking-tight sm:text-3xl sm:leading-tight" style={{ color: 'var(--text-primary)' }}>
+                <span>{firstName ? `Hola, ${firstName}` : 'Mi resumen'}</span>
+                <span className="ml-1.5 inline-block align-middle text-[0.95em]">👋</span>
+              </h1>
+              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Aquí puedes ver en que Seva tu dinero.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <MonthSelector value={filterMonth} onChange={setFilterMonth} />
+          <div className="flex shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
+            <MonthSelector value={filterMonth} onChange={setFilterMonth} className="min-w-0" />
             <Link
               href="/settings"
               className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
