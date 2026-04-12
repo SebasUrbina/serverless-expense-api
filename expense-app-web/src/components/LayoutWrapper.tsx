@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { MobileNavigation } from './MobileNavigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useUserSetup } from '@/hooks/usePreferences';
 import { CreateTransactionModal } from './CreateTransactionModal';
 import { useTransactionModal } from '@/store/useTransactionModal';
@@ -15,11 +15,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === '/login';
 
   const { mutate: runSetup } = useUserSetup();
+  const setupRan = useRef(false);
   const { isOpen, initialData, closeModal } = useTransactionModal();
   const { isOpen: isRecurringOpen, initialData: recurringInitialData, closeModal: closeRecurringModal } = useRecurringModal();
 
   useEffect(() => {
-    if (!isLoginPage) {
+    if (!isLoginPage && !setupRan.current) {
+      setupRan.current = true;
       runSetup();
     }
   }, [isLoginPage, runSetup]);
