@@ -19,6 +19,9 @@ export const useTheme = create<ThemeStore>()(
       },
       resolvedTheme: () => {
         const { theme } = get();
+        if (typeof window === 'undefined') {
+          return 'dark';
+        }
         if (theme === 'system') {
           return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
@@ -32,6 +35,10 @@ export const useTheme = create<ThemeStore>()(
 );
 
 export function applyTheme(theme: Theme) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
   const root = document.documentElement;
   if (theme === 'system') {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
