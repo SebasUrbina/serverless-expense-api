@@ -33,6 +33,14 @@ export class TransactionList extends OpenAPIRoute {
 					description: "Filter transactions up to this date (YYYY-MM-DD)",
 					required: false,
 				}),
+				is_shared: Num({
+					description: "Filter shared transactions only (1 = shared)",
+					required: false,
+				}),
+				group_id: Num({
+					description: "Filter by group ID",
+					required: false,
+				}),
 				page: Num({
 					description: "Page number for pagination",
 					required: false,
@@ -68,7 +76,7 @@ export class TransactionList extends OpenAPIRoute {
 
 	async handle(c: AppContext) {
 		const data = await this.getValidatedData<typeof this.schema>();
-		const { search, category_id, tag_id, type, startDate, endDate, page, limit } = data.query;
+		const { search, category_id, tag_id, type, startDate, endDate, is_shared, group_id, page, limit } = data.query;
 		const userId = c.get("userId");
 
 		let query = `
@@ -113,6 +121,13 @@ export class TransactionList extends OpenAPIRoute {
 		if (endDate) {
 			query += ` AND t.date <= ?`;
 			binds.push(endDate);
+		}
+		if (is_shared) {
+			query += ` AND t.is_shared = 1`;
+		}
+		if (group_id) {
+			query += ` AND t.group_id = ?`;
+			binds.push(group_id);
 		}
 
 		query += ` ORDER BY t.date DESC, t.created_at DESC`;

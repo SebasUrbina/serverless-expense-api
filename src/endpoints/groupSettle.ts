@@ -17,6 +17,11 @@ export class GroupSettle extends OpenAPIRoute {
 						schema: z.object({
 							month: Str({ description: "YYYY-MM to settle", example: "2026-03" }),
 							account_id: Num({ description: "Account to record settlement against" }),
+							settlements: z.array(z.object({
+								debtor: Str({ description: "Debtor nickname" }),
+								creditor: Str({ description: "Creditor nickname" }),
+								amount: Num({ description: "Amount to settle" }),
+							})).optional().describe("Specific pairs to settle. If omitted, settle all."),
 						}),
 					},
 				},
@@ -62,7 +67,7 @@ export class GroupSettle extends OpenAPIRoute {
 		const data = await this.getValidatedData<typeof this.schema>();
 		const userId = c.get("userId");
 		const groupId = data.params.group_id;
-		const { month, account_id } = data.body;
+		const { month, account_id, settlements: requestedSettlements } = data.body;
 
 		// Verify caller is a member
 		const membership = await c.env.DB.prepare(
@@ -162,10 +167,23 @@ export class GroupSettle extends OpenAPIRoute {
 			return c.json({ success: false, error: "Nothing to settle — balances are even" }, 400);
 		}
 
+		// If specific pairs were requested, filter to only those
+		const pairsToSettle = requestedSettlements && requestedSettlements.length > 0
+			? settlements.filter(s =>
+				requestedSettlements.some(rs =>
+					rs.debtor === s.debtor && rs.creditor === s.creditor && rs.amount === s.amount
+				)
+			)
+			: settlements;
+
+		if (pairsToSettle.length === 0) {
+			return c.json({ success: false, error: "No matching settlement pairs found" }, 400);
+		}
+
 		// Create transactions for each settlement pair
 		const createdSettlements = [];
 
-		for (const s of settlements) {
+		for (const s of pairsToSettle) {
 			// 1. Shared expense: debtor pays, split 100% to creditor (zeros shared balance)
 			const debtorTx = await c.env.DB.prepare(
 				`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id)
