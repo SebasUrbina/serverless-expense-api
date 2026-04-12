@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
         name: isValid(parsedDate) ? format(parsedDate, 'MMM', { locale: es }) : item.month,
         Ingresos: item.total_income,
         Gastos: item.total_expense,
-        Balance: item.total_income - item.total_expense,
+        Balance: Math.max(0, item.total_income - item.total_expense),
       };
     });
 
@@ -156,7 +156,7 @@ export default function AnalyticsPage() {
                   <ComposedChart data={chartData} margin={{ top: 24, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
-                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={50} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={50} domain={[0, 'auto']} />
                     <Tooltip cursor={{ fill: 'var(--border)', opacity: 0.4 }} content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }} />
                     <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]}
