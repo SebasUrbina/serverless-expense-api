@@ -52,7 +52,7 @@ export function CategoryManager() {
     setShowEmojiPicker(false);
   };
 
-  const renderCategoryList = (items: typeof categories, emptyMsg: string, accent: string) => (
+  const renderCategoryList = (items: typeof categories, emptyMsg: string) => (
     <div className="space-y-1.5">
       {items.length > 0 ? items.map(cat => (
         <div
