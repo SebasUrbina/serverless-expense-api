@@ -4,9 +4,10 @@ import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import {
   LogOut, Wallet, Users, Code2,
-  LayoutGrid, Sun, CheckCircle2, Hash
+  LayoutGrid, Sun, CheckCircle2, Hash, Scale, ChevronRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState } from 'react';
 import { CategoryManager } from '@/components/CategoryManager';
 import { TagManager } from '@/components/TagManager';
@@ -219,6 +220,29 @@ export default function SettingsPage() {
             >
               {integrationSection.content}
             </SettingsAccordionSection>
+          </div>
+
+          {/* ── Legal ── */}
+          <div className="mb-5">
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+              Legal
+            </p>
+            <Link
+              href="/settings/legal"
+              className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            >
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+                <Scale size={17} className="text-indigo-500" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Información legal</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Licencia, términos y privacidad
+                </p>
+              </div>
+              <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} className="shrink-0" />
+            </Link>
           </div>
 
           {/* ── Cerrar sesión ── */}
