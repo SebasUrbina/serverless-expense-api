@@ -74,7 +74,7 @@ export function TagManager() {
               <button
                 onClick={() => setTagToDelete(tag.id)}
                 disabled={deleteMutation.isPending}
-                className="ml-0.5 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
+                className="ml-0.5 text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:text-red-500"
               >
                 <Trash2 size={12} />
               </button>

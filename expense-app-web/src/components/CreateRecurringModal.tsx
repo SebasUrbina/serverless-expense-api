@@ -33,6 +33,7 @@ type RecurringPayload = {
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
   const categories = categoriesData?.categories || [];
 
@@ -71,10 +72,15 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['recurring'] });
       resetAndClose();
     },
+    onError: (err: Error) => {
+      setError(err.message || 'Error al guardar la regla. Intenta de nuevo.');
+      setLoading(false);
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     mutation.mutate({
       title,
@@ -93,10 +99,16 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   };
 
   const resetAndClose = () => {
+    setType('expense');
     setTitle('');
     setAmount('');
-    setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+    setCategoryId('');
+    setAccountId('');
     setTagIds([]);
+    setFrequency('monthly');
+    setDayOfMonth('1');
+    setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+    setError(null);
     onClose();
   };
 
@@ -133,13 +145,13 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                 onClick={() => setType('expense')}
                 className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-zinc-300'}`}
              >
-                Expense
+                Gasto
              </button>
              <button
                 onClick={() => setType('income')}
                 className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-zinc-300'}`}
              >
-                Income
+                Ingreso
              </button>
           </div>
 
@@ -348,6 +360,12 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
               </div>
             </div>
 
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading || !title || !amount}
@@ -356,7 +374,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                {loading ? (
                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white/80 border-r-2 border-r-white/20"></div>
                ) : (
-                 'Create Automated Rule'
+                 'Crear regla'
                )}
              </button>
           </form>

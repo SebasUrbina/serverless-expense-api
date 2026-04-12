@@ -55,6 +55,15 @@ export function PWAController() {
       return;
     }
 
+    if (process.env.NODE_ENV === 'development') {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister();
+        }
+      });
+      return;
+    }
+
     let isMounted = true;
 
     const registerServiceWorker = async () => {
@@ -84,15 +93,8 @@ export function PWAController() {
 
     void registerServiceWorker();
 
-    const handleControllerChange = () => {
-      window.location.reload();
-    };
-
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-
     return () => {
       isMounted = false;
-      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 
@@ -113,6 +115,7 @@ export function PWAController() {
 
   const handleApplyUpdate = () => {
     updateReady?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    window.location.reload();
   };
 
   return (

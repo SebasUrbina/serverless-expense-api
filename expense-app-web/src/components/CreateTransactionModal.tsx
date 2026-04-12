@@ -222,8 +222,8 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           onConfirm={handleDelete}
-          title="Delete Transaction"
-          message={`Are you sure you want to delete "${title}"? This action cannot be undone.`}
+          title="Eliminar movimiento"
+          message={`¿Estás seguro de que quieres eliminar "${title}"? Esta acción no se puede deshacer.`}
         />
       }
     >
@@ -239,7 +239,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
           <button 
             type="submit" 
             form="transaction-form" 
-            disabled={loading || !title || !amount || categoryId === '' || accountId === ''} 
+            disabled={loading || !title || !amount || categoryId === '' || accountId === '' || (isShared && groupId !== '' && selectedGroup != null && Object.values(splitPercentages).reduce((a, b) => a + b, 0) !== 100)}
             className="px-5 py-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full font-bold text-sm sm:hidden disabled:opacity-50 transition-colors"
           >
             Guardar
@@ -257,13 +257,13 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
               onClick={() => setType('expense')}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
             >
-              Expense
+              Gasto
             </button>
             <button
               onClick={() => setType('income')}
               className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
             >
-              Income
+              Ingreso
             </button>
           </div>
 
@@ -319,7 +319,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
             {/* Detail */}
             <div>
-              <label className="block text-sm font-semibold text-secondary mb-2">Detalle de la compra (opcional)</label>
+              <label className="block text-sm font-semibold text-secondary mb-2">Detalle de la compra</label>
               <input
                 type="text"
                 required={false}
@@ -464,7 +464,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                 {isShared && (
                   <div className="space-y-3 animate-in fade-in duration-200">
                     <div>
-                      <label className="block text-xs font-semibold uppercase text-secondary mb-1">Group</label>
+                      <label className="block text-xs font-semibold uppercase text-secondary mb-1">Grupo</label>
                       <CustomSelect
                         value={groupId}
                         onChange={(val) => {
@@ -473,7 +473,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                           setGroupId(nextGroupId);
                           setSplitPercentages(nextGroup ? getEqualSplitPercentages(nextGroup.members) : {});
                         }}
-                        placeholder="Select group"
+                        placeholder="Seleccionar grupo"
                         options={groups.map(g => ({ value: g.id, label: `👥 ${g.name}` }))}
                       />
                     </div>
@@ -494,7 +494,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                             { label: '100 / 0', values: [100, 0] },
                           ]
                         : [
-                            { label: 'Equal', values: members.map(() => Math.floor(100 / members.length)) },
+                            { label: 'Igual', values: members.map(() => Math.floor(100 / members.length)) },
                           ];
 
                       const applyPreset = (values: number[]) => {
@@ -526,7 +526,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
                       return (
                         <div className="space-y-3">
-                          <label className="block text-xs font-semibold uppercase text-secondary">Split</label>
+                          <label className="block text-xs font-semibold uppercase text-secondary">División</label>
 
                           {/* Preset Buttons */}
                           <div className="flex flex-wrap gap-1.5">
@@ -607,7 +607,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                           {(() => {
                             const total = Object.values(splitPercentages).reduce((a, b) => a + b, 0);
                             return total !== 100 ? (
-                              <p className="text-red-400 text-xs">⚠ Must add up to 100% (currently {total}%)</p>
+                              <p className="text-red-400 text-xs">Debe sumar 100% (actualmente {total}%)</p>
                             ) : null;
                           })()}
                         </div>
@@ -626,7 +626,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
             <button
               type="submit"
-              disabled={loading || !title || !amount || categoryId === '' || accountId === ''}
+              disabled={loading || !title || !amount || categoryId === '' || accountId === '' || !!(isShared && groupId && selectedGroup && Object.values(splitPercentages).reduce((a, b) => a + b, 0) !== 100)}
               className={`hidden sm:flex w-full py-4 rounded-xl font-bold items-center justify-center transition-colors mt-6 ${
                 type === 'expense' 
                   ? 'bg-red-500 hover:bg-red-400 text-white disabled:bg-red-500/50' 
@@ -635,8 +635,8 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
             >
               {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white/80 border-r-2 border-r-white/20"></div>
-              ) : initialData ? 'Save Changes' : (
-                 `Add ${type === 'expense' ? 'Expense' : 'Income'}`
+              ) : initialData ? 'Guardar cambios' : (
+                 `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`
               )}
             </button>
 

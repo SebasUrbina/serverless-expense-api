@@ -6,10 +6,10 @@ import { LayoutDashboard, Receipt, Repeat, PieChart, Plus } from 'lucide-react';
 import { useTransactionModal } from '@/store/useTransactionModal';
 
 export const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Transactions', href: '/transactions', icon: Receipt },
-  { name: 'Recurring', href: '/recurring', icon: Repeat },
-  { name: 'Analytics', href: '/analytics', icon: PieChart },
+  { name: 'Inicio', href: '/', icon: LayoutDashboard },
+  { name: 'Movimientos', href: '/transactions', icon: Receipt },
+  { name: 'Recurrentes', href: '/recurring', icon: Repeat },
+  { name: 'Análisis', href: '/analytics', icon: PieChart },
 ];
 
 export function MobileNavigation() {
@@ -53,6 +53,7 @@ export function MobileNavigation() {
                     type="button"
                     onClick={() => openTransactionModal()}
                     className="flex flex-col items-center justify-center p-2 min-w-[64px] transition-transform active:scale-95 z-20"
+                    aria-label="Agregar movimiento"
                   >
                     <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-1 absolute -top-5 border-4 border-card">
                       <Plus size={24} strokeWidth={2.5} className="rotate-0 transition-transform" />

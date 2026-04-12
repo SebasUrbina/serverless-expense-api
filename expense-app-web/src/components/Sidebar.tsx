@@ -1,11 +1,9 @@
 'use client';
 
-import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { LayoutDashboard, Receipt, Repeat, Settings, PieChart } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/AuthProvider';
 import { ThemeToggle } from './ThemeToggle';
 
 const navigation = [
@@ -18,17 +16,8 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  const { session } = useAuth();
+  const user = session?.user ?? null;
 
   const displayName = user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.email || 'Usuario';
 

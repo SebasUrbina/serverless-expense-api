@@ -229,7 +229,7 @@ export default function AnalyticsPage() {
 
             {/* Area Chart */}
             <div
-              className="lg:col-span-2 xl:col-span-3 rounded-3xl p-5 flex flex-col min-h-[320px] sm:min-h-[400px]"
+              className="lg:col-span-2 xl:col-span-3 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px]"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>

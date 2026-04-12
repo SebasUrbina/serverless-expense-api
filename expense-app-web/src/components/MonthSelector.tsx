@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { format, parseISO, subMonths, addMonths } from 'date-fns';
+import { format, parseISO, subMonths, addMonths, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 type MonthSelectorProps = {
@@ -29,12 +29,14 @@ export function MonthSelector({ value, onChange, className = '', alignDropdown =
 
   const handlePrevMonth = () => {
     const currentDate = value ? parseISO(`${value}-01`) : new Date();
+    if (!isValid(currentDate)) return;
     const prevDate = subMonths(currentDate, 1);
     onChange(format(prevDate, 'yyyy-MM'));
   };
 
   const handleNextMonth = () => {
     const currentDate = value ? parseISO(`${value}-01`) : new Date();
+    if (!isValid(currentDate)) return;
     const nextDate = addMonths(currentDate, 1);
     onChange(format(nextDate, 'yyyy-MM'));
   };
