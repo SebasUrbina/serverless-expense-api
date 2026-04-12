@@ -4,9 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, TrendingDown, Settings } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, TrendingDown, Settings, Sparkles } from 'lucide-react';
 import { useRecurringModal } from '@/store/useRecurringModal';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export type RecurringRule = {
   id: number;
@@ -39,6 +40,12 @@ const frequencyColors: Record<string, string> = {
 export default function RecurringPage() {
   const { openModal } = useRecurringModal();
   const queryClient = useQueryClient();
+  const [fabMounted, setFabMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setFabMounted(true), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   const { data: response, isLoading } = useQuery<{ rules: RecurringRule[] }>({
     queryKey: ['recurring', 'list'],
@@ -140,24 +147,43 @@ export default function RecurringPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
             </div>
           ) : rules.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-              >
-                <Repeat className="w-7 h-7" style={{ color: 'var(--text-muted)' }} />
+            <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center px-4">
+              {/* Animated icon */}
+              <div className="relative mb-6">
+                <div
+                  className="w-20 h-20 rounded-3xl flex items-center justify-center recurring-fade-up"
+                  style={{ background: 'var(--emerald-soft)' }}
+                >
+                  <Repeat className="w-9 h-9 text-emerald-500" />
+                </div>
+                <div
+                  className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 recurring-fade-up"
+                  style={{ animationDelay: '200ms' }}
+                >
+                  <Sparkles size={14} className="text-white" />
+                </div>
               </div>
-              <h3 className="text-base font-bold mb-1" style={{ color: 'var(--text-secondary)' }}>
-                Sin gastos fijos aún
+
+              <h3
+                className="text-xl sm:text-2xl font-bold mb-2 recurring-fade-up"
+                style={{ color: 'var(--text-primary)', animationDelay: '100ms' }}
+              >
+                Automatizá tus finanzas
               </h3>
-              <p className="text-sm max-w-xs mb-5" style={{ color: 'var(--text-muted)' }}>
-                Añade tus suscripciones y pagos recurrentes para que se registren solos.
+              <p
+                className="text-sm sm:text-base max-w-sm mb-8 leading-relaxed recurring-fade-up"
+                style={{ color: 'var(--text-muted)', animationDelay: '200ms' }}
+              >
+                Añadí tus suscripciones y pagos recurrentes para que se registren automáticamente cada mes.
               </p>
+
               <button
                 onClick={() => openModal()}
-                className="bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                className="group bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-white px-6 py-3 rounded-2xl font-semibold text-sm transition-all flex items-center gap-2.5 shadow-lg shadow-emerald-500/25 recurring-fade-up"
+                style={{ animationDelay: '300ms' }}
               >
-                <Plus size={15} /> Crear primera regla
+                <Plus size={18} className="transition-transform group-hover:rotate-90 duration-300" />
+                Crear primera regla
               </button>
             </div>
           ) : (
@@ -205,6 +231,20 @@ export default function RecurringPage() {
           )}
         </div>
       </div>
+
+      {/* ── Mobile FAB — Only when rules exist ── */}
+      {rules.length > 0 && (
+        <button
+          onClick={() => openModal()}
+          className={`sm:hidden fixed right-4 z-40 group bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/30 transition-all duration-300 ${
+            fabMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+          }`}
+          style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom) + 0.75rem)' }}
+          aria-label="Nueva regla recurrente"
+        >
+          <Plus size={24} strokeWidth={2.5} className="transition-transform duration-300 group-hover:rotate-90" />
+        </button>
+      )}
     </div>
   );
 }

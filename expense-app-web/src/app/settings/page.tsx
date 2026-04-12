@@ -103,8 +103,8 @@ export default function SettingsPage() {
               <img
                 src={avatarUrl}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover mb-3 ring-2"
-                style={{ ringColor: 'var(--border)' }}
+                className="w-20 h-20 rounded-full object-cover mb-3"
+                style={{ boxShadow: '0 0 0 2px var(--border)' }}
               />
             ) : (
               <div

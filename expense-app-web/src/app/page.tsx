@@ -99,7 +99,7 @@ export default function Home() {
                 </Link>
 
                 <p className="text-xs sm:text-sm font-bold uppercase tracking-widest mb-3" style={{ color: 'var(--text-secondary)' }}>
-                  {filterMonth ? 'Gasto este mes' : 'Gasto Total'}
+                  {filterMonth ? 'Este mes has gastado' : 'Gasto Total'}
                 </p>
                 <div className="flex items-baseline gap-1 leading-none mb-4 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => router.push(`/analytics?month=${filterMonth}`)}>
                   <span className="text-3xl sm:text-4xl font-medium mb-1" style={{ color: 'var(--text-muted)' }}>$</span>

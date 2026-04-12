@@ -52,89 +52,103 @@ export function GroupManager() {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-4xl p-5 md:p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Users className="text-violet-500" size={24} />
-          <h3 className="text-xl font-bold text-white tracking-tight">Shared Groups</h3>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => { setShowJoin(!showJoin); setShowCreate(false); }}
-            className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 text-sm font-medium border border-zinc-700"
-          >
-            <LogIn size={14} /> Join
-          </button>
-          <button
-            onClick={() => { setShowCreate(!showCreate); setShowJoin(false); }}
-            className="bg-violet-500 hover:bg-violet-400 text-white px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 text-sm font-medium"
-          >
-            <Plus size={14} /> Create
-          </button>
-        </div>
+    <div className="space-y-4">
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setShowJoin(!showJoin); setShowCreate(false); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+          style={{
+            background: showJoin ? 'var(--bg-card)' : 'transparent',
+            border: '1px solid var(--border)',
+            color: showJoin ? 'var(--text-primary)' : 'var(--text-secondary)',
+            boxShadow: showJoin ? 'var(--shadow-card)' : 'none',
+          }}
+        >
+          <LogIn size={14} /> Unirme
+        </button>
+        <button
+          onClick={() => { setShowCreate(!showCreate); setShowJoin(false); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-emerald-500 hover:bg-emerald-400 text-white"
+        >
+          <Plus size={14} /> Crear grupo
+        </button>
       </div>
 
       {/* Create Form */}
       {showCreate && (
-        <form onSubmit={handleCreate} className="mb-6 bg-black p-4 rounded-2xl border border-zinc-800 space-y-3">
-          <p className="text-xs font-semibold uppercase text-zinc-500">Create a new group</p>
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="text"
-              required
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Group name (e.g. Pareja, Viaje Barilo)"
-              className="flex-1 min-w-[200px] bg-zinc-900 rounded-xl border-none text-white px-4 py-2 focus:outline-none focus:ring-1 focus:ring-zinc-700 text-sm placeholder:text-zinc-500"
-            />
-            <button
-              type="submit"
-              disabled={createMutation.isPending}
-              className="bg-violet-500 hover:bg-violet-400 disabled:bg-violet-500/50 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-1 font-medium text-sm"
-            >
-              {createMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Create'}
-            </button>
-          </div>
+        <form onSubmit={handleCreate} className="flex gap-2">
+          <input
+            type="text"
+            required
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder="Nombre del grupo (ej. Pareja, Viaje)"
+            className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={createMutation.isPending}
+            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0"
+          >
+            {createMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Crear'}
+          </button>
         </form>
       )}
 
       {/* Join Form */}
       {showJoin && (
-        <form onSubmit={handleJoin} className="mb-6 bg-black p-4 rounded-2xl border border-zinc-800 space-y-3">
-          <p className="text-xs font-semibold uppercase text-zinc-500">Join with invite code</p>
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="text"
-              required
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="e.g. ABC123"
-              maxLength={6}
-              className="w-32 bg-zinc-900 rounded-xl border-none text-white px-4 py-2 focus:outline-none focus:ring-1 focus:ring-zinc-700 text-sm placeholder:text-zinc-500 uppercase tracking-widest font-mono text-center"
-            />
-            <button
-              type="submit"
-              disabled={joinMutation.isPending}
-              className="bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-700/50 text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-1 font-medium text-sm"
-            >
-              {joinMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : 'Join'}
-            </button>
-          </div>
+        <form onSubmit={handleJoin} className="flex gap-2">
+          <input
+            type="text"
+            required
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder="Código de invitación"
+            maxLength={6}
+            className="w-32 rounded-xl px-4 py-2.5 text-sm uppercase tracking-widest font-mono text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          />
+          <button
+            type="submit"
+            disabled={joinMutation.isPending}
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            {joinMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Unirme'}
+          </button>
           {joinMutation.isError && (
-            <p className="text-red-400 text-xs mt-1">Invalid code or already a member.</p>
+            <p className="text-red-400 text-xs self-center">Código inválido o ya sos miembro.</p>
           )}
         </form>
       )}
 
       {/* Groups List */}
       {isLoading ? (
-        <div className="flex justify-center py-6 text-zinc-500"><Loader2 className="animate-spin" /></div>
+        <div className="flex justify-center py-6"><Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} /></div>
       ) : groups.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {groups.map(group => (
-            <div key={group.id} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 group/card">
+            <div
+              key={group.id}
+              className="rounded-xl p-4 group/card transition-colors"
+              style={{ background: 'var(--bg-card)' }}
+            >
               <div className="flex justify-between items-start mb-3">
-                <div>
+                <div className="min-w-0 flex-1">
                   {editingGroupId === group.id ? (
                     <input
                       autoFocus
@@ -153,39 +167,52 @@ export function GroupManager() {
                         }
                         setEditingGroupId(null);
                       }}
-                      className="bg-zinc-900 text-white font-bold px-2 py-0.5 rounded-lg border border-violet-500 focus:outline-none text-sm w-full"
+                      className="font-bold px-2 py-0.5 rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      style={{
+                        background: 'var(--bg-inset)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-primary)',
+                      }}
                     />
                   ) : (
                     <h4
-                      className="text-white font-bold flex items-center gap-1.5 cursor-pointer group/name hover:text-violet-300 transition-colors"
+                      className="font-bold text-sm flex items-center gap-1.5 cursor-pointer group/name transition-colors"
+                      style={{ color: 'var(--text-primary)' }}
                       onClick={() => { setEditingGroupId(group.id); setEditName(group.name); }}
                     >
                       {group.name}
-                      <Pencil size={12} className="opacity-0 group-hover/name:opacity-100 text-zinc-500 transition-opacity" />
+                      <Pencil size={11} className="opacity-0 group-hover/name:opacity-100 transition-opacity" style={{ color: 'var(--text-muted)' }} />
                     </h4>
                   )}
-                  <p className="text-zinc-500 text-xs mt-0.5">{group.members.length} member{group.members.length !== 1 ? 's' : ''}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {group.members.length} miembro{group.members.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {group.invite_code && (
                     <button
                       onClick={() => copyCode(group.invite_code!, group.id)}
-                      className="flex items-center gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg text-xs font-mono transition-colors border border-zinc-800"
-                      title="Copy invite code"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors"
+                      style={{
+                        background: 'var(--bg-inset)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-secondary)',
+                      }}
+                      title="Copiar código de invitación"
                     >
                       {copiedGroupId === group.id ? (
-                        <><Check size={12} className="text-emerald-400" /> Copied!</>
+                        <><Check size={11} className="text-emerald-400" /> Copiado</>
                       ) : (
-                        <><Copy size={12} /> {group.invite_code}</>
+                        <><Copy size={11} /> {group.invite_code}</>
                       )}
                     </button>
                   )}
                   {group.invite_code && (
                     <button
                       onClick={() => setGroupToDelete(group.id)}
-                      className="text-zinc-600 hover:text-red-400 transition-colors p-1 opacity-0 group-hover/card:opacity-100"
+                      className="p-1.5 rounded-lg transition-all opacity-0 group-hover/card:opacity-100 text-red-400 hover:bg-red-500/10"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={13} />
                     </button>
                   )}
                 </div>
@@ -194,7 +221,12 @@ export function GroupManager() {
                 {group.members.map(member => (
                   <span
                     key={member.user_id}
-                    className="px-2.5 py-1 rounded-full text-xs font-medium bg-violet-500/10 text-violet-400 border border-violet-500/20"
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                    style={{
+                      background: 'var(--emerald-soft)',
+                      color: '#10b981',
+                      border: '1px solid rgba(16,185,129,0.2)',
+                    }}
                   >
                     {member.nickname}
                   </span>
@@ -204,7 +236,9 @@ export function GroupManager() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-zinc-600 italic text-center py-4">No shared groups yet. Create one or join with an invite code.</p>
+        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+          Sin grupos aún. Creá uno o unite con un código de invitación.
+        </p>
       )}
 
       <ConfirmDeleteModal
@@ -216,8 +250,8 @@ export function GroupManager() {
             setGroupToDelete(null);
           }
         }}
-        title="Delete Group"
-        message="Are you sure you want to delete this group? All members will be removed. Existing shared transactions will keep their split data."
+        title="Eliminar grupo"
+        message="¿Estás seguro? Todos los miembros serán removidos. Las transacciones compartidas existentes mantendrán sus datos de división."
       />
     </div>
   );

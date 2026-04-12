@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Key, Eye, EyeOff, Copy, RefreshCw, Check, Zap } from 'lucide-react';
 import { useApiKey, useGenerateApiKey } from '@/hooks/usePreferences';
+import { ShortcutsSetupModal } from '@/components/ShortcutsSetupModal';
 
 export function ApiKeyManager() {
   const { data, isLoading } = useApiKey();
@@ -11,6 +12,7 @@ export function ApiKeyManager() {
   const [showKey, setShowKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
 
   const apiKey = data?.key || '';
 
@@ -105,16 +107,16 @@ export function ApiKeyManager() {
           </div>
         )}
 
-        <a 
-          href="https://www.icloud.com/shortcuts/" 
-          target="_blank" 
-          rel="noopener noreferrer"
+        <button 
+          onClick={() => setShowSetupModal(true)}
           className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
         >
           <Zap size={16} className="fill-emerald-100" />
-          Add iOS Shortcut
-        </a>
+          Configurar iOS Shortcut
+        </button>
       </div>
+
+      <ShortcutsSetupModal isOpen={showSetupModal} onClose={() => setShowSetupModal(false)} />
     </div>
   );
 }

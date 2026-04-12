@@ -4,9 +4,7 @@ import { z } from "zod";
 
 export type AppContext = Context<{
 	Bindings: Env & {
-		API_KEY: string;
 		SUPABASE_URL: string;
-		SUPABASE_ANON_KEY: string;
 	};
 	Variables: {
 		userId: string;

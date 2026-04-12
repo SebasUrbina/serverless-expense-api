@@ -26,7 +26,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (isLoginPage) {
     return (
-      <main className="flex-1 h-screen overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+      <main className="min-h-screen overflow-y-auto" style={{ background: 'var(--bg-base)' }}>
         {children}
       </main>
     );
