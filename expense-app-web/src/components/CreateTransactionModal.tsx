@@ -256,7 +256,12 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
             {/* Amount & Date - Ultra minimalist top */}
             <div className="flex flex-col items-center justify-center mb-6 mt-4">
               <div className="relative inline-flex items-baseline mb-3">
-                <span className="text-2xl text-muted font-bold mr-1">$</span>
+                <span
+                  className="text-2xl font-bold mr-1"
+                  style={{ color: type === 'expense' ? 'var(--color-expense)' : 'var(--color-income)' }}
+                >
+                  $
+                </span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -270,8 +275,11 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                     }
                     setAmount(new Intl.NumberFormat('es-CL').format(parseInt(rawValue, 10)));
                   }}
-                  className="bg-transparent text-primary text-center focus:outline-none font-extrabold text-5xl p-0 min-w-[100px] max-w-[250px]"
-                  style={{ width: `${Math.max(amount.length, 1) * 1.1}ch` }}
+                  className="bg-transparent text-center focus:outline-none font-extrabold text-5xl p-0 min-w-[100px] max-w-[250px] placeholder:text-muted"
+                  style={{
+                    width: `${Math.max(amount.length, 1) * 1.1}ch`,
+                    color: type === 'expense' ? 'var(--color-expense)' : 'var(--color-income)',
+                  }}
                   placeholder="0"
                 />
               </div>

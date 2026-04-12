@@ -340,7 +340,7 @@ function TransactionsContent() {
                           <div className="flex-shrink-0 text-right">
                             <p
                               className="font-bold text-sm"
-                              style={{ color: tx.type === 'income' ? '#10b981' : 'var(--text-primary)' }}
+                              style={{ color: tx.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)' }}
                             >
                               {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString('es-CL')}
                             </p>

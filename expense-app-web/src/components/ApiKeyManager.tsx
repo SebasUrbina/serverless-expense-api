@@ -31,52 +31,61 @@ export function ApiKeyManager() {
     });
   };
 
-  // Replace this URL with the actual iCloud link if the user has one,
-  // or use a placeholder they can update.
-  const shortcutUrl = "https://www.icloud.com/shortcuts/placeholder"; // The user didn't provide a specific link, so we will use a placeholder or generic link. Wait, there was a previous conversation about shortening API keys.
-
   return (
-    <div className="bg-inset border border-border rounded-4xl p-5 md:p-6 shadow-xl">
+    <div className="space-y-5 pt-2">
       <div className="flex items-center gap-3 mb-6">
-        <Key className="text-emerald-500" size={24} />
-        <h3 className="text-xl font-bold text-primary tracking-tight">Apple Shortcuts API</h3>
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-sky-500/10">
+          <Key className="text-sky-500" size={20} />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>Atajos de Apple</h3>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Automatiza tus movimientos de forma simple y segura</p>
+        </div>
       </div>
       
-      <p className="text-muted text-sm mb-6">
-        Add transactions on the go using your custom iOS shortcuts. Connect them seamlessly to your accounts using your distinct API Key. Keep this key secret.
+      <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+        Crea una clave privada para registrar movimientos desde tus atajos de iPhone. Usa esta clave solo en tus automatizaciones personales y no la compartas con nadie.
       </p>
 
-      <div className="bg-black border border-border rounded-2xl p-4 mb-6">
-        <p className="text-xs font-semibold uppercase text-secondary mb-2">Your Secret API Key</p>
+      <div
+        className="rounded-2xl p-4 mb-6"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+      >
+        <p className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--text-secondary)' }}>Tu clave privada</p>
         
         {isLoading ? (
-          <div className="h-10 bg-inset animate-pulse rounded-xl"></div>
+          <div className="h-10 animate-pulse rounded-xl" style={{ background: 'var(--bg-inset)' }}></div>
         ) : apiKey ? (
           <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-1 flex items-center bg-inset rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden">
-              <span className="font-mono text-emerald-400 truncate text-sm">
+            <div
+              className="flex-1 flex items-center rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden"
+              style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}
+            >
+              <span className="font-mono truncate text-sm" style={{ color: 'var(--color-income)' }}>
                 {showKey ? apiKey : '••••••••••••••••••••••••'}
               </span>
             </div>
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="flex items-center justify-center w-11 h-11 bg-card-hover hover:bg-border text-muted hover:text-primary rounded-xl transition-colors"
-                title={showKey ? "Hide Key" : "Reveal Key"}
+                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors"
+                style={{ background: 'var(--bg-inset)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
+                title={showKey ? 'Ocultar clave' : 'Mostrar clave'}
               >
                 {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center w-11 h-11 bg-card-hover hover:bg-border text-muted hover:text-primary rounded-xl transition-colors"
-                title="Copy Key"
+                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors"
+                style={{ background: 'var(--bg-inset)', color: 'var(--text-muted)', border: '1px solid var(--border-subtle)' }}
+                title="Copiar clave"
               >
-                {copied ? <Check size={18} className="text-emerald-500" /> : <Copy size={18} />}
+                {copied ? <Check size={18} style={{ color: 'var(--color-income)' }} /> : <Copy size={18} />}
               </button>
             </div>
           </div>
         ) : (
-          <div className="text-sm text-secondary italic py-2">No API Key generated yet.</div>
+          <div className="text-sm italic py-2" style={{ color: 'var(--text-secondary)' }}>Todavía no tienes una clave creada.</div>
         )}
       </div>
 
@@ -88,7 +97,7 @@ export function ApiKeyManager() {
             className="flex-1 bg-card-hover hover:bg-border text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 border border-border-subtle"
           >
             <RefreshCw size={16} className={generateMutation.isPending ? "animate-spin" : ""} />
-            {apiKey ? 'Regenerate Key' : 'Generate Key'}
+            {apiKey ? 'Generar una nueva clave' : 'Crear clave'}
           </button>
         ) : (
           <div className="flex-1 flex gap-2">
@@ -96,13 +105,13 @@ export function ApiKeyManager() {
               onClick={handleRegenerate}
               className="flex-1 bg-red-500 hover:bg-red-400 text-white font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center"
             >
-              Confirm
+              Confirmar
             </button>
             <button 
               onClick={() => setConfirmRegenerate(false)}
               className="flex-1 bg-card-hover hover:bg-border text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center"
             >
-              Cancel
+              Cancelar
             </button>
           </div>
         )}
@@ -112,7 +121,7 @@ export function ApiKeyManager() {
           className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
         >
           <Zap size={16} className="fill-emerald-100" />
-          Configurar iOS Shortcut
+          Configurar atajo en iPhone
         </button>
       </div>
 

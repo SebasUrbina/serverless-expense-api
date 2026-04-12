@@ -82,88 +82,103 @@ export function CategoryManager() {
     <div className="space-y-5">
       {/* Add form */}
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Row 1: Type toggle + Emoji + Name */}
-        <div className="flex gap-2 items-center">
+        <div
+          className="rounded-2xl p-3 sm:p-0"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+        >
+          <div className="space-y-3 sm:space-y-0">
+            {/* Mobile-first controls row */}
+            <div className="flex items-center gap-2 sm:gap-3 sm:mb-3">
           {/* Type toggle */}
-          <div
-            className="flex rounded-xl p-0.5 gap-0.5 shrink-0"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            {(['expense', 'income'] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                style={{
-                  background: type === t ? (t === 'expense' ? '#f43f5e' : '#10b981') : 'transparent',
-                  color: type === t ? 'white' : 'var(--text-muted)',
-                }}
+              <div
+                className="flex flex-1 sm:flex-none rounded-xl p-0.5 gap-0.5"
+                style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
               >
-                {t === 'expense' ? 'Gasto' : 'Ingreso'}
-              </button>
-            ))}
-          </div>
+                {(['expense', 'income'] as const).map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setType(t)}
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg text-xs font-semibold transition-all"
+                    style={{
+                      background: type === t ? (t === 'expense' ? '#f43f5e' : '#10b981') : 'transparent',
+                      color: type === t ? 'white' : 'var(--text-muted)',
+                    }}
+                  >
+                    {t === 'expense' ? 'Gasto' : 'Ingreso'}
+                  </button>
+                ))}
+              </div>
 
           {/* Emoji picker */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="w-10 h-10 rounded-xl text-lg flex items-center justify-center transition-all hover:scale-110"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              {icon}
-            </button>
-            {showEmojiPicker && (
-              <>
-                <div
-                  className="fixed inset-0 z-40 md:hidden"
-                  style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
-                  onClick={() => setShowEmojiPicker(false)}
-                />
-                <div
-                  ref={emojiPickerRef}
-                  className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center rounded-t-3xl pt-2 pb-8 shadow-2xl md:absolute md:inset-auto md:top-12 md:left-0 md:bg-transparent md:border-none md:p-0 md:rounded-xl"
-                  style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)' }}
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="w-11 h-11 rounded-xl text-lg flex items-center justify-center transition-all hover:scale-110"
+                  style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
+                  aria-label="Elegir ícono"
                 >
-                  <div className="w-10 h-1 rounded-full mb-3 md:hidden" style={{ background: 'var(--border)' }} />
-                  <div className="w-full max-w-sm px-4 md:px-0">
-                    <EmojiPicker
-                      onEmojiClick={onEmojiClick}
-                      theme={isDark ? Theme.DARK : Theme.LIGHT}
-                      width="100%"
-                      height={380}
+                  {icon}
+                </button>
+                {showEmojiPicker && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40 md:hidden"
+                      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+                      onClick={() => setShowEmojiPicker(false)}
                     />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+                    <div
+                      ref={emojiPickerRef}
+                      className="fixed inset-x-0 bottom-0 z-50 flex flex-col items-center rounded-t-3xl pt-2 pb-8 shadow-2xl md:absolute md:inset-auto md:top-12 md:left-0 md:bg-transparent md:border-none md:p-0 md:rounded-xl"
+                      style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)' }}
+                    >
+                      <div className="w-10 h-1 rounded-full mb-3 md:hidden" style={{ background: 'var(--border)' }} />
+                      <div className="w-full max-w-sm px-4 md:px-0">
+                        <EmojiPicker
+                          onEmojiClick={onEmojiClick}
+                          theme={isDark ? Theme.DARK : Theme.LIGHT}
+                          width="100%"
+                          height={380}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
 
-          {/* Name input + submit */}
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre…"
-            className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!name.trim() || createMutation.isPending}
-            className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white w-10 h-10 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center"
-          >
-            {createMutation.isPending
-              ? <Loader2 size={16} className="animate-spin" />
-              : <Plus size={18} />
-            }
-          </button>
+            {/* Name input row */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
+              <div className="flex-1 min-w-0">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1 px-0.5 sm:hidden" style={{ color: 'var(--text-muted)' }}>
+                  Nombre de la categoría
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej. Supermercado, Sueldo, Transporte"
+                  className="w-full rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                  style={{
+                    background: 'var(--bg-base)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!name.trim() || createMutation.isPending}
+                className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white h-11 px-4 sm:w-11 sm:px-0 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                {createMutation.isPending
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <><Plus size={18} /><span className="sm:hidden">Agregar categoría</span></>
+                }
+              </button>
+            </div>
+          </div>
         </div>
       </form>
 

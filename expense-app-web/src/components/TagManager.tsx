@@ -27,28 +27,34 @@ export function TagManager() {
     <div className="space-y-4">
       <form
         onSubmit={handleSubmit}
-        className="flex gap-2 items-center rounded-2xl p-3"
-        style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
+        className="rounded-2xl p-3 space-y-3"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
       >
-        <Hash size={15} style={{ color: 'var(--text-muted)' }} className="shrink-0 ml-1" />
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nueva etiqueta (ej. vacaciones)…"
-          className="flex-1 bg-transparent text-sm focus:outline-none"
-          style={{ color: 'var(--text-primary)' }}
-        />
-        <button
-          type="submit"
-          disabled={!name.trim() || createMutation.isPending}
-          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0"
-        >
-          {createMutation.isPending
-            ? <Loader2 size={14} className="animate-spin" />
-            : <><Plus size={14} /><span>Añadir</span></>
-          }
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
+          <div className="flex-1 min-w-0">
+            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1 px-0.5 sm:hidden" style={{ color: 'var(--text-muted)' }}>
+              Nombre de la etiqueta
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej. vacaciones, trabajo, casa"
+              className="w-full rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!name.trim() || createMutation.isPending}
+            className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white h-11 px-4 sm:px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
+          >
+            {createMutation.isPending
+              ? <Loader2 size={14} className="animate-spin" />
+              : <><Plus size={14} /><span>Añadir etiqueta</span></>
+            }
+          </button>
+        </div>
       </form>
 
       {isLoading ? (

@@ -49,6 +49,8 @@ export default function SettingsPage() {
     icon: React.ElementType;
     iconBg: string;
     iconColor: string;
+    accentBorder: string;
+    accentBg: string;
     title: string;
     subtitle: string;
     content: React.ReactNode;
@@ -58,6 +60,8 @@ export default function SettingsPage() {
       icon: Wallet,
       iconBg: 'bg-blue-500/10',
       iconColor: 'text-blue-500',
+      accentBorder: 'rgba(59,130,246,0.28)',
+      accentBg: 'rgba(59,130,246,0.08)',
       title: 'Mis cuentas',
       subtitle: 'Efectivo, tarjetas, billeteras…',
       content: <AccountManager />,
@@ -67,6 +71,8 @@ export default function SettingsPage() {
       icon: LayoutGrid,
       iconBg: 'bg-violet-500/10',
       iconColor: 'text-violet-500',
+      accentBorder: 'rgba(139,92,246,0.28)',
+      accentBg: 'rgba(139,92,246,0.08)',
       title: 'Categorías',
       subtitle: 'Organiza tus gastos e ingresos',
       content: <CategoryManager />,
@@ -76,6 +82,8 @@ export default function SettingsPage() {
       icon: Hash,
       iconBg: 'bg-amber-500/10',
       iconColor: 'text-amber-500',
+      accentBorder: 'rgba(245,158,11,0.3)',
+      accentBg: 'rgba(245,158,11,0.08)',
       title: 'Etiquetas',
       subtitle: 'Añade contexto a tus movimientos',
       content: <TagManager />,
@@ -85,11 +93,26 @@ export default function SettingsPage() {
       icon: Users,
       iconBg: 'bg-emerald-500/10',
       iconColor: 'text-emerald-500',
+      accentBorder: 'rgba(16,185,129,0.28)',
+      accentBg: 'rgba(16,185,129,0.08)',
       title: 'Grupos compartidos',
       subtitle: 'Divide gastos con otras personas',
       content: <GroupManager />,
     },
   ];
+
+  const integrationSection = {
+    id: 'integration' as SectionId,
+    icon: Code2,
+    iconBg: 'bg-sky-500/10',
+    iconColor: 'text-sky-500',
+    accentBorder: 'rgba(14,165,233,0.28)',
+    accentBg: 'rgba(14,165,233,0.08)',
+    title: 'API / iOS Shortcuts',
+    subtitle: 'Conecta con apps externas',
+    content: <ApiKeyManager />,
+  };
+  const IntegrationIcon = integrationSection.icon;
 
   return (
     <div className="flex flex-col h-full">
@@ -157,25 +180,29 @@ export default function SettingsPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
               Finanzas
             </p>
-            <div
-              className="rounded-3xl overflow-hidden"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              {financeSections.map((section, idx) => {
+            <div className="space-y-3">
+              {financeSections.map((section) => {
                 const Icon = section.icon;
                 const isOpen = openSection === section.id;
-                const isLast = idx === financeSections.length - 1;
                 return (
-                  <div key={section.id} style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
+                  <div
+                    key={section.id}
+                    className="rounded-3xl overflow-hidden transition-all duration-200"
+                    style={{
+                      background: isOpen ? section.accentBg : 'var(--bg-card)',
+                      border: `1px solid ${isOpen ? section.accentBorder : 'var(--border)'}`,
+                      boxShadow: isOpen ? 'var(--shadow-elevated)' : 'var(--shadow-card)',
+                    }}
+                  >
                     {/* Row trigger */}
                     <button
                       onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors text-left"
+                      className="w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 text-left"
                       style={{
-                        background: isOpen ? 'var(--bg-inset)' : 'transparent',
+                        background: isOpen ? 'transparent' : 'transparent',
                       }}
                     >
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${section.iconBg}`}>
+                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 ${section.iconBg} ${isOpen ? 'scale-105' : ''}`}>
                         <Icon size={17} className={section.iconColor} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -196,10 +223,14 @@ export default function SettingsPage() {
                     {/* Expanded content */}
                     {isOpen && (
                       <div
-                        className="px-4 pb-5 pt-1 animate-in fade-in slide-in-from-top-2 duration-200"
-                        style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-inset)' }}
+                        className="px-3 pb-3 pt-0 animate-in fade-in slide-in-from-top-2 duration-200"
                       >
-                        {section.content}
+                        <div
+                          className="rounded-[1.35rem] px-4 pb-5 pt-4"
+                          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+                        >
+                          {section.content}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -214,25 +245,26 @@ export default function SettingsPage() {
               Integraciones
             </p>
             <div
-              className="rounded-3xl overflow-hidden"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              className="rounded-3xl overflow-hidden transition-all duration-200"
+              style={{
+                background: openSection === 'integration' ? integrationSection.accentBg : 'var(--bg-card)',
+                border: `1px solid ${openSection === 'integration' ? integrationSection.accentBorder : 'var(--border)'}`,
+                boxShadow: openSection === 'integration' ? 'var(--shadow-elevated)' : 'var(--shadow-card)',
+              }}
             >
               <button
                 onClick={() => toggleSection('integration')}
-                className="w-full flex items-center gap-3.5 px-4 py-3.5 transition-colors text-left"
-                style={{
-                  background: openSection === 'integration' ? 'var(--bg-inset)' : 'transparent',
-                }}
+                className="w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 text-left"
               >
-                <div className="w-9 h-9 rounded-xl bg-zinc-500/10 flex items-center justify-center shrink-0">
-                  <Code2 size={17} className="text-zinc-400" />
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 ${integrationSection.iconBg} ${openSection === 'integration' ? 'scale-105' : ''}`}>
+                  <IntegrationIcon size={17} className={integrationSection.iconColor} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    API / iOS Shortcuts
+                    {integrationSection.title}
                   </p>
                   <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                    Conecta con apps externas
+                    {integrationSection.subtitle}
                   </p>
                 </div>
                 <ChevronDown
@@ -243,10 +275,14 @@ export default function SettingsPage() {
               </button>
               {openSection === 'integration' && (
                 <div
-                  className="px-4 pb-5 pt-1 animate-in fade-in slide-in-from-top-2 duration-200"
-                  style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-inset)' }}
+                  className="px-3 pb-3 pt-0 animate-in fade-in slide-in-from-top-2 duration-200"
                 >
-                  <ApiKeyManager />
+                  <div
+                    className="rounded-[1.35rem] px-4 pb-5 pt-4"
+                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+                  >
+                    {integrationSection.content}
+                  </div>
                 </div>
               )}
             </div>

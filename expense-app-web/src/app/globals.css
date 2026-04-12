@@ -4,6 +4,9 @@
   --color-brand-500: #0A84FF;
   --color-success-500: #30D158;
   --color-danger-500: #FF453A;
+  --color-balance: #8b5cf6;
+  --color-expense: #ef4444;
+  --color-income: #10b981;
   
   /* Semantic Theme Variables Map */
   --color-base: var(--bg-base);
@@ -23,6 +26,10 @@
 
 /* ── Light Theme (default) ──────────────────────────────── */
 :root {
+  --color-balance:      #8b5cf6;
+  --color-expense:      #ef4444;
+  --color-income:       #10b981;
+
   --bg-base:            #f0f2f5;
   --bg-card:            #ffffff;
   --bg-card-hover:      #f8fafc;

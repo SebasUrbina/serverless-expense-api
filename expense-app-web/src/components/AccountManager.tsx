@@ -45,10 +45,14 @@ export function AccountManager() {
   return (
     <div className="space-y-5">
       {/* Add form */}
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Row 1: Type + Name */}
-        <div className="flex gap-2">
-          <div className="shrink-0 w-[140px]">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-3 rounded-2xl p-3 sm:p-4"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+      >
+        {/* Row 1: Type */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="shrink-0 sm:w-[160px]">
             <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5" style={{ color: 'var(--text-muted)' }}>
               Tipo
             </label>
@@ -68,6 +72,11 @@ export function AccountManager() {
               <option value="cash">Efectivo</option>
             </select>
           </div>
+          <div className="hidden sm:block flex-1" />
+        </div>
+
+        {/* Row 2: Name */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <div className="flex-1 min-w-0">
             <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5" style={{ color: 'var(--text-muted)' }}>
               Nombre
@@ -89,7 +98,7 @@ export function AccountManager() {
         </div>
 
         {/* Row 2: Balance + Button */}
-        <div className="flex gap-2 items-end">
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
           <div className="flex-1">
             <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5" style={{ color: 'var(--text-muted)' }}>
               Saldo inicial
@@ -114,11 +123,11 @@ export function AccountManager() {
           <button
             type="submit"
             disabled={!name.trim() || createMutation.isPending}
-            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white h-10 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0"
+            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
           >
             {createMutation.isPending
               ? <Loader2 size={15} className="animate-spin" />
-              : <><Plus size={15} /><span>Añadir</span></>
+              : <><Plus size={15} /><span>Añadir cuenta</span></>
             }
           </button>
         </div>

@@ -308,8 +308,8 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
       {/* Amount + Frequency */}
       <div className="flex items-end justify-between">
         <div>
-          <p className={`text-2xl font-bold tracking-tight ${isIncome ? 'text-emerald-500' : ''}`}
-            style={{ color: isIncome ? '#10b981' : 'var(--text-primary)' }}>
+          <p className="text-2xl font-bold tracking-tight"
+            style={{ color: isIncome ? 'var(--color-income)' : 'var(--color-expense)' }}>
             {isIncome ? '+' : '−'}${rule.amount.toLocaleString('es-CL')}
           </p>
           <div className="flex items-center gap-1.5 mt-1">

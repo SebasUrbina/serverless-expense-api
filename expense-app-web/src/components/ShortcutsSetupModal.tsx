@@ -10,6 +10,7 @@ type Props = {
 };
 
 const TOTAL_STEPS = 6;
+const SHORTCUT_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_URL?.trim() || '';
 
 export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
   const [step, setStep] = useState(0);
@@ -71,7 +72,7 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
 
         {/* Content area */}
         <div className="flex-1 overflow-y-auto px-6 pb-4 pt-2">
-          {step === 0 && <StepCreateShortcut />}
+          {step === 0 && <StepCreateShortcut shortcutUrl={SHORTCUT_URL} />}
           {step === 1 && <StepCreateAutomation />}
           {step === 2 && <StepSelectWallet />}
           {step === 3 && <StepConfigureExecution />}
@@ -121,7 +122,7 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
 
 /* ─── Step Components ──────────────────────────────────── */
 
-function StepCreateShortcut() {
+function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
   return (
     <div className="flex flex-col items-center text-center py-4">
       {/* Shortcuts app icon */}
@@ -142,15 +143,31 @@ function StepCreateShortcut() {
         &apos;Agregar atajo&apos; para que se cree automáticamente la acción.
       </p>
 
-      <a
-        href="https://www.icloud.com/shortcuts/a066d55051cd4144b17edf9a6d5a554e"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 bg-black text-white font-semibold py-3 px-6 rounded-full text-sm hover:bg-zinc-800 transition-colors shadow-lg"
-      >
-        <span className="text-lg">＋</span>
-        Agregar atajo
-      </a>
+      {shortcutUrl ? (
+        <a
+          href={shortcutUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-black text-white font-semibold py-3 px-6 rounded-full text-sm hover:bg-zinc-800 transition-colors shadow-lg"
+        >
+          <span className="text-lg">＋</span>
+          Agregar atajo
+        </a>
+      ) : (
+        <div className="space-y-3">
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-400 font-semibold py-3 px-6 rounded-full text-sm cursor-not-allowed"
+          >
+            <span className="text-lg">＋</span>
+            Atajo no configurado
+          </button>
+          <p className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>
+            Falta configurar `NEXT_PUBLIC_IOS_SHORTCUT_URL` para poder abrir el atajo desde la app.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -343,7 +360,7 @@ function StepAddShortcut({
           <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center mx-auto mb-1.5">
             <span className="text-xs font-bold">m</span>
           </div>
-          <p className="text-[10px] font-semibold leading-tight">Enviar gastos de Wallet a Miga</p>
+          <p className="text-[10px] font-semibold leading-tight">Enviar gastos a Seva</p>
           <Check size={14} className="mx-auto mt-1 text-white/80" />
         </div>
         <div

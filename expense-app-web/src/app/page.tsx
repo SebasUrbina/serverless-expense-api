@@ -121,28 +121,28 @@ export default function Home() {
                 {/* Minimalist Flow & Meta Row */}
                 <div className="flex items-center justify-center gap-4 sm:gap-8 mt-6 sm:mt-10">
                   <div className="flex flex-col items-center">
-                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted mb-1 flex items-center gap-1">
-                      <Wallet size={10} className="text-violet-500 sm:w-3 sm:h-3" /> Balance Total
+                    <p className="text-[9px] sm:text-[10px] uppercase font-bold mb-1 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                      <Wallet size={10} className="sm:w-3 sm:h-3" style={{ color: 'var(--color-balance)' }} /> Balance Total
                     </p>
-                    <p className="text-primary font-bold text-sm sm:text-base">${formatCurrency(totalBalance)}</p>
+                    <p className="font-bold text-sm sm:text-base" style={{ color: 'var(--color-balance)' }}>${formatCurrency(totalBalance)}</p>
                   </div>
                   
-                  <div className="w-px h-6 sm:h-8 bg-border" />
+                  <div className="w-px h-6 sm:h-8" style={{ background: 'var(--border)' }} />
                   
                   <div className="flex flex-col items-center">
-                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted mb-1 flex items-center gap-1">
-                      <ArrowUpRight size={10} className="text-emerald-500 sm:w-3 sm:h-3"/> Ingresos
+                    <p className="text-[9px] sm:text-[10px] uppercase font-bold mb-1 flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                      <ArrowUpRight size={10} className="sm:w-3 sm:h-3" style={{ color: 'var(--color-income)' }} /> Ingresos
                     </p>
-                    <p className="text-emerald-500 font-bold text-sm sm:text-base">${formatCurrency(income)}</p>
+                    <p className="font-bold text-sm sm:text-base" style={{ color: 'var(--color-income)' }}>${formatCurrency(income)}</p>
                   </div>
 
-                  <div className="w-px h-6 sm:h-8 bg-border" />
+                  <div className="w-px h-6 sm:h-8" style={{ background: 'var(--border)' }} />
                   
                   <div className="flex flex-col items-center">
-                    <p className="text-[9px] sm:text-[10px] uppercase font-bold text-muted mb-1 flex items-center gap-1 justify-center">
+                    <p className="text-[9px] sm:text-[10px] uppercase font-bold mb-1 flex items-center gap-1 justify-center" style={{ color: 'var(--text-muted)' }}>
                       <CreditCard size={10} className="text-blue-500 sm:w-3 sm:h-3" /> <span className="hidden sm:inline">Movimientos</span><span className="sm:hidden">Movs.</span>
                     </p>
-                    <p className="text-secondary font-bold text-sm sm:text-base">{kpiSummary?.transaction_count || 0}</p>
+                    <p className="font-bold text-sm sm:text-base" style={{ color: 'var(--text-secondary)' }}>{kpiSummary?.transaction_count || 0}</p>
                   </div>
                 </div>
                 
@@ -185,8 +185,8 @@ export default function Home() {
                               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{tx.category} · {format(parseISO(tx.date), 'd MMM')}</p>
                             </div>
                           </div>
-                          <p className={`shrink-0 font-bold text-sm ml-2 ${tx.type === 'income' ? 'text-emerald-500' : ''}`}
-                            style={{ color: tx.type === 'income' ? '#10b981' : 'var(--text-primary)' }}>
+                          <p className="shrink-0 font-bold text-sm ml-2"
+                            style={{ color: tx.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)' }}>
                             {tx.type === 'income' ? '+' : '−'}${formatCurrency(tx.amount)}
                           </p>
                         </div>
