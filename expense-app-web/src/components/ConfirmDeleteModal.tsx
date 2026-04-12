@@ -37,7 +37,7 @@ export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, title, message 
             onClick={onClose}
             className="flex-1 px-4 py-3 bg-inset hover:bg-card-hover text-primary font-semibold rounded-xl transition-colors"
           >
-            Cancel
+            Cancelar
           </button>
           <button
             onClick={() => {
@@ -46,7 +46,7 @@ export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, title, message 
             }}
             className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-red-500/20"
           >
-            Delete
+            Eliminar
           </button>
         </div>
       </div>
