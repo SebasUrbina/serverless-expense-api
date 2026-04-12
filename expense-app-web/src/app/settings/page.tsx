@@ -14,6 +14,7 @@ import { AccountManager } from '@/components/AccountManager';
 import { GroupManager } from '@/components/GroupManager';
 import { ApiKeyManager } from '@/components/ApiKeyManager';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SettingsAccordionSection } from '@/components/settings/SettingsAccordionSection';
 
 type SectionId = 'accounts' | 'categories' | 'tags' | 'groups' | 'integration';
 
@@ -181,61 +182,22 @@ export default function SettingsPage() {
               Finanzas
             </p>
             <div className="space-y-3">
-              {financeSections.map((section) => {
-                const Icon = section.icon;
-                const isOpen = openSection === section.id;
-                return (
-                  <div
-                    key={section.id}
-                    className="rounded-3xl overflow-hidden transition-all duration-200"
-                    style={{
-                      background: isOpen ? section.accentBg : 'var(--bg-card)',
-                      border: `1px solid ${isOpen ? section.accentBorder : 'var(--border)'}`,
-                      boxShadow: isOpen ? 'var(--shadow-elevated)' : 'var(--shadow-card)',
-                    }}
-                  >
-                    {/* Row trigger */}
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 text-left"
-                      style={{
-                        background: isOpen ? 'transparent' : 'transparent',
-                      }}
-                    >
-                      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 ${section.iconBg} ${isOpen ? 'scale-105' : ''}`}>
-                        <Icon size={17} className={section.iconColor} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                          {section.title}
-                        </p>
-                        <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                          {section.subtitle}
-                        </p>
-                      </div>
-                      <ChevronDown
-                        size={16}
-                        style={{ color: 'var(--text-muted)' }}
-                        className={`shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-
-                    {/* Expanded content */}
-                    {isOpen && (
-                      <div
-                        className="px-3 pb-3 pt-0 animate-in fade-in slide-in-from-top-2 duration-200"
-                      >
-                        <div
-                          className="rounded-[1.35rem] px-4 pb-5 pt-4"
-                          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
-                        >
-                          {section.content}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {financeSections.map((section) => (
+                <SettingsAccordionSection
+                  key={section.id}
+                  title={section.title}
+                  subtitle={section.subtitle}
+                  icon={section.icon}
+                  iconBg={section.iconBg}
+                  iconColor={section.iconColor}
+                  accentBorder={section.accentBorder}
+                  accentBg={section.accentBg}
+                  isOpen={openSection === section.id}
+                  onToggle={() => toggleSection(section.id)}
+                >
+                  {section.content}
+                </SettingsAccordionSection>
+              ))}
             </div>
           </div>
 
@@ -244,48 +206,19 @@ export default function SettingsPage() {
             <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
               Integraciones
             </p>
-            <div
-              className="rounded-3xl overflow-hidden transition-all duration-200"
-              style={{
-                background: openSection === 'integration' ? integrationSection.accentBg : 'var(--bg-card)',
-                border: `1px solid ${openSection === 'integration' ? integrationSection.accentBorder : 'var(--border)'}`,
-                boxShadow: openSection === 'integration' ? 'var(--shadow-elevated)' : 'var(--shadow-card)',
-              }}
+            <SettingsAccordionSection
+              title={integrationSection.title}
+              subtitle={integrationSection.subtitle}
+              icon={IntegrationIcon}
+              iconBg={integrationSection.iconBg}
+              iconColor={integrationSection.iconColor}
+              accentBorder={integrationSection.accentBorder}
+              accentBg={integrationSection.accentBg}
+              isOpen={openSection === 'integration'}
+              onToggle={() => toggleSection('integration')}
             >
-              <button
-                onClick={() => toggleSection('integration')}
-                className="w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 text-left"
-              >
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 ${integrationSection.iconBg} ${openSection === 'integration' ? 'scale-105' : ''}`}>
-                  <IntegrationIcon size={17} className={integrationSection.iconColor} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {integrationSection.title}
-                  </p>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
-                    {integrationSection.subtitle}
-                  </p>
-                </div>
-                <ChevronDown
-                  size={16}
-                  style={{ color: 'var(--text-muted)' }}
-                  className={`shrink-0 transition-transform duration-200 ${openSection === 'integration' ? 'rotate-180' : ''}`}
-                />
-              </button>
-              {openSection === 'integration' && (
-                <div
-                  className="px-3 pb-3 pt-0 animate-in fade-in slide-in-from-top-2 duration-200"
-                >
-                  <div
-                    className="rounded-[1.35rem] px-4 pb-5 pt-4"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
-                  >
-                    {integrationSection.content}
-                  </div>
-                </div>
-              )}
-            </div>
+              {integrationSection.content}
+            </SettingsAccordionSection>
           </div>
 
           {/* ── Cerrar sesión ── */}

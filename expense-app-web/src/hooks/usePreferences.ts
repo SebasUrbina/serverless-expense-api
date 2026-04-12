@@ -44,6 +44,19 @@ export function useCreateCategory() {
   });
 }
 
+export function useUpdateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: number; name?: string; type?: Category['type']; icon?: string }) => {
+      const res = await api.put(`/categories/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+}
+
 export function useDeleteCategory() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -98,6 +111,19 @@ export function useCreateAccount() {
   return useMutation({
     mutationFn: async (data: Omit<Account, 'id'>) => {
       const res = await api.post('/accounts', data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}
+
+export function useUpdateAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: number; name?: string; type?: Account['type']; balance?: number }) => {
+      const res = await api.put(`/accounts/${id}`, data);
       return res.data;
     },
     onSuccess: () => {
