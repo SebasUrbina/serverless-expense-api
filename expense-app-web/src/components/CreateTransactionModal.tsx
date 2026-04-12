@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState } from 'react';
+import { isAxiosError } from 'axios';
+import type { AxiosError } from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format } from 'date-fns';
@@ -19,6 +21,49 @@ type Props = {
   onClose: () => void;
   initialData?: Transaction | null;
 };
+
+type TransactionPayload = {
+  title: string;
+  amount: number;
+  category_id?: number;
+  type: 'expense' | 'income';
+  account_id?: number;
+  tag_ids: number[];
+  date: string;
+  is_shared: 0 | 1;
+  group_id?: number;
+  splits?: Array<{
+    user_id: string;
+    percentage: number;
+  }>;
+};
+
+type ApiErrorResponse = {
+  error?: string;
+};
+
+function getInitialSplitPercentages(transaction?: Transaction | null): Record<string, number> {
+  if (!transaction?.splits?.length) {
+    return {};
+  }
+
+  return transaction.splits.reduce<Record<string, number>>((accumulator, split) => {
+    accumulator[split.user_id] = split.percentage;
+    return accumulator;
+  }, {});
+}
+
+function getEqualSplitPercentages(members: Array<{ user_id: string }>): Record<string, number> {
+  if (members.length === 0) {
+    return {};
+  }
+
+  const equalPct = Math.floor(100 / members.length);
+  return members.reduce<Record<string, number>>((accumulator, member, index) => {
+    accumulator[member.user_id] = index === 0 ? 100 - equalPct * (members.length - 1) : equalPct;
+    return accumulator;
+  }, {});
+}
 
 export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) {
   const queryClient = useQueryClient();
@@ -39,45 +84,25 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   const { data: groupsData } = useGroups();
   const groups = groupsData?.groups || [];
 
+  const initialSplitPercentages = getInitialSplitPercentages(initialData);
+
   // Form State
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState<number | ''>('');
-  const [accountId, setAccountId] = useState<number | ''>('');
-  const [tagIds, setTagIds] = useState<number[]>([]);
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [type, setType] = useState<'expense' | 'income'>(initialData?.type ?? 'expense');
+  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [amount, setAmount] = useState(initialData ? new Intl.NumberFormat('es-CL').format(initialData.amount) : '');
+  const [categoryId, setCategoryId] = useState<number | ''>(initialData?.category_id || '');
+  const [accountId, setAccountId] = useState<number | ''>(initialData?.account_id || '');
+  const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
+  const [date, setDate] = useState(initialData ? format(new Date(initialData.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successSnapshot, setSuccessSnapshot] = useState<{ amount: string; type: 'expense' | 'income' } | null>(null);
 
   // Shared expense state
-  const [isShared, setIsShared] = useState(false);
-  const [groupId, setGroupId] = useState<number | ''>('');
-  const [splitPercentages, setSplitPercentages] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    if (initialData) {
-      setType(initialData.type);
-      setTitle(initialData.title);
-      setAmount(new Intl.NumberFormat('es-CL').format(initialData.amount));
-      setCategoryId(initialData.category_id || '');
-      setAccountId(initialData.account_id || '');
-      setTagIds(initialData.tag_ids || []);
-      setDate(format(new Date(initialData.date), 'yyyy-MM-dd'));
-      setIsShared(!!initialData.is_shared);
-      setGroupId(initialData.group_id || '');
-      // Restore split percentages
-      if (initialData.splits && initialData.splits.length > 0) {
-        const pcts: Record<string, number> = {};
-        initialData.splits.forEach(s => { pcts[s.user_id] = s.percentage; });
-        setSplitPercentages(pcts);
-      }
-    } else {
-      resetForm();
-    }
-  }, [initialData, isOpen]);
+  const [isShared, setIsShared] = useState(Boolean(initialData?.is_shared));
+  const [groupId, setGroupId] = useState<number | ''>(initialData?.group_id || '');
+  const [splitPercentages, setSplitPercentages] = useState<Record<string, number>>(initialSplitPercentages);
 
   const resetForm = () => {
     setTitle('');
@@ -96,21 +121,8 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   // Get currently selected group
   const selectedGroup = groups.find(g => g.id === groupId);
 
-  // Auto-set equal splits when group changes
-  useEffect(() => {
-    if (selectedGroup) {
-      const memberCount = selectedGroup.members.length;
-      const equalPct = Math.floor(100 / memberCount);
-      const pcts: Record<string, number> = {};
-      selectedGroup.members.forEach((m, idx) => {
-        pcts[m.user_id] = idx === 0 ? 100 - equalPct * (memberCount - 1) : equalPct;
-      });
-      setSplitPercentages(pcts);
-    }
-  }, [groupId]);
-
   const mutation = useMutation({
-    mutationFn: async (newTx: any) => {
+    mutationFn: async (newTx: TransactionPayload) => {
       if (initialData) {
         const res = await api.put(`/transactions/${initialData.id}`, newTx);
         return res.data;
@@ -129,8 +141,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
         resetAndClose();
       }, 1500);
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error || err?.message || 'Failed to save transaction. Try again.';
+    onError: (err: AxiosError<ApiErrorResponse> | Error) => {
+      const msg = isAxiosError<ApiErrorResponse>(err)
+        ? (err.response?.data?.error || err.message || 'Failed to save transaction. Try again.')
+        : (err.message || 'Failed to save transaction. Try again.');
       setError(msg);
       setLoading(false);
     },
@@ -157,7 +171,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
       setLoading(false);
       return;
     }
-    const payload: any = {
+    const payload: TransactionPayload = {
       title,
       amount: parsedAmount,
       category_id: categoryId !== '' ? categoryId : undefined,
@@ -165,6 +179,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
       account_id: accountId !== '' ? accountId : undefined,
       tag_ids: tagIds,
       date,
+      is_shared: 0,
     };
 
     if (isShared && groupId && selectedGroup) {
@@ -184,10 +199,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     });
   };
 
-  const resetAndClose = useCallback(() => {
+  const resetAndClose = () => {
     resetForm();
     onClose();
-  }, [onClose]);
+  };
 
   if (!isOpen) return null;
 
@@ -451,7 +466,12 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                       <label className="block text-xs font-semibold uppercase text-secondary mb-1">Group</label>
                       <CustomSelect
                         value={groupId}
-                        onChange={(val) => setGroupId(val as number)}
+                        onChange={(val) => {
+                          const nextGroupId = typeof val === 'number' ? val : Number(val);
+                          const nextGroup = groups.find((group) => group.id === nextGroupId);
+                          setGroupId(nextGroupId);
+                          setSplitPercentages(nextGroup ? getEqualSplitPercentages(nextGroup.members) : {});
+                        }}
                         placeholder="Select group"
                         options={groups.map(g => ({ value: g.id, label: `👥 ${g.name}` }))}
                       />
@@ -549,7 +569,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                           )}
 
                           {/* Member breakdown */}
-                          {members.map((member, idx) => {
+                          {members.map((member) => {
                             const pct = splitPercentages[member.user_id] || 0;
                             const splitAmt = Math.round((parsedAmt * pct) / 100);
                             return (

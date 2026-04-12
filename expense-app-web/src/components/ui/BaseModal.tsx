@@ -32,22 +32,20 @@ export function BaseModal({
 }: BaseModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({ startY: 0, isDragging: false, offset: 0 });
   const sheetRef = useRef<HTMLDivElement>(null);
 
   // Animate in with double rAF
   useEffect(() => {
     if (!isOpen) {
-      setIsVisible(false);
       return;
     }
-    let raf1: number, raf2: number;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setIsVisible(true));
+    const raf1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setIsVisible(true));
     });
     return () => {
       cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
     };
   }, [isOpen]);
 
@@ -81,6 +79,7 @@ export function BaseModal({
     const el = sheetRef.current;
     if (el && el.scrollTop > 0) return;
     dragState.current = { startY: e.touches[0].clientY, isDragging: true, offset: 0 };
+    setIsDragging(true);
   }, [draggable]);
 
   // Native touchmove with passive: false so preventDefault works
@@ -110,6 +109,7 @@ export function BaseModal({
     if (!draggable || !dragState.current.isDragging) return;
     const offset = dragState.current.offset;
     dragState.current = { startY: 0, isDragging: false, offset: 0 };
+    setIsDragging(false);
 
     if (offset > DISMISS_THRESHOLD) {
       setDragOffset(window.innerHeight);
@@ -138,7 +138,7 @@ export function BaseModal({
         className={`bg-card border-t sm:border border-border rounded-t-4xl sm:rounded-3xl w-full ${maxWidth} overflow-y-auto max-h-[95vh] sm:max-h-[90vh] shadow-2xl modal-sheet pb-safe sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
         style={dragOffset > 0 ? {
           transform: `translateY(${dragOffset}px)`,
-          transition: dragState.current.isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
+          transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
         } : undefined}
       >
         {/* Drag handle — mobile only */}

@@ -47,16 +47,20 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <MobileNavigation />
-      <CreateTransactionModal
-        isOpen={isOpen}
-        initialData={initialData}
-        onClose={closeModal}
-      />
-      <CreateRecurringModal
-        isOpen={isRecurringOpen}
-        initialData={recurringInitialData}
-        onClose={closeRecurringModal}
-      />
+      {isOpen ? (
+        <CreateTransactionModal
+          isOpen={isOpen}
+          initialData={initialData}
+          onClose={closeModal}
+        />
+      ) : null}
+      {isRecurringOpen ? (
+        <CreateRecurringModal
+          isOpen={isRecurringOpen}
+          initialData={recurringInitialData}
+          onClose={closeRecurringModal}
+        />
+      ) : null}
     </div>
   );
 }

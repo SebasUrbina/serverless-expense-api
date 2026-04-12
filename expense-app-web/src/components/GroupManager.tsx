@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useGroups, useCreateGroup, useJoinGroup, useDeleteGroup, useUpdateGroup } from '@/hooks/usePreferences';
-import { Users, Plus, Loader2, Trash2, Copy, Check, LogIn, Pencil } from 'lucide-react';
+import { Plus, Loader2, Trash2, Copy, Check, LogIn, Pencil } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 export function GroupManager() {

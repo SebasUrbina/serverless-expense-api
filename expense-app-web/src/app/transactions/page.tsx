@@ -103,7 +103,7 @@ function TransactionsContent() {
     }
   });
 
-  const transactions = response?.transactions || [];
+  const transactions = useMemo(() => response?.transactions ?? [], [response?.transactions]);
   const grouped = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
   const activeFilterCount = [filterCategory !== '', filterTag !== '', filterMonth !== '', filterShared, filterGroupId !== ''].filter(Boolean).length;
 
@@ -189,7 +189,7 @@ function TransactionsContent() {
             <div className="flex-1 min-w-[140px] z-20">
               <CustomSelect
                 value={filterCategory}
-                onChange={setFilterCategory}
+                onChange={(value) => setFilterCategory(value === '' ? '' : Number(value))}
                 placeholder="Todas las categorías"
                 size="small"
                 options={[
@@ -201,7 +201,7 @@ function TransactionsContent() {
             <div className="flex-1 min-w-[130px] z-10">
               <CustomSelect
                 value={filterTag}
-                onChange={setFilterTag}
+                onChange={(value) => setFilterTag(value === '' ? '' : Number(value))}
                 placeholder="Todas las etiquetas"
                 size="small"
                 options={[
@@ -214,7 +214,7 @@ function TransactionsContent() {
               <div className="flex-1 min-w-[130px] z-[5]">
                 <CustomSelect
                   value={filterGroupId}
-                  onChange={setFilterGroupId}
+                  onChange={(value) => setFilterGroupId(value === '' ? '' : Number(value))}
                   placeholder="Todos los grupos"
                   size="small"
                   options={[

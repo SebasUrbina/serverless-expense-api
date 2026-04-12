@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from '@/lib/AuthProvider';
 import { usePathname, useRouter } from 'next/navigation';
 import { applyTheme, useTheme } from '@/store/useTheme';
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
 
@@ -73,7 +75,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {children}
           </AuthGuard>
         </ThemeProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
+        {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
       </QueryClientProvider>
     </AuthProvider>
   );

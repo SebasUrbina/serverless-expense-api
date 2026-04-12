@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, addMonths } from 'date-fns';
@@ -17,7 +17,27 @@ type Props = {
   onClose: () => void;
 };
 
+type EditableRecurringRule = RecurringRule & {
+  category_id?: number | null;
+  account_id?: number | null;
+  tag_ids?: number[];
+};
+
+type RecurringPayload = {
+  title: string;
+  amount: number;
+  category_id?: number;
+  type: 'expense' | 'income';
+  account_id?: number;
+  tag_ids: number[];
+  frequency: string;
+  day_of_month: number | null;
+  next_run: string;
+  is_active: number;
+};
+
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
+  const editableInitialData = initialData as EditableRecurringRule | null | undefined;
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
@@ -30,56 +50,24 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const tags = tagsData?.tags || [];
 
   // Form State
-  const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [categoryId, setCategoryId] = useState<number | ''>('');
-  const [accountId, setAccountId] = useState<number | ''>('');
-  const [tagIds, setTagIds] = useState<number[]>([]);
-  const [frequency, setFrequency] = useState('monthly');
-  const [dayOfMonth, setDayOfMonth] = useState('1');
-  const [nextRun, setNextRun] = useState(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
-
-  useEffect(() => {
-    if (initialData) {
-      setType(initialData.type);
-      setTitle(initialData.title);
-      setAmount(new Intl.NumberFormat('es-CL').format(initialData.amount));
-      
-      const category = categories.find(c => c.name === initialData.category);
-      setCategoryId(category ? category.id : '');
-      
-      const account = accounts.find(a => a.name === initialData.account);
-      setAccountId(account ? account.id : '');
-      
-      setFrequency(initialData.frequency);
-      setDayOfMonth(initialData.day_of_month ? initialData.day_of_month.toString() : '1');
-      
-      try {
-        setNextRun(format(new Date(initialData.next_run), 'yyyy-MM-dd'));
-      } catch (e) {
-        setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
-      }
-
-      // We'd need to fetch tags if they were returned in initialData, but skipping for now
-      // as RecurringRule doesn't expose tagIds directly yet.
-    } else {
-      setType('expense');
-      setTitle('');
-      setAmount('');
-      setCategoryId('');
-      setAccountId('');
-      setFrequency('monthly');
-      setDayOfMonth('1');
-      setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
-      setTagIds([]);
-    }
-  }, [initialData, categories.length, accounts.length, isOpen]);
+  const [type, setType] = useState<'expense' | 'income'>(editableInitialData?.type ?? 'expense');
+  const [title, setTitle] = useState(editableInitialData?.title ?? '');
+  const [amount, setAmount] = useState(editableInitialData ? new Intl.NumberFormat('es-CL').format(editableInitialData.amount) : '');
+  const [categoryId, setCategoryId] = useState<number | ''>(editableInitialData?.category_id || '');
+  const [accountId, setAccountId] = useState<number | ''>(editableInitialData?.account_id || '');
+  const [tagIds, setTagIds] = useState<number[]>(editableInitialData?.tag_ids || []);
+  const [frequency, setFrequency] = useState(editableInitialData?.frequency ?? 'monthly');
+  const [dayOfMonth, setDayOfMonth] = useState(editableInitialData?.day_of_month ? editableInitialData.day_of_month.toString() : '1');
+  const [nextRun, setNextRun] = useState(
+    editableInitialData?.next_run
+      ? format(new Date(editableInitialData.next_run), 'yyyy-MM-dd')
+      : format(addMonths(new Date(), 1), 'yyyy-MM-dd')
+  );
 
   const mutation = useMutation({
-    mutationFn: async (ruleData: any) => {
-      if (initialData?.id) {
-        const res = await api.put(`/recurring/${initialData.id}`, ruleData);
+    mutationFn: async (ruleData: RecurringPayload) => {
+      if (editableInitialData?.id) {
+        const res = await api.put(`/recurring/${editableInitialData.id}`, ruleData);
         return res.data;
       } else {
         const res = await api.post('/recurring', ruleData);
@@ -98,26 +86,26 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     mutation.mutate({
       title,
       amount: parseInt(amount.replace(/\./g, ''), 10),
-      category_id: categoryId,
+      category_id: categoryId !== '' ? categoryId : undefined,
       type,
-      account_id: accountId,
+      account_id: accountId !== '' ? accountId : undefined,
       tag_ids: tagIds,
       frequency,
       day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) : null,
       next_run: nextRun,
-      is_active: initialData ? initialData.is_active : 1
+      is_active: editableInitialData ? editableInitialData.is_active : 1
     }, {
        onSettled: () => setLoading(false)
     });
   };
 
-  const resetAndClose = useCallback(() => {
+  const resetAndClose = () => {
     setTitle('');
     setAmount('');
     setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
     setTagIds([]);
     onClose();
-  }, [onClose]);
+  };
 
   if (!isOpen) return null;
 
@@ -227,7 +215,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                   <div className="relative">
                     <CustomSelect
                       value={frequency}
-                      onChange={setFrequency}
+                      onChange={(value) => setFrequency(String(value) as 'daily' | 'weekly' | 'monthly' | 'yearly')}
                       options={[
                         { value: 'daily', label: 'Diaria' },
                         { value: 'weekly', label: 'Semanal' },

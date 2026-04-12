@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar, Cell, ComposedChart, LabelList, Line } from 'recharts';
-import { format, parseISO, isValid, addMonths } from 'date-fns';
+import { format, parseISO, isValid, addMonths, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { MonthlySummary, CategorySummary } from '@/hooks/useDashboardData';
 import { useState } from 'react';
@@ -13,7 +13,33 @@ import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings } from 'lucide-react
 import { formatCompactValue } from '@/lib/utils';
 import Link from 'next/link';
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type ChartDatum = {
+  name: string;
+  originalMonth: string;
+  Ingresos: number;
+  Gastos: number;
+  Balance: number;
+};
+
+type SavingsDatum = {
+  name: string;
+  Ahorro: number;
+  isProjection: boolean;
+};
+
+type TooltipEntry = {
+  color?: string;
+  name?: string;
+  value?: number | string;
+};
+
+type TooltipProps = {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+};
+
+const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div
@@ -27,7 +53,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           {label}
         </p>
         <div className="space-y-2">
-          {payload.map((entry: any, index: number) => {
+          {payload.map((entry, index) => {
             let color = entry.color;
             if (entry.name === 'Ingresos') color = '#10b981';
             if (entry.name === 'Gastos') color = '#f43f5e';
@@ -55,7 +81,10 @@ export default function AnalyticsPage() {
     queryKey: ['transactions', 'analytics', 'monthly', filterMonth],
     queryFn: async () => {
       let url = '/transactions/summary/monthly?months=12';
-      if (filterMonth) url += `&endDate=${filterMonth}-31`;
+      if (filterMonth) {
+        const selectedMonth = parseISO(`${filterMonth}-01`);
+        url += `&endDate=${format(endOfMonth(selectedMonth), 'yyyy-MM-dd')}`;
+      }
       const res = await api.get(url);
       return res.data;
     }
@@ -75,19 +104,20 @@ export default function AnalyticsPage() {
   const monthlySummary = response?.summary || [];
   const categorySummary = categoryResponse?.summary || [];
 
-  const chartData = monthlySummary
+  const chartData: ChartDatum[] = monthlySummary
     .filter((item) => item.month)
     .map((item) => {
       const parsedDate = parseISO(`${item.month}-01`);
       return {
         name: isValid(parsedDate) ? format(parsedDate, 'MMM', { locale: es }) : item.month,
+        originalMonth: item.month,
         Ingresos: item.total_income,
         Gastos: item.total_expense,
         Balance: Math.max(0, item.total_income - item.total_expense),
       };
     });
 
-  const savingsData = chartData.map(d => ({
+  const savingsData: SavingsDatum[] = chartData.map((d) => ({
     name: d.name,
     Ahorro: d.Balance,
     isProjection: false,
@@ -107,6 +137,17 @@ export default function AnalyticsPage() {
   }
 
   const totalExpense = categorySummary.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const openTransactionsForMonth = (data: unknown) => {
+    if (!data || typeof data !== 'object' || !('originalMonth' in data)) {
+      return;
+    }
+
+    const month = data.originalMonth;
+    if (typeof month === 'string' && month) {
+      router.push(`/transactions?month=${month}`);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -160,16 +201,16 @@ export default function AnalyticsPage() {
                     <Tooltip cursor={{ fill: 'var(--border)', opacity: 0.4 }} content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }} />
                     <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]}
-                      onClick={(data: any) => { if (data?.originalMonth) router.push(`/transactions?month=${data.originalMonth}`); }}
+                      onClick={openTransactionsForMonth}
                       cursor="pointer"
                     >
-                      <LabelList dataKey="Ingresos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val: any) => val ? formatCompactValue(Number(val)) : ''} />
+                      <LabelList dataKey="Ingresos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val) => val ? formatCompactValue(Number(val)) : ''} />
                     </Bar>
                     <Bar dataKey="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]}
-                      onClick={(data: any) => { if (data?.originalMonth) router.push(`/transactions?month=${data.originalMonth}`); }}
+                      onClick={openTransactionsForMonth}
                       cursor="pointer"
                     >
-                      <LabelList dataKey="Gastos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val: any) => val ? formatCompactValue(Number(val)) : ''} />
+                      <LabelList dataKey="Gastos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val) => val ? formatCompactValue(Number(val)) : ''} />
                     </Bar>
                     <Line type="monotone" dataKey="Balance" name="Ahorro" stroke="#a855f7" strokeWidth={2.5} dot={{ fill: '#a855f7', strokeWidth: 2, r: 3 }} activeDot={{ r: 5, fill: '#c084fc' }} />
                   </ComposedChart>
@@ -318,10 +359,13 @@ export default function AnalyticsPage() {
                     <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
                     <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={60} />
                     <Tooltip
-                      formatter={(value: any, name: any, props: any) => [
-                        `$${Number(value).toLocaleString('es-CL')}`,
-                        props.payload.isProjection ? 'Ahorro estimado' : 'Ahorro'
-                      ]}
+                      formatter={(value, _name, item) => {
+                        const payload = item?.payload as SavingsDatum | undefined;
+                        return [
+                          `$${Number(value ?? 0).toLocaleString('es-CL')}`,
+                          payload?.isProjection ? 'Ahorro estimado' : 'Ahorro'
+                        ];
+                      }}
                       contentStyle={{
                         backgroundColor: 'var(--bg-card)',
                         borderColor: 'var(--border)',

@@ -10,7 +10,7 @@ export type Option = {
 
 type Props = {
   value: string | number;
-  onChange: (value: any) => void;
+  onChange: (value: string | number) => void;
   options: Option[];
   placeholder?: string;
   disabled?: boolean;

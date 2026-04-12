@@ -201,7 +201,7 @@ export function CategoryManager() {
               className="rounded-2xl p-1.5 overflow-hidden"
               style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}
             >
-              {renderCategoryList(expenses, 'Sin categorías de gasto aún.', 'red')}
+              {renderCategoryList(expenses, 'Sin categorías de gasto aún.')}
             </div>
           </div>
 
@@ -217,7 +217,7 @@ export function CategoryManager() {
               className="rounded-2xl p-1.5 overflow-hidden"
               style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}
             >
-              {renderCategoryList(incomes, 'Sin categorías de ingreso aún.', 'emerald')}
+              {renderCategoryList(incomes, 'Sin categorías de ingreso aún.')}
             </div>
           </div>
         </div>

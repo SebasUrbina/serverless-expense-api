@@ -1,7 +1,6 @@
 'use client';
 
-import { useDashboardData, Transaction } from '@/hooks/useDashboardData';
-import { ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, LabelList } from 'recharts';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { format, parseISO, isValid, subMonths } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, Wallet, Receipt, CreditCard, PieChart as PieChartIcon, TrendingUp, TrendingDown, Target, Settings } from 'lucide-react';
 import { MonthSelector } from '@/components/MonthSelector';
@@ -9,7 +8,7 @@ import { SharedBalancesCard } from '@/components/SharedBalancesCard';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { formatCompactValue, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { useAuth } from '@/lib/AuthProvider';
 
@@ -21,13 +20,11 @@ export default function Home() {
   const { recentTransactions, monthlySummary, categorySummary, kpiSummary, selectedMonthSummary, totalBalance, isLoading } = useDashboardData(filterMonth);
   const { openModal } = useTransactionModal();
 
-  const firstName = session?.user?.user_metadata?.full_name?.split(' ')[0] || null;
+  const displayName = session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.display_name;
+  const firstName = typeof displayName === 'string' ? displayName.split(' ')[0] : null;
 
   const expense = filterMonth ? (selectedMonthSummary?.total_expense ?? 0) : monthlySummary.reduce((acc, curr) => acc + curr.total_expense, 0);
   const income = filterMonth ? (selectedMonthSummary?.total_income ?? 0) : monthlySummary.reduce((acc, curr) => acc + curr.total_income, 0);
-  const savings = income - expense;
-  const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
-
   const previousMonthDate = subMonths(parseISO(`${filterMonth}-01`), 1);
   const previousMonthStr = isValid(previousMonthDate) ? format(previousMonthDate, 'yyyy-MM') : null;
   const previousMonthSummary = monthlySummary.find(s => s.month === previousMonthStr);
@@ -222,7 +219,6 @@ export default function Home() {
                         categorySummary.map((cat, idx) => {
                           const delta = cat.previous_amount !== undefined ? cat.amount - cat.previous_amount! : 0;
                           const isIncrease = delta > 0;
-                          const isDecrease = delta < 0;
                           return (
                             <div
                               key={idx}

@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import {
   LogOut, Wallet, Users, Code2,
-  Tag, LayoutGrid, Sun, CheckCircle2, ChevronDown, Hash
+  LayoutGrid, Sun, CheckCircle2, ChevronDown, Hash
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -33,7 +33,7 @@ export default function SettingsPage() {
   };
 
   const user = session?.user;
-  const displayName = user?.user_metadata?.full_name || user?.email || 'Usuario';
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.email || 'Usuario';
   const email = user?.email || '';
   const avatarUrl = user?.user_metadata?.avatar_url;
   const initials = displayName

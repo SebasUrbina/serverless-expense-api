@@ -37,7 +37,6 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
     onClose();
   };
 
-  const canGoNext = step < TOTAL_STEPS - 1;
   const canGoBack = step > 0;
   const isLastStep = step === TOTAL_STEPS - 1;
 

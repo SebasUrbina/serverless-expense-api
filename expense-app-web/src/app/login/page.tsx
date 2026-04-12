@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Mail, Key, Loader2, LogIn, UserPlus, User, Smartphone, Zap, BarChart3, ArrowRight } from 'lucide-react';
+import { Mail, Key, Loader2, UserPlus, User, Smartphone, Zap, BarChart3, ArrowRight } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const benefits = [
@@ -69,6 +69,7 @@ export default function LoginPage() {
       password,
       options: {
         data: {
+          full_name: displayName.trim(),
           display_name: displayName.trim(),
         },
       },
