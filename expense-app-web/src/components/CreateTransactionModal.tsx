@@ -12,6 +12,7 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
 import { CustomSelect } from './CustomSelect';
 import { Trash2 } from 'lucide-react';
+import { BaseModal } from './ui/BaseModal';
 
 type Props = {
   isOpen: boolean;
@@ -50,98 +51,6 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successSnapshot, setSuccessSnapshot] = useState<{ amount: string; type: 'expense' | 'income' } | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  // ── Drag-to-dismiss (mobile only) ──────────────────────────────────────
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const dragState = useRef({ startY: 0, isDragging: false, offset: 0 });
-  const [dragOffset, setDragOffset] = useState(0);
-  const DISMISS_THRESHOLD = 120;
-
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    if (!isOpen) return;
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      window.scrollTo(0, scrollY);
-    };
-  }, [isOpen]);
-
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    const sheet = sheetRef.current;
-    if (!sheet) return;
-    if (sheet.scrollTop > 0) return;
-    dragState.current = { startY: e.touches[0].clientY, isDragging: true, offset: 0 };
-  }, []);
-
-  // Native touchmove with { passive: false } so preventDefault actually works
-  useEffect(() => {
-    const sheet = sheetRef.current;
-    if (!sheet || !isOpen) return;
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!dragState.current.isDragging) return;
-      const delta = e.touches[0].clientY - dragState.current.startY;
-      if (delta > 0) {
-        e.preventDefault(); // this works because passive: false
-        dragState.current.offset = delta;
-        setDragOffset(delta);
-      } else {
-        dragState.current.offset = 0;
-        setDragOffset(0);
-      }
-    };
-
-    sheet.addEventListener('touchmove', handleTouchMove, { passive: false });
-    return () => sheet.removeEventListener('touchmove', handleTouchMove);
-  }, [isOpen]);
-
-  const onTouchEnd = useCallback(() => {
-    if (!dragState.current.isDragging) return;
-    const offset = dragState.current.offset;
-    dragState.current.isDragging = false;
-    dragState.current.offset = 0;
-    if (offset > DISMISS_THRESHOLD) {
-      setDragOffset(window.innerHeight);
-      setTimeout(() => {
-        setDragOffset(0);
-        resetForm();
-        onClose();
-      }, 250);
-    } else {
-      setDragOffset(0);
-    }
-  }, [onClose]);
-  // ──────────────────────────────────────────────────────────────────────────
-
-  // Drive the open transition: when isOpen flips to true, render the
-  // modal in its "closed" CSS state first, let the browser paint it,
-  // then add the open class so the CSS transition fires.
-  useEffect(() => {
-    if (!isOpen) {
-      setIsVisible(false);
-      return;
-    }
-    // Double rAF guarantees the browser painted the closed state
-    let raf1: number, raf2: number;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setIsVisible(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [isOpen]);
 
   // Shared expense state
   const [isShared, setIsShared] = useState(false);
@@ -276,12 +185,8 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   };
 
   const resetAndClose = useCallback(() => {
-    // Animate out first, then unmount
-    setIsVisible(false);
-    setTimeout(() => {
-      resetForm();
-      onClose();
-    }, 400); // matches modal-sheet CSS transition duration
+    resetForm();
+    onClose();
   }, [onClose]);
 
   if (!isOpen) return null;
@@ -291,26 +196,21 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   }
 
   return (
-    <div
-      className={`fixed inset-0 z-100 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 modal-backdrop ${isVisible ? 'modal-open' : ''}`}
-      style={dragOffset > 0 ? { backgroundColor: `rgba(0,0,0,${Math.max(0.1, 0.6 - dragOffset / 600)})` } : undefined}
-      onClick={resetAndClose}
+    <BaseModal
+      isOpen={isOpen}
+      onClose={resetAndClose}
+      draggable
+      lockScroll
+      outerContent={
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+          title="Delete Transaction"
+          message={`Are you sure you want to delete "${title}"? This action cannot be undone.`}
+        />
+      }
     >
-      <div
-        ref={sheetRef}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        onClick={(e) => e.stopPropagation()}
-        className={`bg-card border-t sm:border border-border rounded-t-4xl sm:rounded-3xl w-full max-w-lg overflow-y-auto max-h-[95vh] sm:max-h-[90vh] shadow-2xl modal-sheet pb-safe sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
-        style={dragOffset > 0 ? {
-          transform: `translateY(${dragOffset}px)`,
-          transition: dragState.current.isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
-        } : undefined}
-      >
-        {/* Drag handle — mobile only */}
-        <div className="flex justify-center pt-2.5 pb-0 sm:hidden">
-          <div className="w-9 h-1 rounded-full bg-muted/40" />
-        </div>
         <div className="flex justify-between items-center p-4 sm:p-6 sticky top-0 bg-card/90 backdrop-blur z-30">
           <button type="button" onClick={resetAndClose} className="px-5 py-2.5 bg-inset text-primary rounded-full font-semibold text-sm sm:hidden hover:bg-border transition-colors">
             Cancelar
@@ -723,15 +623,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
             )}
           </form>
         </div>
-      </div>
 
-      <ConfirmDeleteModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={handleDelete}
-        title="Delete Transaction"
-        message={`Are you sure you want to delete "${title}"? This action cannot be undone.`}
-      />
-    </div>
+    </BaseModal>
   );
 }

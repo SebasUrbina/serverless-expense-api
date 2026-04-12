@@ -9,6 +9,7 @@ import { formatDateAbbreviated } from '@/lib/utils';
 import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
 import { CustomSelect } from './CustomSelect';
 import { RecurringRule } from '@/app/recurring/page';
+import { BaseModal } from './ui/BaseModal';
 
 type Props = {
   isOpen: boolean;
@@ -19,18 +20,6 @@ type Props = {
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Animate in when opened
-  useEffect(() => {
-    if (isOpen) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setIsVisible(true));
-      });
-    } else {
-      setIsVisible(false);
-    }
-  }, [isOpen]);
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
   const categories = categoriesData?.categories || [];
 
@@ -123,28 +112,18 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   };
 
   const resetAndClose = useCallback(() => {
-    setIsVisible(false);
-    setTimeout(() => {
-      setTitle('');
-      setAmount('');
-      setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
-      setTagIds([]);
-      onClose();
-    }, 400);
+    setTitle('');
+    setAmount('');
+    setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+    setTagIds([]);
+    onClose();
   }, [onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div
-      className={`fixed inset-0 z-100 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 modal-backdrop ${isVisible ? 'modal-open' : ''}`}
-      onClick={resetAndClose}
-    >
-      <div
-        className={`bg-card border-t sm:border border-border rounded-t-4xl sm:rounded-3xl w-full max-w-lg overflow-y-auto max-h-[95vh] sm:max-h-[90vh] shadow-2xl modal-sheet pb-safe sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center p-4 sm:p-6 sticky top-0 bg-card/90 backdrop-blur z-10">
+    <BaseModal isOpen={isOpen} onClose={resetAndClose}>
+      <div className="flex justify-between items-center p-4 sm:p-6 sticky top-0 bg-card/90 backdrop-blur z-10">
           <button type="button" onClick={resetAndClose} className="px-5 py-2.5 bg-inset text-primary rounded-full font-semibold text-sm sm:hidden hover:bg-border transition-colors">
             Cancelar
           </button>
@@ -401,7 +380,6 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
              </button>
           </form>
         </div>
-      </div>
-    </div>
+    </BaseModal>
   );
 }
