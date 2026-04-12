@@ -1,28 +1,62 @@
 {
-    "name": "Seva App",
+    "id": "/",
+    "name": "Seva | ¿En que seva mi plata?",
     "short_name": "Seva",
-    "description": "¿En que seva mi plata?",
-    "start_url": "/",
+    "description": "Controla tus gastos, ingresos y finanzas personales desde cualquier dispositivo.",
+    "lang": "es-CL",
+    "dir": "ltr",
+    "start_url": "/?source=pwa",
+    "scope": "/",
     "display": "standalone",
+    "display_override": ["standalone", "minimal-ui", "browser"],
     "background_color": "#09090b",
     "theme_color": "#09090b",
     "orientation": "portrait",
+    "categories": ["finance", "productivity"],
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "/android-chrome-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "/android-chrome-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Movimientos",
+            "short_name": "Movimientos",
+            "url": "/transactions?source=shortcut",
+            "icons": [
+                {
+                    "src": "/android-chrome-192x192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Analítica",
+            "short_name": "Analítica",
+            "url": "/analytics?source=shortcut",
+            "icons": [
+                {
+                    "src": "/android-chrome-192x192.png",
+                    "sizes": "192x192",
+                    "type": "image/png"
+                }
+            ]
         }
     ]
 }

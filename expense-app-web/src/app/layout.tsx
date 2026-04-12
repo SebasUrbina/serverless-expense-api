@@ -2,15 +2,24 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
+import { PWAController } from "@/components/PWAController";
 
 export const metadata: Metadata = {
-  title: "Seva | ¿En que se va tu plata?",
+  title: "Seva | ¿En que seva mi plata?",
   description: "Controla tus gastos, ingresos y finanzas personales de forma simple.",
   manifest: "/manifest.json",
+  applicationName: "Seva",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Seva",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
   },
   formatDetection: {
     telephone: false,
@@ -52,6 +61,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <Providers>
+          <PWAController />
           <LayoutWrapper>
             {children}
           </LayoutWrapper>

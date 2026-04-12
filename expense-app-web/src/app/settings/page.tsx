@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import {
   LogOut, Wallet, Users, Code2,
-  LayoutGrid, Sun, CheckCircle2, ChevronDown, Hash
+  LayoutGrid, Sun, CheckCircle2, Hash
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
