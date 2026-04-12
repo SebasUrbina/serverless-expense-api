@@ -39,6 +39,7 @@ export class UserSetup extends OpenAPIRoute {
 			const defaultAccounts = [
 				{ name: "Efectivo", type: "cash" },
 				{ name: "Cuenta Corriente", type: "checking" },
+				{ name: "Sin Asignar", type: "checking" },
 			];
 
 			// Default Tags
@@ -67,7 +68,8 @@ export class UserSetup extends OpenAPIRoute {
 				{ name: "Comisiones", type: "expense", icon: "💰"},
 				{ name: "Vacaciones", type: "expense", icon: "✈️"},
 				{ name: "Ropa", type: "expense", icon: "👗"},
-				{ name: "Otros", type: "expense", icon: "📦"}
+				{ name: "Otros", type: "expense", icon: "📦"},
+				{ name: "Sin Categorizar", type: "expense", icon: "❓"},
 			];
 
 			// Insert Accounts
