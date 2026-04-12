@@ -4,7 +4,7 @@ import { Providers } from "@/components/Providers";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
 
 export const metadata: Metadata = {
-  title: "Seva | Finanzas personales",
+  title: "Seva | ¿En que se va tu plata?",
   description: "Controla tus gastos, ingresos y finanzas personales de forma simple.",
   manifest: "/manifest.json",
   appleWebApp: {
