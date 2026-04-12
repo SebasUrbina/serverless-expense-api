@@ -165,3 +165,9 @@ dist
 .env*
 !.env.example
 .wrangler/
+.agent*
+.vscode/
+*.csv/
+*.db
+*data/
+*.Identifier
