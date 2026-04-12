@@ -5,14 +5,15 @@ import api from '@/lib/api';
 import { Transaction } from '@/hooks/useDashboardData';
 import { format, parseISO, endOfMonth, isValid, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Receipt, Plus, Search, SlidersHorizontal, X, Settings } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Receipt, Plus, Search, SlidersHorizontal, X, Settings, Users } from 'lucide-react';
 import { MonthSelector } from '@/components/MonthSelector';
 import Link from 'next/link';
-import { useTags, useCategories } from '@/hooks/usePreferences';
+import { useTags, useCategories, useGroups } from '@/hooks/usePreferences';
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useTransactionModal } from '@/store/useTransactionModal';
+import { formatCurrency } from '@/lib/utils';
 
 export default function TransactionsPage() {
   return (
@@ -48,9 +49,12 @@ function groupTransactionsByDate(transactions: Transaction[]): { date: string; l
 function TransactionsContent() {
   const searchParams = useSearchParams();
   const initialMonth = searchParams.get('month') || '';
+  const initialCategory = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : '';
+  const initialShared = searchParams.get('shared') === '1';
+  const initialGroupId = searchParams.get('group_id') ? Number(searchParams.get('group_id')) : '';
 
   const { openModal } = useTransactionModal();
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(!!initialMonth || !!initialCategory || initialShared);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -60,10 +64,11 @@ function TransactionsContent() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const initialCategory = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : '';
   const [filterMonth, setFilterMonth] = useState(initialMonth);
   const [filterCategory, setFilterCategory] = useState<number | ''>(initialCategory);
   const [filterTag, setFilterTag] = useState<number | ''>('');
+  const [filterShared, setFilterShared] = useState(initialShared);
+  const [filterGroupId, setFilterGroupId] = useState<number | ''>(initialGroupId);
 
   const { data: tagsData } = useTags();
   const tagsMap = new Map((tagsData?.tags || []).map(t => [t.id, t.name]));
@@ -72,14 +77,19 @@ function TransactionsContent() {
   const { data: categoriesData } = useCategories();
   const categoriesList = categoriesData?.categories || [];
 
+  const { data: groupsData } = useGroups();
+  const groupsList = groupsData?.groups || [];
+
   const { data: response, isLoading } = useQuery<{ transactions: Transaction[] }>({
-    queryKey: ['transactions', 'list', debouncedSearch, filterMonth, filterCategory, filterTag],
+    queryKey: ['transactions', 'list', debouncedSearch, filterMonth, filterCategory, filterTag, filterShared, filterGroupId],
     queryFn: async () => {
       let url = debouncedSearch
         ? `/transactions?limit=50&search=${encodeURIComponent(debouncedSearch)}`
         : '/transactions?limit=50';
       if (filterCategory !== '') url += `&category_id=${filterCategory}`;
       if (filterTag !== '') url += `&tag_id=${filterTag}`;
+      if (filterShared) url += `&is_shared=1`;
+      if (filterGroupId !== '') url += `&group_id=${filterGroupId}`;
       if (filterMonth) {
         const start = `${filterMonth}-01`;
         const dateObj = parseISO(start);
@@ -95,7 +105,7 @@ function TransactionsContent() {
 
   const transactions = response?.transactions || [];
   const grouped = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
-  const activeFilterCount = [filterCategory !== '', filterTag !== '', filterMonth !== ''].filter(Boolean).length;
+  const activeFilterCount = [filterCategory !== '', filterTag !== '', filterMonth !== '', filterShared, filterGroupId !== ''].filter(Boolean).length;
 
   return (
     <div className="flex flex-col h-full">
@@ -200,9 +210,23 @@ function TransactionsContent() {
                 ]}
               />
             </div>
+            {filterShared && groupsList.length > 0 && (
+              <div className="flex-1 min-w-[130px] z-[5]">
+                <CustomSelect
+                  value={filterGroupId}
+                  onChange={setFilterGroupId}
+                  placeholder="Todos los grupos"
+                  size="small"
+                  options={[
+                    { value: '', label: 'Todos los grupos' },
+                    ...groupsList.map(g => ({ value: g.id, label: `👥 ${g.name}` }))
+                  ]}
+                />
+              </div>
+            )}
             {activeFilterCount > 0 && (
               <button
-                onClick={() => { setFilterMonth(''); setFilterCategory(''); setFilterTag(''); }}
+                onClick={() => { setFilterMonth(''); setFilterCategory(''); setFilterTag(''); setFilterShared(false); setFilterGroupId(''); }}
                 className="text-xs font-semibold px-3 py-2 h-[42px] rounded-xl flex items-center justify-center gap-1.5 self-center shrink-0 transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20"
               >
                 <X size={13} /> Limpiar
@@ -215,6 +239,23 @@ function TransactionsContent() {
       {/* ── Transaction List ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
         <div className="max-w-7xl mx-auto">
+          {/* Shared transactions summary banner */}
+          {filterShared && !isLoading && transactions.length > 0 && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-4" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)' }}>
+              <Users size={16} className="text-violet-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-semibold text-violet-400">
+                  {transactions.length} gasto{transactions.length !== 1 ? 's' : ''} compartido{transactions.length !== 1 ? 's' : ''}
+                </span>
+                <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
+                  Total: <span className="font-bold text-violet-400">${formatCurrency(transactions.reduce((sum, tx) => sum + tx.amount, 0))}</span>
+                  {transactions.some(tx => tx.my_split_amount != null) && (
+                    <> · Tu parte: <span className="font-bold text-violet-400">${formatCurrency(transactions.reduce((sum, tx) => sum + (tx.my_split_amount ?? tx.amount), 0))}</span></>
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center h-48">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
