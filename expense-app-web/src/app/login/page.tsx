@@ -10,17 +10,17 @@ const benefits = [
   {
     icon: Smartphone,
     title: 'Donde estés',
-    description: 'Accedé desde tu celular o computadora. Tu info siempre sincronizada.',
+    description: 'Accede desde tu celular o computador. Tu información siempre sincronizada.',
   },
   {
     icon: Zap,
     title: 'Atajos de iOS',
-    description: 'Registrá gastos al instante con los Atajos de iOS. Pagás y se guarda solo.',
+    description: 'Registra gastos al instante con los Atajos de iOS. Pagas y se guarda solo.',
   },
   {
     icon: BarChart3,
     title: 'Todo claro',
-    description: 'Visualizá tus gastos, ingresos y tendencias en un dashboard intuitivo.',
+    description: 'Visualiza tus gastos, ingresos y tendencias en un panel intuitivo.',
   },
 ];
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      setSuccess('¡Cuenta creada! Revisá tu email para confirmar y luego iniciá sesión.');
+      setSuccess('Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión.');
       setLoading(false);
       setMode('login');
     }
@@ -181,10 +181,10 @@ export default function LoginPage() {
             {/* Card header */}
             <div className="mb-6">
               <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-                {mode === 'login' ? 'Iniciá sesión' : 'Creá tu cuenta'}
+                {mode === 'login' ? 'Inicia sesión' : 'Crea tu cuenta'}
               </h3>
               <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-                {mode === 'login' ? 'Accedé a tu panel financiero' : 'Empezá a controlar tus finanzas hoy'}
+                {mode === 'login' ? 'Accede a tu panel financiero' : 'Empieza a controlar tus finanzas hoy'}
               </p>
             </div>
 

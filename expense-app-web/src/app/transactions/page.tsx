@@ -134,7 +134,7 @@ function TransactionsContent() {
               className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors items-center gap-2 shadow-lg shadow-emerald-500/20 text-sm"
             >
               <Plus size={16} />
-              <span>Añadir</span>
+              <span>Agregar</span>
             </button>
           </div>
         </div>

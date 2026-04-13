@@ -87,7 +87,7 @@ export default function SettingsPage() {
       accentBorder: 'rgba(245,158,11,0.3)',
       accentBg: 'rgba(245,158,11,0.08)',
       title: 'Etiquetas',
-      subtitle: 'Añade contexto a tus movimientos',
+      subtitle: 'Agrega contexto a tus movimientos',
       content: <TagManager />,
     },
     {

@@ -166,7 +166,7 @@ export function AccountManager() {
           >
             {createMutation.isPending
               ? <Loader2 size={15} className="animate-spin" />
-              : <><Plus size={15} /><span>Añadir cuenta</span></>
+              : <><Plus size={15} /><span>Agregar cuenta</span></>
             }
           </button>
         </div>
@@ -317,7 +317,7 @@ export function AccountManager() {
         </div>
       ) : (
         <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
-          Sin cuentas aún. Añadí una para empezar a registrar tus movimientos.
+          Aún no tienes cuentas. Agrega una para empezar a registrar tus movimientos.
         </p>
       )}
 

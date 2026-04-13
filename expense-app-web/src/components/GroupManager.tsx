@@ -237,7 +237,7 @@ export function GroupManager() {
         </div>
       ) : (
         <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
-          Sin grupos aún. Creá uno o unite con un código de invitación.
+          Aún no tienes grupos. Crea uno o únete con un código de invitación.
         </p>
       )}
 

@@ -5,8 +5,8 @@ import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { PWAController } from "@/components/PWAController";
 
 export const metadata: Metadata = {
-  title: "Seva | ¿En que seva mi plata?",
-  description: "Controla tus gastos, ingresos y finanzas personales de forma simple.",
+  title: "Seva | ¿En qué se va mi plata?",
+  description: "Controla tus gastos, ingresos y finanzas personales de forma simple e intuitiva.",
   manifest: "/manifest.json",
   applicationName: "Seva",
   appleWebApp: {

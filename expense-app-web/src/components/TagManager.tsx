@@ -51,7 +51,7 @@ export function TagManager() {
           >
             {createMutation.isPending
               ? <Loader2 size={14} className="animate-spin" />
-              : <><Plus size={14} /><span>Añadir etiqueta</span></>
+              : <><Plus size={14} /><span>Agregar etiqueta</span></>
             }
           </button>
         </div>
@@ -82,7 +82,7 @@ export function TagManager() {
           ))}
           {tags.length === 0 && (
             <p className="text-sm w-full py-2" style={{ color: 'var(--text-muted)' }}>
-              Sin etiquetas aún. Añade una para empezar a organizar.
+              Aún no tienes etiquetas. Agrega una para empezar a organizar.
             </p>
           )}
         </div>

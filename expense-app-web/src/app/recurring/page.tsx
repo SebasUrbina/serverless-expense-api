@@ -155,13 +155,13 @@ export default function RecurringPage() {
                 className="text-xl sm:text-2xl font-bold mb-2 recurring-fade-up"
                 style={{ color: 'var(--text-primary)', animationDelay: '100ms' }}
               >
-                Automatizá tus finanzas
+                Automatiza tus finanzas
               </h3>
               <p
                 className="text-sm sm:text-base max-w-sm mb-8 leading-relaxed recurring-fade-up"
                 style={{ color: 'var(--text-muted)', animationDelay: '200ms' }}
               >
-                Añadí tus suscripciones y pagos recurrentes para que se registren automáticamente cada mes.
+                Agrega tus suscripciones y pagos recurrentes para que se registren automáticamente cada mes.
               </p>
 
               <button

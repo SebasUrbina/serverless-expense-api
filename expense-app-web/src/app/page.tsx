@@ -85,7 +85,7 @@ export default function Home() {
               className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-3.5 py-2.5 rounded-xl font-semibold transition-colors items-center gap-1.5 shadow-lg shadow-emerald-500/20 text-sm whitespace-nowrap"
             >
               <span className="text-base leading-none">+</span>
-              <span>Añadir</span>
+              <span>Agregar</span>
             </button>
           </div>
         </div>
