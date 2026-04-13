@@ -156,7 +156,7 @@ export function PWAController() {
               </button>
             </div>
             <p className="text-sm leading-5 text-emerald-50/72">
-              Tendrás acceso más rápido, experiencia tipo app y soporte offline para pantallas cacheadas.
+              Vas a entrar más rápido, con experiencia tipo app y acceso sin conexión a las pantallas que ya viste.
             </p>
             <button
               type="button"
