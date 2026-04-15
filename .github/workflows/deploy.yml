@@ -76,6 +76,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_IOS_SHORTCUT_URL: ${{ secrets.NEXT_PUBLIC_IOS_SHORTCUT_URL }}
       - name: Deploy to Cloudflare Pages
         run: npx wrangler pages deploy out --project-name "$PAGES_PROJECT" --branch "$GITHUB_REF_NAME"
         env:
