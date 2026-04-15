@@ -6,6 +6,9 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "expense-api",
 	"main": "src/index.ts",
+	"vars": {
+		"IOS_SHORTCUT_URL": "https://www.icloud.com/shortcuts/a066d55051cd4144b17edf9a6d5a554e"
+	},
 	"compatibility_date": "2026-02-25",
 	"observability": {
 		"enabled": true
@@ -17,9 +20,6 @@
 		"crons": ["0 6 * * *"]
 	},
 	"d1_databases": [{
-			"env": {
-				"IOS_SHORTCUT_URL": "https://www.icloud.com/shortcuts/a066d55051cd4144b17edf9a6d5a554e"
-			},
 		"binding": "DB",
 		"database_name": "expense_tracker",
 		"database_id": "8388b905-3c5c-45b9-b2fe-0db7d41387de"
