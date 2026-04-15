@@ -160,7 +160,7 @@ function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
             className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-400 font-semibold py-3 px-6 rounded-full text-sm cursor-not-allowed"
           >
             <span className="text-lg">＋</span>
-            Atajo no configurado
+            Atajo no encontrado
           </button>
           <p className="text-xs max-w-xs" style={{ color: 'var(--text-muted)' }}>
             Falta configurar `NEXT_PUBLIC_IOS_SHORTCUT_URL` para poder abrir el atajo desde la app.
