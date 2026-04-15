@@ -22,11 +22,7 @@ export class AppConfigFetch extends OpenAPIRoute {
 	};
 
 	async handle(c: AppContext) {
-		// Centralized configuration block
-		const config = {
-			iosShortcutUrl: "https://www.icloud.com/shortcuts/a066d55051cd4144b17edf9a6d5a554e",
-		};
-
-		return c.json(config);
+		const iosShortcutUrl = c.env?.IOS_SHORTCUT_URL;
+		return c.json({ iosShortcutUrl });
 	}
 }
