@@ -50,7 +50,30 @@ export default function RecurringPage() {
       const res = await api.put(`/recurring/${id}`, { is_active });
       return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recurring'] }),
+    onMutate: async ({ id, is_active }) => {
+      await queryClient.cancelQueries({ queryKey: ['recurring', 'list'] });
+      
+      const previousData = queryClient.getQueryData<RecurringRulesResponse>(['recurring', 'list']);
+      
+      if (previousData) {
+        queryClient.setQueryData<RecurringRulesResponse>(['recurring', 'list'], {
+          ...previousData,
+          rules: previousData.rules.map(rule => 
+            rule.id === id ? { ...rule, is_active } : rule
+          )
+        });
+      }
+      
+      return { previousData };
+    },
+    onError: (_err, _newRule, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['recurring', 'list'], context.previousData);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurring', 'list'] });
+    },
   });
 
   const rules = response?.rules || [];
@@ -251,12 +274,12 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           title={rule.is_active === 1 ? 'Pausar' : 'Activar'}
-          className={`shrink-0 w-9 h-5 rounded-full transition-colors relative ${
+          className={`shrink-0 w-9 h-5 rounded-full transition-colors duration-300 ease-out flex items-center px-0.5 ${
             rule.is_active === 1 ? 'bg-emerald-500' : 'bg-zinc-600'
           }`}
         >
-          <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
-            rule.is_active === 1 ? 'left-4' : 'left-0.5'
+          <span className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-300 ease-out ${
+            rule.is_active === 1 ? 'translate-x-4' : 'translate-x-0'
           }`} />
         </button>
       </div>
