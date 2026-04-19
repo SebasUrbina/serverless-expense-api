@@ -12,6 +12,7 @@ import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings } from 'lucide-react
 import { formatCompactValue } from '@/lib/utils';
 import Link from 'next/link';
 import type { MonthlySummary, CategorySummary } from '@/types/api';
+import { PageSubtitle, PageTitle } from '@/components/ui/Text';
 
 type ChartDatum = {
   name: string;
@@ -155,12 +156,8 @@ export default function AnalyticsPage() {
       <div className="px-4 sm:px-6 pt-6 pb-4">
         <div className="max-w-7xl mx-auto flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Tu dinero en perspectiva
-            </h1>
-            <p className="text-sm mt-0.5 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
-              Tendencias, categorías y ahorro a lo largo del tiempo.
-            </p>
+            <PageTitle>Tu dinero en perspectiva</PageTitle>
+            <PageSubtitle>Tendencias, categorías y ahorro a lo largo del tiempo.</PageSubtitle>
           </div>
           <div className="shrink-0 relative z-20 flex items-center gap-2">
             <MonthSelector value={filterMonth} onChange={setFilterMonth} />

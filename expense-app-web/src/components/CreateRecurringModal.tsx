@@ -9,6 +9,9 @@ import { formatDateAbbreviated } from '@/lib/utils';
 import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
 import { CustomSelect } from './CustomSelect';
 import { BaseModal } from './ui/BaseModal';
+import { SubmitButton } from './ui/SubmitButton';
+import { DeleteButton } from './ui/DeleteButton';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import type { RecurringRule } from '@/types/api';
 
 type Props = {
@@ -34,6 +37,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
   const categories = categoriesData?.categories || [];
 
@@ -78,6 +82,28 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!initialData?.id) return;
+      await api.delete(`/recurring/${initialData.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurring'] });
+      resetAndClose();
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'Error al eliminar la regla.');
+      setLoading(false);
+    },
+  });
+
+  const handleDelete = () => {
+    setLoading(true);
+    deleteMutation.mutate(undefined, {
+      onSettled: () => setLoading(false)
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -115,7 +141,19 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
-    <BaseModal isOpen={isOpen} onClose={resetAndClose}>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={resetAndClose}
+      outerContent={
+        <ConfirmDeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+          title="Eliminar regla"
+          message={`¿Estás seguro de que quieres eliminar "${title}"? Esta acción no se puede deshacer.`}
+        />
+      }
+    >
       <div className="flex justify-between items-center p-4 sm:p-6 sticky top-0 bg-card/90 backdrop-blur z-10">
           <button type="button" onClick={resetAndClose} className="px-5 py-2.5 bg-inset text-primary rounded-full font-semibold text-sm sm:hidden hover:bg-border transition-colors">
             Cancelar
@@ -366,17 +404,21 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
               </div>
             )}
 
-            <button
-              type="submit"
+            <SubmitButton
+              loading={loading && !deleteMutation.isPending}
               disabled={loading || !title || !amount}
-              className="hidden sm:flex w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-6 items-center justify-center"
-            >
-               {loading ? (
-                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white/80 border-r-2 border-r-white/20"></div>
-               ) : (
-                 'Crear regla'
-               )}
-             </button>
+              variant="emerald"
+              text={initialData ? 'Guardar cambios' : 'Crear regla'}
+            />
+
+             {initialData && (
+               <DeleteButton
+                 onClick={() => setIsDeleteModalOpen(true)}
+                 disabled={loading}
+                 text="Eliminar regla"
+                 className="mt-4 sm:mt-2"
+               />
+             )}
           </form>
         </div>
     </BaseModal>

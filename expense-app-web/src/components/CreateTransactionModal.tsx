@@ -13,8 +13,9 @@ import { useCategories, useAccounts, useTags, useGroups } from '@/hooks/usePrefe
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
 import { CustomSelect } from './CustomSelect';
-import { Trash2 } from 'lucide-react';
 import { BaseModal } from './ui/BaseModal';
+import { SubmitButton } from './ui/SubmitButton';
+import { DeleteButton } from './ui/DeleteButton';
 import type { Transaction } from '@/types/api';
 
 type Props = {
@@ -624,31 +625,19 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
               </div>
             )}
 
-            <button
-              type="submit"
+            <SubmitButton
+              loading={loading}
               disabled={loading || !title || !amount || categoryId === '' || accountId === '' || !!(isShared && groupId && selectedGroup && Object.values(splitPercentages).reduce((a, b) => a + b, 0) !== 100)}
-              className={`hidden sm:flex w-full py-4 rounded-xl font-bold items-center justify-center transition-colors mt-6 ${
-                type === 'expense' 
-                  ? 'bg-red-500 hover:bg-red-400 text-white disabled:bg-red-500/50' 
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-white disabled:bg-emerald-500/50'
-              }`}
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white/80 border-r-2 border-r-white/20"></div>
-              ) : initialData ? 'Guardar cambios' : (
-                 `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`
-              )}
-            </button>
+              variant={type}
+              text={initialData ? 'Guardar cambios' : `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`}
+            />
 
             {initialData && (
-              <button
-                type="button"
+              <DeleteButton
                 onClick={() => setIsDeleteModalOpen(true)}
-                className="w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 text-secondary hover:text-red-500 hover:bg-red-500/10 transition-all"
-              >
-                <Trash2 size={18} />
-                Borrar movimiento
-              </button>
+                disabled={loading}
+                text="Borrar movimiento"
+              />
             )}
           </form>
         </div>

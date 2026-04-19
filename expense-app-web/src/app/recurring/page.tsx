@@ -9,6 +9,9 @@ import { useRecurringModal } from '@/store/useRecurringModal';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import type { RecurringRule, RecurringRulesResponse } from '@/types/api';
+import AnimatedButton from '@/components/ui/AnimatedButton';
+import Text, { PageSubtitle, PageTitle } from '@/components/ui/Text';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 const frequencyLabel: Record<string, string> = {
   daily: 'Diario',
@@ -68,12 +71,9 @@ export default function RecurringPage() {
       <div className="px-4 sm:px-6 pt-6 pb-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Gastos fijos
-            </h1>
-            <p className="text-sm mt-0.5 hidden sm:block" style={{ color: 'var(--text-muted)' }}>
-              Lo que sale automáticamente cada mes.
-            </p>
+            <PageTitle>Gastos fijos</PageTitle>
+            <PageSubtitle>Lo que sale automáticamente cada mes.</PageSubtitle>
+
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -134,45 +134,14 @@ export default function RecurringPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
             </div>
           ) : rules.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center px-4">
-              {/* Animated icon */}
-              <div className="relative mb-6">
-                <div
-                  className="w-20 h-20 rounded-3xl flex items-center justify-center recurring-fade-up"
-                  style={{ background: 'var(--emerald-soft)' }}
-                >
-                  <Repeat className="w-9 h-9 text-emerald-500" />
-                </div>
-                <div
-                  className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 recurring-fade-up"
-                  style={{ animationDelay: '200ms' }}
-                >
-                  <Sparkles size={14} className="text-white" />
-                </div>
-              </div>
-
-              <h3
-                className="text-xl sm:text-2xl font-bold mb-2 recurring-fade-up"
-                style={{ color: 'var(--text-primary)', animationDelay: '100ms' }}
-              >
-                Automatiza tus finanzas
-              </h3>
-              <p
-                className="text-sm sm:text-base max-w-sm mb-8 leading-relaxed recurring-fade-up"
-                style={{ color: 'var(--text-muted)', animationDelay: '200ms' }}
-              >
-                Agrega tus suscripciones y pagos recurrentes para que se registren automáticamente cada mes.
-              </p>
-
-              <button
-                onClick={() => openModal()}
-                className="group bg-emerald-500 hover:bg-emerald-400 active:scale-[0.97] text-white px-6 py-3 rounded-2xl font-semibold text-sm transition-all flex items-center gap-2.5 shadow-lg shadow-emerald-500/25 recurring-fade-up"
-                style={{ animationDelay: '300ms' }}
-              >
-                <Plus size={18} className="transition-transform group-hover:rotate-90 duration-300" />
-                Crear primera regla
-              </button>
-            </div>
+            <EmptyState
+              icon={<Repeat className="w-9 h-9" />}
+              secondaryIcon={<Sparkles size={14} className="text-white" />}
+              title="Automatiza tus finanzas"
+              description="Agrega tus suscripciones y pagos recurrentes para que se registren automáticamente cada mes."
+              actionButton={<AnimatedButton text="Crear primera regla" onClick={() => openModal()} />}
+              primaryColor="emerald"
+            />
           ) : (
             <div className="space-y-6">
               {activeRules.length > 0 && (
@@ -253,7 +222,7 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
       {/* Top Row */}
       <div className="flex items-start gap-3">
         <div
-          className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+          className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
             rule.category_icon ? '' : isIncome ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
           }`}
           style={rule.category_icon ? { background: 'var(--bg-inset)' } : {}}
@@ -282,7 +251,7 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(); }}
           title={rule.is_active === 1 ? 'Pausar' : 'Activar'}
-          className={`flex-shrink-0 w-9 h-5 rounded-full transition-colors relative ${
+          className={`shrink-0 w-9 h-5 rounded-full transition-colors relative ${
             rule.is_active === 1 ? 'bg-emerald-500' : 'bg-zinc-600'
           }`}
         >
@@ -314,7 +283,7 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
         className="flex items-center gap-2 rounded-xl px-3 py-2"
         style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
       >
-        <Calendar size={12} style={{ color: 'var(--text-muted)' }} className="flex-shrink-0" />
+        <Calendar size={12} style={{ color: 'var(--text-muted)' }} className="shrink-0" />
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Próxima ejecución</span>
         <span className="text-xs font-semibold ml-auto" style={{ color: 'var(--text-secondary)' }}>
           {format(parseISO(rule.next_run), "d 'de' MMM yyyy", { locale: es })}
