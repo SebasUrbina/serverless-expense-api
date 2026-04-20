@@ -28,7 +28,7 @@ type RecurringPayload = {
   account_id?: number;
   tag_ids: number[];
   frequency: string;
-  day_of_month: number | null;
+  day_of_month: number | null | undefined;
   next_run: string;
   end_date?: string | null;
   is_active: number;
@@ -122,9 +122,9 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       account_id: accountId !== '' ? accountId : undefined,
       tag_ids: tagIds,
       frequency,
-      day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) : null,
+      day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) : undefined,
       next_run: nextRun,
-      end_date: endDate ? endDate : null,
+      end_date: endDate ? endDate : undefined,
       is_active: initialData ? initialData.is_active : 1
     }, {
        onSettled: () => setLoading(false)
