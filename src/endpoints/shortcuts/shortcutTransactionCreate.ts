@@ -13,11 +13,15 @@ export class ShortcutTransactionCreate extends OpenAPIRoute {
 				content: {
 					"application/json": {
 						schema: z.object({
-							title: z.string().min(1, "Title is required"),
-							amount: z.number().positive("Amount must be positive"),
+							title: z.string().trim().min(1, "Title is required"),
+							amount: z.preprocess((val) => {
+							if (typeof val === "number") return val;
+							const s = String(val).replace(/[$\s]/g, "").replace(/\./g, "").replace(",", ".");
+							return Number(s);
+						}, z.number().positive("Amount must be positive")),
 							type: z.enum(["expense", "income"]).default("expense"),
-							category_name: z.string().optional(),
-							account_name: z.string().optional(),
+							category_name: z.string().trim().optional(),
+							account_name: z.string().trim().optional(),
 						}),
 					},
 				},
