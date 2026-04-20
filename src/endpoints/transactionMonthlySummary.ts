@@ -52,7 +52,7 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
 				SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
 				SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income
 			FROM transactions
-			WHERE user_id = ?
+			WHERE user_id = ? AND date <= date('now', 'localtime')
 			GROUP BY month
 			ORDER BY month DESC
 			LIMIT ?

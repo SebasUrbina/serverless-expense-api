@@ -121,6 +121,8 @@ export class TransactionList extends OpenAPIRoute {
 		if (endDate) {
 			query += ` AND t.date <= ?`;
 			binds.push(endDate);
+		} else {
+			query += ` AND t.date <= date('now', 'localtime')`;
 		}
 		if (is_shared) {
 			query += ` AND t.is_shared = 1`;

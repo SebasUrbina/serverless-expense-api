@@ -90,6 +90,8 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 		if (month) {
 			query += ` AND strftime('%Y-%m', t.date) IN (?, ?)`;
 			binds.push(month, prevMonth);
+		} else {
+			query += ` AND t.date <= date('now', 'localtime')`;
 		}
 
         if (type) {

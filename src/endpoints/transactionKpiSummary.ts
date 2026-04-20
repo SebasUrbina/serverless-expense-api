@@ -46,6 +46,8 @@ export class TransactionKpiSummary extends OpenAPIRoute {
         if (month) {
             baseFilter += ` AND strftime('%Y-%m', date) = ?`;
             binds.push(month);
+        } else {
+            baseFilter += ` AND date <= date('now', 'localtime')`;
         }
 
 		const query = `
