@@ -57,6 +57,7 @@ export class RecurringUpdate extends OpenAPIRoute {
 			frequency:     updates.frequency         ?? existing.frequency,
 			day_of_month:  updates.day_of_month      ?? existing.day_of_month,
 			next_run:      updates.next_run          ?? existing.next_run,
+			end_date:      updates.end_date          !== undefined ? updates.end_date : existing.end_date,
 			is_active:     updates.is_active         ?? existing.is_active,
 		};
 
@@ -70,12 +71,12 @@ export class RecurringUpdate extends OpenAPIRoute {
 		const txResult = await c.env.DB.prepare(
 			`UPDATE recurring_rules
 			 SET title=?, amount=?, category_id=?, type=?, account_id=?,
-			     frequency=?, day_of_month=?, next_run=?, is_active=?
+			     frequency=?, day_of_month=?, next_run=?, end_date=?, is_active=?
 			 WHERE id=? AND user_id=? RETURNING *`
 		).bind(
 			merged.title, merged.amount, merged.category_id, merged.type,
 			merged.account_id, merged.frequency, merged.day_of_month,
-			merged.next_run, merged.is_active, id, userId
+			merged.next_run, merged.end_date ?? null, merged.is_active, id, userId
 		).first();
 
 		if (updates.tag_ids !== undefined) {

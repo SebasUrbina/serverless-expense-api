@@ -79,10 +79,16 @@ export async function scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionC
 			stmts.push(...tagStmts);
 		}
 
-		// 2. Advance next_run
-		stmts.push(
-			env.DB.prepare(`UPDATE recurring_rules SET next_run = ? WHERE id = ?`).bind(nextRun, rule.id)
-		);
+		// 2. Advance next_run and check end_date
+		if (rule.end_date && nextRun > rule.end_date) {
+			stmts.push(
+				env.DB.prepare(`UPDATE recurring_rules SET next_run = ?, is_active = 0 WHERE id = ?`).bind(nextRun, rule.id)
+			);
+		} else {
+			stmts.push(
+				env.DB.prepare(`UPDATE recurring_rules SET next_run = ? WHERE id = ?`).bind(nextRun, rule.id)
+			);
+		}
 	}
 
 	// Run remaining updates + tag inserts

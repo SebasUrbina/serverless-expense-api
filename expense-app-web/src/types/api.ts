@@ -40,6 +40,7 @@ export type RecurringRule = {
   frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
   day_of_month?: number | null;
   next_run: string;
+  end_date?: string | null;
   is_active: number;
   created_at?: string;
   category?: string;

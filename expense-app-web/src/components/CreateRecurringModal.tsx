@@ -30,6 +30,7 @@ type RecurringPayload = {
   frequency: string;
   day_of_month: number | null;
   next_run: string;
+  end_date?: string | null;
   is_active: number;
 };
 
@@ -60,6 +61,11 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     initialData?.next_run
       ? format(new Date(initialData.next_run), 'yyyy-MM-dd')
       : format(addMonths(new Date(), 1), 'yyyy-MM-dd')
+  );
+  const [endDate, setEndDate] = useState(
+    initialData?.end_date
+      ? format(new Date(initialData.end_date), 'yyyy-MM-dd')
+      : ''
   );
 
   const mutation = useMutation({
@@ -118,6 +124,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       frequency,
       day_of_month: frequency === 'monthly' ? parseInt(dayOfMonth, 10) : null,
       next_run: nextRun,
+      end_date: endDate ? endDate : null,
       is_active: initialData ? initialData.is_active : 1
     }, {
        onSettled: () => setLoading(false)
@@ -134,6 +141,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     setFrequency('monthly');
     setDayOfMonth('1');
     setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+    setEndDate('');
     setError(null);
     onClose();
   };
@@ -267,6 +275,28 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                       ]}
                     />
                   </div>
+               </div>
+            </div>
+
+            {/* Optional End Date */}
+            <div>
+               <label className="block text-sm font-semibold text-secondary mb-2">Fecha de término (Opcional)</label>
+               <div className="relative inline-block">
+                 <div className="bg-inset rounded-full px-4 py-2.5 flex items-center gap-2 text-sm font-bold cursor-pointer hover:opacity-80 transition-opacity">
+                   <Calendar size={15} className="text-muted" />
+                   <span className={endDate ? 'text-primary' : 'text-muted'}>{endDate ? formatDateAbbreviated(endDate) : 'Sin fecha de término'}</span>
+                   {endDate && (
+                     <button type="button" onClick={(e) => { e.stopPropagation(); setEndDate(''); }} className="ml-2 text-muted hover:text-red-500">
+                       <X size={14} />
+                     </button>
+                   )}
+                 </div>
+                 <input
+                   type="date"
+                   value={endDate}
+                   onChange={(e) => setEndDate(e.target.value)}
+                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                 />
                </div>
             </div>
 

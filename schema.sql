@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS recurring_rules (
     frequency    TEXT CHECK(frequency IN ('daily','weekly','monthly','yearly')) NOT NULL,
     day_of_month INTEGER,      -- 1-28, only for monthly frequency
     next_run     DATE NOT NULL, -- date of next execution
+    end_date     DATE,          -- optional date when the rule stops
     is_active    INTEGER DEFAULT 1,
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,

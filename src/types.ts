@@ -45,6 +45,7 @@ export const RecurringRule = z.object({
 	frequency: z.enum(["daily", "weekly", "monthly", "yearly"]).openapi({ example: "monthly" }),
 	day_of_month: Num({ required: false, description: "Day 1-28 for monthly frequency" }),
 	next_run: Str({ example: "2025-03-05", description: "YYYY-MM-DD" }),
+	end_date: Str({ required: false, example: "2025-12-31", description: "Optional end date" }),
 	is_active: Num({ required: false, description: "1 = active, 0 = paused" }),
 	created_at: DateTime({ required: false }),
 });
