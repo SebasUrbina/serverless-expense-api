@@ -38,7 +38,7 @@ import { GroupUpdate } from "./endpoints/groupUpdate";
 import { ShortcutInit } from "./endpoints/shortcuts/shortcutInit";
 import { ShortcutTransactionCreate } from "./endpoints/shortcuts/shortcutTransactionCreate";
 import { authMiddleware } from "./middleware/auth";
-export { scheduled } from "./cron";
+import { scheduled } from "./cron";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -121,5 +121,8 @@ openapi.post("/api/keys", ApiKeyGenerate);
 // ── App Config ──
 openapi.get("/api/config", AppConfigFetch);
 
-// Export the Hono app
-export default app;
+// Export the Hono app with cron trigger handler
+export default {
+	fetch: app.fetch.bind(app),
+	scheduled,
+};
