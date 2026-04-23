@@ -326,7 +326,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                 required={false}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-inset rounded-full px-5 py-3.5 text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-medium text-sm"
+                className="w-full bg-inset rounded-full px-5 py-3.5 text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-medium text-base"
                 placeholder="Algún detalle para no olvidar?..."
               />
             </div>

@@ -235,7 +235,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-inset rounded-full px-5 py-3.5 text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-medium text-sm"
+                className="w-full bg-inset rounded-full px-5 py-3.5 text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-medium text-base"
                 placeholder="e.g. Netflix Suscripción..."
               />
             </div>
