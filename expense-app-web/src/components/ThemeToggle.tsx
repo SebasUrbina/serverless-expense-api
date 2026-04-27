@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Sun, Moon } from 'lucide-react';
-import { useTheme, applyTheme } from '@/store/useTheme';
-import { useEffect } from 'react';
+import { Sun, Moon } from "lucide-react";
+import { useTheme, applyTheme } from "@/store/useTheme";
+import { useEffect } from "react";
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
@@ -11,32 +11,27 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   useEffect(() => {
     applyTheme(theme);
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
-      if (theme === 'system') applyTheme('system');
+      if (theme === "system") applyTheme("system");
     };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme]);
 
-  const isDark = resolvedTheme() === 'dark';
+  const isDark = resolvedTheme() === "dark";
 
   const options = [
-    { value: 'light' as const, icon: Sun, label: 'Claro' },
-    { value: 'dark' as const, icon: Moon, label: 'Oscuro' },
+    { value: "light" as const, icon: Sun, label: "Claro" },
+    { value: "dark" as const, icon: Moon, label: "Oscuro" },
   ];
 
   if (compact) {
     return (
       <button
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-        style={{
-          background: 'var(--bg-inset)',
-          color: 'var(--text-secondary)',
-          border: '1px solid var(--border)',
-        }}
-        aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+        className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-inset text-secondary border border-border"
+        aria-label={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       >
         {isDark ? <Sun size={16} /> : <Moon size={16} />}
       </button>
@@ -44,34 +39,18 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div
-      className="flex rounded-xl p-1 gap-0.5"
-      style={{
-        background: 'var(--bg-inset)',
-        border: '1px solid var(--border)',
-      }}
-    >
+    <div className="flex rounded-xl p-1 gap-0.5 bg-inset border border-border">
       {options.map(({ value, icon: Icon, label }) => {
         const isActive = theme === value;
         return (
           <button
             key={value}
             onClick={() => setTheme(value)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200"
-            style={
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
               isActive
-                ? {
-                    background: isDark ? '#2d3142' : '#ffffff',
-                    color: isDark ? '#f1f5f9' : '#111827',
-                    boxShadow: isDark
-                      ? '0 1px 4px rgba(0,0,0,0.5)'
-                      : '0 1px 3px rgba(0,0,0,0.12)',
-                  }
-                : {
-                    background: 'transparent',
-                    color: 'var(--text-muted)',
-                  }
-            }
+                ? "bg-card text-primary shadow-sm"
+                : "bg-transparent text-muted hover:text-secondary"
+            }`}
             aria-label={label}
             aria-pressed={isActive}
           >

@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle } from "lucide-react";
 
 type Props = {
   isOpen: boolean;
@@ -10,11 +10,17 @@ type Props = {
   message: string;
 };
 
-export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, title, message }: Props) {
+export function ConfirmDeleteModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+}: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[var(--backdrop-bg)] backdrop-blur-sm p-4">
       <div className="bg-card border border-border rounded-3xl w-full max-w-sm shadow-2xl transition-all p-6 relative">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3 text-red-500">
@@ -23,14 +29,15 @@ export function ConfirmDeleteModal({ isOpen, onClose, onConfirm, title, message 
             </div>
             <h2 className="text-xl font-bold">{title}</h2>
           </div>
-          <button onClick={onClose} className="p-2 -mr-2 -mt-2 bg-transparent rounded-full text-muted hover:text-primary transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 -mr-2 -mt-2 bg-transparent rounded-full text-muted hover:text-primary transition-colors"
+          >
             <X size={20} />
           </button>
         </div>
 
-        <p className="text-muted text-sm mb-8 leading-relaxed">
-          {message}
-        </p>
+        <p className="text-muted text-sm mb-8 leading-relaxed">{message}</p>
 
         <div className="flex gap-3">
           <button

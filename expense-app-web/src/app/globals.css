@@ -1,94 +1,95 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-500: #0A84FF;
-  --color-success-500: #30D158;
-  --color-danger-500: #FF453A;
+  --color-brand-500: #0a84ff;
+  --color-success-500: #30d158;
+  --color-danger-500: #ff453a;
   --color-balance: #8b5cf6;
   --color-expense: #ef4444;
   --color-income: #10b981;
-  
+
   /* Semantic Theme Variables Map */
   --color-base: var(--bg-base);
   --color-card: var(--bg-card);
   --color-card-hover: var(--bg-card-hover);
   --color-inset: var(--bg-inset);
-  
+  --color-button: var(--bg-button);
+  --color-backdrop: var(--backdrop-bg);
+
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
-  
+
   --color-primary: var(--text-primary);
   --color-secondary: var(--text-secondary);
   --color-muted: var(--text-muted);
-  
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ── Light Theme (default) ──────────────────────────────── */
 :root {
-  --color-balance:      #8b5cf6;
-  --color-expense:      #ef4444;
-  --color-income:       #10b981;
+  --color-balance: #8b5cf6;
+  --color-expense: #ef4444;
+  --color-income: #10b981;
 
-  --bg-base:            #f0f2f5;
-  --bg-card:            #ffffff;
-  --bg-card-hover:      #f8fafc;
-  --bg-inset:           #edf0f5;
-  --border:             #dde3ed;
-  --border-subtle:      #e8ecf2;
+  --bg-base: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-inset: #edf0f5;
+  --bg-button: #000000;
+  --backdrop-rgb: 0,0,0;
+  --backdrop-bg: rgba(var(--backdrop-rgb), 0.8);
+  --border: #dde3ed;
+  --border-subtle: #e8ecf2;
 
-  --text-primary:       #111827;
-  --text-secondary:     #4b5563;
-  --text-muted:         #9ca3af;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
 
-  --shadow-card:        0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-elevated:    0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-elevated:
+    0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
 
-  --emerald-soft:       #d1fae5;
-  --red-soft:           #fee2e2;
-  --scrollbar-thumb:    #cbd5e1;
+  --emerald-soft: #d1fae5;
+  --red-soft: #fee2e2;
+  --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
 }
 
-/* ── Dark Theme ─────────────────────────────────────────── */
-/*
-   Palette: slate-based (not pure zinc/black)
-   Base     = #0f1117  (very dark blue-gray, not pure black)
-   Card     = #1a1d27  (layer 1 — clearly above base)
-   Inset    = #12151e  (slightly below card, for nested bg)
-   Border   = #2d3142  (visible but subtle)
-   Elevated = #22263a  (hover state, higher elevation)
-*/
+/* ── Dark Theme (OLED / Glassmorphism) ───────────────────────── */
 [data-theme="dark"] {
   /* Base */
-  --bg-base:            #050608;
+  --bg-base: #000000;
 
-  /* Superficies (más cercanas al base) */
-  --bg-inset:           #0c0e13;
-  --bg-card:            #11131a;
-  --bg-card-hover:      #161925;
+  /* Superficies */
+  --bg-inset: #09090b;
+  --bg-card: #0a0f1c; /* Deep midnight blue */
+  --bg-card-hover: #121b2f;
+  --bg-button: #0a0f1c;
+  --backdrop-bg: rgba(var(--backdrop-rgb), 0.9);
 
   /* Bordes más sutiles */
-  --border:             #1c2130;
-  --border-subtle:      #141824;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.04);
 
   /* Texto (ligeramente suavizado) */
-  --text-primary:       #e6eaf2;
-  --text-secondary:     #9aa4b2;
-  --text-muted:         #6b7280;
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
 
-  /* Sombras más difusas (menos “bloque”) */
-  --shadow-card:        0 1px 2px rgba(0,0,0,0.5);
-  --shadow-elevated:    0 6px 20px rgba(0,0,0,0.6);
+  /* Sombras y Glow (Minimal Glow) */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-elevated:
+    0 0 16px rgba(5, 150, 105, 0.15), 0 8px 32px rgba(0, 0, 0, 0.8);
 
-  /* Accents (ligeramente más visibles en fondo oscuro) */
-  --emerald-soft:       rgba(16,185,129,0.14);
-  --red-soft:           rgba(239,68,68,0.14);
+  /* Accents */
+  --emerald-soft: rgba(16, 185, 129, 0.15);
+  --red-soft: rgba(239, 68, 68, 0.15);
 
   /* Scroll */
-  --scrollbar-thumb:    #1c2130;
-  --scrollbar-thumb-hover: #2a3145;
-} 
+  --scrollbar-thumb: #1e293b;
+  --scrollbar-thumb-hover: #334155;
+}
 
 /* ── Base ────────────────────────────────────────────── */
 @layer base {
@@ -102,7 +103,9 @@
     @apply antialiased;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
-    transition: background-color 0.25s ease, color 0.2s ease;
+    transition:
+      background-color 0.25s ease,
+      color 0.2s ease;
   }
 }
 
@@ -149,13 +152,30 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ── Theme-aware utilities ───────────────────────────── */
-.theme-bg       { background-color: var(--bg-base); }
-.theme-card     { background-color: var(--bg-card); border-color: var(--border); }
-.theme-inset    { background-color: var(--bg-inset); }
-.theme-text     { color: var(--text-primary); }
-.theme-muted    { color: var(--text-secondary); }
-.theme-subtle   { color: var(--text-muted); }
-.theme-border   { border-color: var(--border); }
+.theme-bg {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+.theme-card {
+  background-color: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+}
+.theme-inset {
+  background-color: var(--bg-inset);
+}
+.theme-text {
+  color: var(--text-primary);
+}
+.theme-muted {
+  color: var(--text-secondary);
+}
+.theme-subtle {
+  color: var(--text-muted);
+}
+.theme-border {
+  border-color: var(--border);
+}
 
 /* ── Select / Option dark mode fix ──────────────────── */
 select option {
@@ -177,8 +197,9 @@ select option {
 .modal-sheet {
   opacity: 0;
   transform: translateY(100%);
-  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.22s ease;
+  transition:
+    transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.22s ease;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
 }
@@ -198,35 +219,69 @@ select option {
 
 /* ── Transaction Success Animation ───────────────────── */
 @keyframes tx-success-scale {
-  0%   { transform: scale(0.4); opacity: 0; }
-  60%  { transform: scale(1.1); opacity: 1; }
-  80%  { transform: scale(0.95); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 @keyframes tx-circle-draw {
-  from { stroke-dashoffset: 340; }
-  to   { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 340;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes tx-check-draw {
-  0%   { stroke-dashoffset: 80; opacity: 0; }
-  30%  { opacity: 1; }
-  100% { stroke-dashoffset: 0; }
+  0% {
+    stroke-dashoffset: 80;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes tx-glow-ring {
-  0%   { transform: scale(1); opacity: 0.3; }
-  100% { transform: scale(1.7); opacity: 0; }
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
 }
 
 @keyframes tx-amount-in {
-  from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-tx-success {
-  animation: tx-success-scale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: tx-success-scale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)
+    forwards;
 }
 .animate-tx-circle {
   animation: tx-circle-draw 0.55s ease-out 0.05s both;

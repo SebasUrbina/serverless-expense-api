@@ -62,13 +62,15 @@ export function useDashboardData(filterMonth?: string) {
   const categorySummary = categorySummaryResp?.summary || [];
   const kpiSummary = kpiSummaryResp?.kpis || { largest_expense: null, largest_expense_title: null, largest_income: null, transaction_count: 0 };
   
-  // Calculate total balance approximately from the summary 
-  // (In a real app, this should probably come from a separate /balances endpoint)
-  const totalBalance = monthlySummary.reduce((acc, curr) => acc + curr.total_income - curr.total_expense, 0);
-
   const selectedMonthSummary = filterMonth
     ? monthlySummary.find(s => s.month === filterMonth)
     : (monthlySummary.length > 0 ? monthlySummary[0] : null);
+
+  // Calculate total balance approximately from the summary 
+  // (In a real app, this should probably come from a separate /balances endpoint)
+  const totalBalance = filterMonth && selectedMonthSummary
+    ? selectedMonthSummary.total_income - selectedMonthSummary.total_expense
+    : monthlySummary.reduce((acc, curr) => acc + curr.total_income - curr.total_expense, 0);
 
   return {
     recentTransactions: recentTransactions?.transactions || [],

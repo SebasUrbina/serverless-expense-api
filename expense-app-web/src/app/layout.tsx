@@ -1,12 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { LayoutWrapper } from "@/components/LayoutWrapper";
 import { PWAController } from "@/components/PWAController";
 
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
+
 export const metadata: Metadata = {
   title: "Seva | ¿En qué se va mi plata?",
-  description: "Controla tus gastos, ingresos y finanzas personales de forma simple e intuitiva.",
+  description:
+    "Controla tus gastos, ingresos y finanzas personales de forma simple e intuitiva.",
   manifest: "/manifest.json",
   applicationName: "Seva",
   appleWebApp: {
@@ -59,12 +67,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="font-sans antialiased">
+      <body className={`${plusJakarta.variable} font-sans antialiased`}>
         <Providers>
           <PWAController />
-          <LayoutWrapper>
-            {children}
-          </LayoutWrapper>
+          <LayoutWrapper>{children}</LayoutWrapper>
         </Providers>
       </body>
     </html>
