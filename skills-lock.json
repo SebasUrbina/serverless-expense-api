@@ -6,6 +6,11 @@
       "sourceType": "github",
       "computedHash": "9f7a0866bc627b095f738558b594ac4246bda6ff895f1feb78037f8bd98a01d9"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
     "pwa-expert": {
       "source": "erichowens/some_claude_skills",
       "sourceType": "github",
