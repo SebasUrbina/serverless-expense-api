@@ -183,7 +183,9 @@ export default function Home() {
                         />{" "}
                         Balance
                       </p>
-                      <p className={`font-extrabold text-sm sm:text-base ${totalBalance < 0 ? "text-red-600 dark:text-red-400" : "text-indigo-600 dark:text-indigo-300"}`}>
+                      <p
+                        className={`font-extrabold text-sm sm:text-base ${totalBalance < 0 ? "text-red-600 dark:text-red-400" : "text-indigo-600 dark:text-indigo-300"}`}
+                      >
                         ${formatCurrency(totalBalance)}
                       </p>
                     </div>
@@ -327,82 +329,108 @@ export default function Home() {
                   <div className="flex-1 lg:overflow-y-auto">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pr-1">
                       {categorySummary && categorySummary.length > 0 ? (
-                        categorySummary.map((cat, idx) => {
-                          const delta =
-                            cat.previous_amount !== undefined
-                              ? cat.amount - cat.previous_amount!
-                              : 0;
-                          const isIncrease = delta > 0;
-                          return (
-                            <div
-                              key={idx}
-                              className="rounded-2xl p-3 flex justify-between items-center cursor-pointer transition-all"
-                              style={{
-                                background: "var(--bg-inset)",
-                                border: "1px solid var(--border-subtle)",
-                              }}
-                              onClick={() => {
-                                let url = `/transactions?category_id=${cat.category_id}`;
-                                if (filterMonth) url += `&month=${filterMonth}`;
-                                router.push(url);
-                              }}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <div
-                                  className="w-9 h-9 rounded-xl flex items-center justify-center text-base"
-                                  style={{ background: "var(--bg-card)" }}
-                                >
-                                  {cat.category_icon ? (
-                                    <span>{cat.category_icon}</span>
-                                  ) : (
-                                    <Target
-                                      size={14}
-                                      style={{ color: "var(--text-muted)" }}
-                                    />
-                                  )}
-                                </div>
-                                <div>
-                                  <p
-                                    className="font-medium text-sm"
-                                    style={{ color: "var(--text-primary)" }}
-                                  >
-                                    {cat.category}
-                                  </p>
-                                  {cat.previous_amount !== undefined &&
-                                    delta !== 0 && (
-                                      <div className="flex items-center gap-1 mt-0.5">
-                                        <span
-                                          className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isIncrease ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}
-                                        >
-                                          {isIncrease ? (
-                                            <ArrowUpRight
-                                              size={9}
-                                              className="mr-0.5"
-                                            />
-                                          ) : (
-                                            <ArrowDownRight
-                                              size={9}
-                                              className="mr-0.5"
-                                            />
-                                          )}
-                                          ${formatCurrency(Math.abs(delta))}
-                                        </span>
-                                        <span
-                                          className="text-[9px]"
+                        (() => {
+                          const totalExpense = categorySummary.reduce(
+                            (acc, curr) => acc + curr.amount,
+                            0,
+                          );
+                          return categorySummary.map((cat, idx) => {
+                            const delta =
+                              cat.previous_amount !== undefined
+                                ? cat.amount - cat.previous_amount!
+                                : 0;
+                            const isIncrease = delta > 0;
+                            const percentage =
+                              totalExpense > 0
+                                ? ((cat.amount / totalExpense) * 100).toFixed(1)
+                                : "0.0";
+                            return (
+                              <div
+                                key={idx}
+                                className="rounded-2xl p-3 flex flex-col gap-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group"
+                                style={{
+                                  background: "var(--bg-inset)",
+                                  border: "1px solid var(--border-subtle)",
+                                }}
+                                onClick={() => {
+                                  let url = `/transactions?category_id=${cat.category_id}`;
+                                  if (filterMonth)
+                                    url += `&month=${filterMonth}`;
+                                  router.push(url);
+                                }}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5">
+                                    <div
+                                      className="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-colors group-hover:bg-emerald-500/10"
+                                      style={{ background: "var(--bg-card)" }}
+                                    >
+                                      {cat.category_icon ? (
+                                        <span>{cat.category_icon}</span>
+                                      ) : (
+                                        <Target
+                                          size={14}
                                           style={{ color: "var(--text-muted)" }}
-                                        >
-                                          vs mes anterior
-                                        </span>
-                                      </div>
-                                    )}
+                                        />
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p
+                                        className="font-medium text-sm"
+                                        style={{ color: "var(--text-primary)" }}
+                                      >
+                                        {cat.category}
+                                      </p>
+                                      {cat.previous_amount !== undefined &&
+                                        delta !== 0 && (
+                                          <div className="flex items-center gap-1 mt-0.5">
+                                            <span
+                                              className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isIncrease ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}
+                                            >
+                                              {isIncrease ? (
+                                                <ArrowUpRight
+                                                  size={9}
+                                                  className="mr-0.5"
+                                                />
+                                              ) : (
+                                                <ArrowDownRight
+                                                  size={9}
+                                                  className="mr-0.5"
+                                                />
+                                              )}
+                                              ${formatCurrency(Math.abs(delta))}
+                                            </span>
+                                            <span
+                                              className="text-[9px]"
+                                              style={{
+                                                color: "var(--text-muted)",
+                                              }}
+                                            >
+                                              vs mes anterior
+                                            </span>
+                                          </div>
+                                        )}
+                                    </div>
+                                  </div>
+                                  <p className="text-red-500 font-bold text-sm">
+                                    ${formatCurrency(cat.amount)}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 rounded-full h-2 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                                    <div
+                                      className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all duration-1000 ease-out"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-red-500 w-10 text-right">
+                                    {percentage}%
+                                  </span>
                                 </div>
                               </div>
-                              <p className="text-red-500 font-bold text-sm">
-                                ${formatCurrency(cat.amount)}
-                              </p>
-                            </div>
-                          );
-                        })
+                            );
+                          });
+                        })()
                       ) : (
                         <div
                           className="flex-1 flex items-center justify-center text-sm py-8 sm:col-span-2"
