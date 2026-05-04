@@ -1,31 +1,50 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
-import { format, parseISO, endOfMonth, isValid, isToday, isYesterday } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Receipt, Plus, Search, SlidersHorizontal, X, Settings, Users } from 'lucide-react';
-import { MonthSelector } from '@/components/MonthSelector';
-import Link from 'next/link';
-import { useTags, useCategories, useGroups } from '@/hooks/usePreferences';
-import { useState, useEffect, Suspense, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { CustomSelect } from '@/components/CustomSelect';
-import { useTransactionModal } from '@/store/useTransactionModal';
-import { formatCurrency } from '@/lib/utils';
-import type { Transaction } from '@/types/api';
-import { PageSubtitle, PageTitle } from '@/components/ui/Text';
-import { EmptyState } from '@/components/ui/EmptyState';
-import AnimatedButton from '@/components/ui/AnimatedButton';
-import { Sparkles } from 'lucide-react';
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import {
+  format,
+  parseISO,
+  endOfMonth,
+  isValid,
+  isToday,
+  isYesterday,
+} from "date-fns";
+import { es } from "date-fns/locale";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Receipt,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  X,
+  Settings,
+  Users,
+} from "lucide-react";
+import { MonthSelector } from "@/components/MonthSelector";
+import Link from "next/link";
+import { useTags, useCategories, useGroups } from "@/hooks/usePreferences";
+import { useState, useEffect, Suspense, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
+import { CustomSelect } from "@/components/CustomSelect";
+import { useTransactionModal } from "@/store/useTransactionModal";
+import { formatCurrency } from "@/lib/utils";
+import type { Transaction } from "@/types/api";
+import { PageSubtitle, PageTitle } from "@/components/ui/Text";
+import { EmptyState } from "@/components/ui/EmptyState";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import { Sparkles } from "lucide-react";
 
 export default function TransactionsPage() {
   return (
-    <Suspense fallback={
-      <div className="px-4 py-8 h-full flex flex-col items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="px-4 py-8 h-full flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
+        </div>
+      }
+    >
       <TransactionsContent />
     </Suspense>
   );
@@ -33,12 +52,14 @@ export default function TransactionsPage() {
 
 function formatGroupDate(dateStr: string): string {
   const date = parseISO(dateStr);
-  if (isToday(date)) return 'Hoy';
-  if (isYesterday(date)) return 'Ayer';
+  if (isToday(date)) return "Hoy";
+  if (isYesterday(date)) return "Ayer";
   return format(date, "EEEE, d 'de' MMMM", { locale: es });
 }
 
-function groupTransactionsByDate(transactions: Transaction[]): { date: string; label: string; items: Transaction[] }[] {
+function groupTransactionsByDate(
+  transactions: Transaction[],
+): { date: string; label: string; items: Transaction[] }[] {
   const groups: Record<string, Transaction[]> = {};
   for (const tx of transactions) {
     const key = tx.date.slice(0, 10);
@@ -52,16 +73,22 @@ function groupTransactionsByDate(transactions: Transaction[]): { date: string; l
 
 function TransactionsContent() {
   const searchParams = useSearchParams();
-  const initialMonth = searchParams.get('month') || '';
-  const initialCategory = searchParams.get('category_id') ? Number(searchParams.get('category_id')) : '';
-  const initialShared = searchParams.get('shared') === '1';
-  const initialGroupId = searchParams.get('group_id') ? Number(searchParams.get('group_id')) : '';
+  const initialMonth = searchParams.get("month") || "";
+  const initialCategory = searchParams.get("category_id")
+    ? Number(searchParams.get("category_id"))
+    : "";
+  const initialShared = searchParams.get("shared") === "1";
+  const initialGroupId = searchParams.get("group_id")
+    ? Number(searchParams.get("group_id"))
+    : "";
 
   const { openModal } = useTransactionModal();
-  const [showFilters, setShowFilters] = useState(!!initialMonth || !!initialCategory || initialShared);
+  const [showFilters, setShowFilters] = useState(
+    !!initialMonth || !!initialCategory || initialShared,
+  );
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
@@ -69,13 +96,17 @@ function TransactionsContent() {
   }, [searchTerm]);
 
   const [filterMonth, setFilterMonth] = useState(initialMonth);
-  const [filterCategory, setFilterCategory] = useState<number | ''>(initialCategory);
-  const [filterTag, setFilterTag] = useState<number | ''>('');
+  const [filterCategory, setFilterCategory] = useState<number | "">(
+    initialCategory,
+  );
+  const [filterTag, setFilterTag] = useState<number | "">("");
   const [filterShared, setFilterShared] = useState(initialShared);
-  const [filterGroupId, setFilterGroupId] = useState<number | ''>(initialGroupId);
+  const [filterGroupId, setFilterGroupId] = useState<number | "">(
+    initialGroupId,
+  );
 
   const { data: tagsData } = useTags();
-  const tagsMap = new Map((tagsData?.tags || []).map(t => [t.id, t.name]));
+  const tagsMap = new Map((tagsData?.tags || []).map((t) => [t.id, t.name]));
   const tagsList = tagsData?.tags || [];
 
   const { data: categoriesData } = useCategories();
@@ -84,32 +115,55 @@ function TransactionsContent() {
   const { data: groupsData } = useGroups();
   const groupsList = groupsData?.groups || [];
 
-  const { data: response, isLoading } = useQuery<{ transactions: Transaction[] }>({
-    queryKey: ['transactions', 'list', debouncedSearch, filterMonth, filterCategory, filterTag, filterShared, filterGroupId],
+  const { data: response, isLoading } = useQuery<{
+    transactions: Transaction[];
+  }>({
+    queryKey: [
+      "transactions",
+      "list",
+      debouncedSearch,
+      filterMonth,
+      filterCategory,
+      filterTag,
+      filterShared,
+      filterGroupId,
+    ],
     queryFn: async () => {
       let url = debouncedSearch
         ? `/transactions?limit=50&search=${encodeURIComponent(debouncedSearch)}`
-        : '/transactions?limit=50';
-      if (filterCategory !== '') url += `&category_id=${filterCategory}`;
-      if (filterTag !== '') url += `&tag_id=${filterTag}`;
+        : "/transactions?limit=50";
+      if (filterCategory !== "") url += `&category_id=${filterCategory}`;
+      if (filterTag !== "") url += `&tag_id=${filterTag}`;
       if (filterShared) url += `&is_shared=1`;
-      if (filterGroupId !== '') url += `&group_id=${filterGroupId}`;
+      if (filterGroupId !== "") url += `&group_id=${filterGroupId}`;
       if (filterMonth) {
         const start = `${filterMonth}-01`;
         const dateObj = parseISO(start);
         if (isValid(dateObj)) {
-          const end = format(endOfMonth(dateObj), 'yyyy-MM-dd');
+          const end = format(endOfMonth(dateObj), "yyyy-MM-dd");
           url += `&startDate=${start}&endDate=${end}`;
         }
       }
       const res = await api.get(url);
       return res.data;
-    }
+    },
   });
 
-  const transactions = useMemo(() => response?.transactions ?? [], [response?.transactions]);
-  const grouped = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
-  const activeFilterCount = [filterCategory !== '', filterTag !== '', filterMonth !== '', filterShared, filterGroupId !== ''].filter(Boolean).length;
+  const transactions = useMemo(
+    () => response?.transactions ?? [],
+    [response?.transactions],
+  );
+  const grouped = useMemo(
+    () => groupTransactionsByDate(transactions),
+    [transactions],
+  );
+  const activeFilterCount = [
+    filterCategory !== "",
+    filterTag !== "",
+    filterMonth !== "",
+    filterShared,
+    filterGroupId !== "",
+  ].filter(Boolean).length;
 
   return (
     <div className="flex flex-col h-full">
@@ -118,13 +172,19 @@ function TransactionsContent() {
         <div className="flex items-center justify-between">
           <div>
             <PageTitle>Mis movimientos</PageTitle>
-            <PageSubtitle>Todo lo que entra y sale de tus cuentas.</PageSubtitle>
+            <PageSubtitle>
+              Todo lo que entra y sale de tus cuentas.
+            </PageSubtitle>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href="/settings"
               className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
+              }}
               aria-label="Ajustes"
             >
               <Settings size={18} />
@@ -140,35 +200,53 @@ function TransactionsContent() {
         </div>
 
         {/* Search + Filter Toggle */}
-        {!(grouped.length === 0 && !debouncedSearch && activeFilterCount === 0) && (
+        {!(
+          grouped.length === 0 &&
+          !debouncedSearch &&
+          activeFilterCount === 0
+        ) && (
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={15} style={{ color: 'var(--text-muted)' }} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+                size={15}
+                style={{ color: "var(--text-muted)" }}
+              />
               <input
                 type="text"
                 placeholder="Buscar un gasto o ingreso..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
                 style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border)",
+                  color: "var(--text-primary)",
                 }}
               />
               {searchTerm && (
-                <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'var(--text-muted)' }}>
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   <X size={14} />
                 </button>
               )}
             </div>
             <button
-              onClick={() => setShowFilters(v => !v)}
+              onClick={() => setShowFilters((v) => !v)}
               className="relative flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{
-                background: (showFilters || activeFilterCount > 0) ? 'rgba(16,185,129,0.08)' : 'var(--bg-card)',
-                border: `1px solid ${(showFilters || activeFilterCount > 0) ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`,
-                color: (showFilters || activeFilterCount > 0) ? '#10b981' : 'var(--text-secondary)',
+                background:
+                  showFilters || activeFilterCount > 0
+                    ? "rgba(16,185,129,0.08)"
+                    : "var(--bg-card)",
+                border: `1px solid ${showFilters || activeFilterCount > 0 ? "rgba(16,185,129,0.3)" : "var(--border)"}`,
+                color:
+                  showFilters || activeFilterCount > 0
+                    ? "#10b981"
+                    : "var(--text-secondary)",
               }}
             >
               <SlidersHorizontal size={15} />
@@ -183,59 +261,87 @@ function TransactionsContent() {
         )}
 
         {/* Expandable Filters */}
-        {showFilters && !(grouped.length === 0 && !debouncedSearch && activeFilterCount === 0) && (
-          <div className="animate-in slide-in-from-top-4 fade-in duration-200 flex flex-wrap items-center gap-2 pt-1">
-            <div className="flex-1 min-w-[130px]">
-              <MonthSelector value={filterMonth} onChange={setFilterMonth} className="w-full" alignDropdown="left" />
-            </div>
-            <div className="flex-1 min-w-[140px] z-20">
-              <CustomSelect
-                value={filterCategory}
-                onChange={(value) => setFilterCategory(value === '' ? '' : Number(value))}
-                placeholder="Todas las categorías"
-                size="small"
-                options={[
-                  { value: '', label: 'Todas las categorías' },
-                  ...categoriesList.map(c => ({ value: c.id, label: `${c.icon || ''} ${c.name}` }))
-                ]}
-              />
-            </div>
-            <div className="flex-1 min-w-[130px] z-10">
-              <CustomSelect
-                value={filterTag}
-                onChange={(value) => setFilterTag(value === '' ? '' : Number(value))}
-                placeholder="Todas las etiquetas"
-                size="small"
-                options={[
-                  { value: '', label: 'Todas las etiquetas' },
-                  ...tagsList.map(t => ({ value: t.id, label: t.name }))
-                ]}
-              />
-            </div>
-            {filterShared && groupsList.length > 0 && (
-              <div className="flex-1 min-w-[130px] z-[5]">
+        {showFilters &&
+          !(
+            grouped.length === 0 &&
+            !debouncedSearch &&
+            activeFilterCount === 0
+          ) && (
+            <div className="animate-in slide-in-from-top-4 fade-in duration-200 flex flex-wrap items-center gap-2 pt-1">
+              <div className="flex-1 min-w-[130px]">
+                <MonthSelector
+                  value={filterMonth}
+                  onChange={setFilterMonth}
+                  className="w-full"
+                  alignDropdown="left"
+                />
+              </div>
+              <div className="flex-1 min-w-[140px] z-20">
                 <CustomSelect
-                  value={filterGroupId}
-                  onChange={(value) => setFilterGroupId(value === '' ? '' : Number(value))}
-                  placeholder="Todos los grupos"
+                  value={filterCategory}
+                  onChange={(value) =>
+                    setFilterCategory(value === "" ? "" : Number(value))
+                  }
+                  placeholder="Todas las categorías"
                   size="small"
                   options={[
-                    { value: '', label: 'Todos los grupos' },
-                    ...groupsList.map(g => ({ value: g.id, label: `👥 ${g.name}` }))
+                    { value: "", label: "Todas las categorías" },
+                    ...categoriesList.map((c) => ({
+                      value: c.id,
+                      label: `${c.icon || ""} ${c.name}`,
+                    })),
                   ]}
                 />
               </div>
-            )}
-            {activeFilterCount > 0 && (
-              <button
-                onClick={() => { setFilterMonth(''); setFilterCategory(''); setFilterTag(''); setFilterShared(false); setFilterGroupId(''); }}
-                className="text-xs font-semibold px-3 py-2 h-[42px] rounded-xl flex items-center justify-center gap-1.5 self-center shrink-0 transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20"
-              >
-                <X size={13} /> Limpiar
-              </button>
-            )}
-          </div>
-        )}
+              <div className="flex-1 min-w-[130px] z-10">
+                <CustomSelect
+                  value={filterTag}
+                  onChange={(value) =>
+                    setFilterTag(value === "" ? "" : Number(value))
+                  }
+                  placeholder="Todas las etiquetas"
+                  size="small"
+                  options={[
+                    { value: "", label: "Todas las etiquetas" },
+                    ...tagsList.map((t) => ({ value: t.id, label: t.name })),
+                  ]}
+                />
+              </div>
+              {filterShared && groupsList.length > 0 && (
+                <div className="flex-1 min-w-[130px] z-[5]">
+                  <CustomSelect
+                    value={filterGroupId}
+                    onChange={(value) =>
+                      setFilterGroupId(value === "" ? "" : Number(value))
+                    }
+                    placeholder="Todos los grupos"
+                    size="small"
+                    options={[
+                      { value: "", label: "Todos los grupos" },
+                      ...groupsList.map((g) => ({
+                        value: g.id,
+                        label: `👥 ${g.name}`,
+                      })),
+                    ]}
+                  />
+                </div>
+              )}
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => {
+                    setFilterMonth("");
+                    setFilterCategory("");
+                    setFilterTag("");
+                    setFilterShared(false);
+                    setFilterGroupId("");
+                  }}
+                  className="text-xs font-semibold px-3 py-2 h-[42px] rounded-xl flex items-center justify-center gap-1.5 self-center shrink-0 transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                >
+                  <X size={13} /> Limpiar
+                </button>
+              )}
+            </div>
+          )}
       </div>
 
       {/* ── Transaction List ── */}
@@ -243,16 +349,46 @@ function TransactionsContent() {
         <div className="max-w-7xl mx-auto">
           {/* Shared transactions summary banner */}
           {filterShared && !isLoading && transactions.length > 0 && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-4" style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)' }}>
+            <div
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-4"
+              style={{
+                background: "rgba(139,92,246,0.06)",
+                border: "1px solid rgba(139,92,246,0.15)",
+              }}
+            >
               <Users size={16} className="text-violet-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-semibold text-violet-400">
-                  {transactions.length} gasto{transactions.length !== 1 ? 's' : ''} compartido{transactions.length !== 1 ? 's' : ''}
+                  {transactions.length} gasto
+                  {transactions.length !== 1 ? "s" : ""} compartido
+                  {transactions.length !== 1 ? "s" : ""}
                 </span>
-                <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
-                  Total: <span className="font-bold text-violet-400">${formatCurrency(transactions.reduce((sum, tx) => sum + tx.amount, 0))}</span>
-                  {transactions.some(tx => tx.my_split_amount != null) && (
-                    <> · Tu parte: <span className="font-bold text-violet-400">${formatCurrency(transactions.reduce((sum, tx) => sum + (tx.my_split_amount ?? tx.amount), 0))}</span></>
+                <span
+                  className="text-xs ml-2"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Total:{" "}
+                  <span className="font-bold text-violet-400">
+                    $
+                    {formatCurrency(
+                      transactions.reduce((sum, tx) => sum + tx.amount, 0),
+                    )}
+                  </span>
+                  {transactions.some((tx) => tx.my_split_amount != null) && (
+                    <>
+                      {" "}
+                      · Tu parte:{" "}
+                      <span className="font-bold text-violet-400">
+                        $
+                        {formatCurrency(
+                          transactions.reduce(
+                            (sum, tx) =>
+                              sum + (tx.my_split_amount ?? tx.amount),
+                            0,
+                          ),
+                        )}
+                      </span>
+                    </>
                   )}
                 </span>
               </div>
@@ -268,10 +404,22 @@ function TransactionsContent() {
                 <div key={date}>
                   {/* Date Group Header */}
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-xs font-semibold capitalize" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {items.length} {items.length === 1 ? 'movimiento' : 'movimientos'}
+                    <span
+                      className="text-xs font-semibold capitalize"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      {label}
+                    </span>
+                    <div
+                      className="flex-1 h-px"
+                      style={{ background: "var(--border)" }}
+                    />
+                    <span
+                      className="text-xs"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {items.length}{" "}
+                      {items.length === 1 ? "movimiento" : "movimientos"}
                     </span>
                   </div>
 
@@ -282,35 +430,53 @@ function TransactionsContent() {
                       return (
                         <div
                           key={tx.id}
-                          onClick={() => { if (!canEdit) return; openModal(tx); }}
+                          onClick={() => {
+                            if (!canEdit) return;
+                            openModal(tx);
+                          }}
                           className="rounded-2xl px-4 py-3.5 flex items-center gap-3 min-h-[68px] transition-all duration-150"
                           style={{
-                            background: 'var(--bg-card)',
-                            border: '1px solid var(--border)',
-                            cursor: canEdit ? 'pointer' : 'default',
+                            background: "var(--bg-card)",
+                            border: "1px solid var(--border)",
+                            cursor: canEdit ? "pointer" : "default",
                           }}
                         >
                           {/* Icon */}
-                          <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-                            tx.category_icon ? '' : tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                          }`} style={tx.category_icon ? { background: 'var(--bg-inset)' } : {}}>
-                            {tx.category_icon
-                              ? <span>{tx.category_icon}</span>
-                              : tx.type === 'income'
-                                ? <ArrowUpRight size={18} />
-                                : <ArrowDownRight size={18} />
+                          <div
+                            className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                              tx.category_icon
+                                ? ""
+                                : tx.type === "income"
+                                  ? "bg-emerald-500/10 text-emerald-500"
+                                  : "bg-red-500/10 text-red-500"
+                            }`}
+                            style={
+                              tx.category_icon
+                                ? { background: "var(--bg-inset)" }
+                                : {}
                             }
+                          >
+                            {tx.category_icon ? (
+                              <span>{tx.category_icon}</span>
+                            ) : tx.type === "income" ? (
+                              <ArrowUpRight size={18} />
+                            ) : (
+                              <ArrowDownRight size={18} />
+                            )}
                           </div>
 
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-medium text-sm leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                              <p
+                                className="font-medium text-sm leading-tight truncate"
+                                style={{ color: "var(--text-primary)" }}
+                              >
                                 {tx.title}
                               </p>
                               {!!tx.is_shared && (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-400 text-[10px] font-bold border border-violet-500/20 flex-shrink-0">
-                                  👥 {tx.group_name || 'Compartido'}
+                                  👥 {tx.group_name || "Compartido"}
                                 </span>
                               )}
                             </div>
@@ -318,19 +484,30 @@ function TransactionsContent() {
                               {tx.category && (
                                 <span
                                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
-                                  style={{ background: 'var(--bg-inset)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                                  style={{
+                                    background: "var(--bg-inset)",
+                                    color: "var(--text-secondary)",
+                                    border: "1px solid var(--border)",
+                                  }}
                                 >
                                   {tx.category}
                                 </span>
                               )}
                               {(tx.tag_names && tx.tag_names.length > 0
                                 ? tx.tag_names
-                                : tx.tag_ids?.map((id: number) => tagsMap.get(id) || 'Desconocido') || []
+                                : tx.tag_ids?.map(
+                                    (id: number) =>
+                                      tagsMap.get(id) || "Desconocido",
+                                  ) || []
                               ).map((name: string, i: number) => (
                                 <span
                                   key={i}
                                   className="px-1.5 py-0.5 rounded-md text-[10px] font-medium"
-                                  style={{ background: 'var(--bg-inset)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                                  style={{
+                                    background: "var(--bg-inset)",
+                                    color: "var(--text-muted)",
+                                    border: "1px solid var(--border)",
+                                  }}
                                 >
                                   {name}
                                 </span>
@@ -342,13 +519,20 @@ function TransactionsContent() {
                           <div className="flex-shrink-0 text-right">
                             <p
                               className="font-bold text-sm"
-                              style={{ color: tx.type === 'income' ? 'var(--color-income)' : 'var(--color-expense)' }}
+                              style={{
+                                color:
+                                  tx.type === "income"
+                                    ? "var(--color-income)"
+                                    : "var(--color-expense)",
+                              }}
                             >
-                              {tx.type === 'income' ? '+' : '-'}${tx.amount.toLocaleString('es-CL')}
+                              {tx.type === "income" ? "+" : "-"}$
+                              {tx.amount.toLocaleString("es-CL")}
                             </p>
                             {!!tx.is_shared && tx.my_split_amount != null && (
                               <p className="text-violet-400 text-xs mt-0.5">
-                                ${tx.my_split_amount.toLocaleString('es-CL')} ({tx.my_split_percentage}%)
+                                ${tx.my_split_amount.toLocaleString("es-CL")} (
+                                {tx.my_split_percentage}%)
                               </p>
                             )}
                           </div>
@@ -362,13 +546,34 @@ function TransactionsContent() {
           ) : (
             <EmptyState
               icon={<Receipt className="w-9 h-9" />}
-              secondaryIcon={!debouncedSearch && activeFilterCount === 0 && <Sparkles size={14} className="text-white" />}
-              title={debouncedSearch || activeFilterCount > 0 ? 'Nada encontrado' : 'Finanzas bajo control'}
-              description={debouncedSearch || activeFilterCount > 0
-                ? 'Prueba ajustando tus filtros de búsqueda.'
-                : 'Cuando empieces a registrar movimientos, aparecerán mágicamente aquí.'}
-              actionButton={!debouncedSearch && activeFilterCount === 0 && <AnimatedButton text="Primer movimiento" onClick={() => openModal()} />}
-              primaryColor={debouncedSearch || activeFilterCount > 0 ? 'zinc' : 'emerald'}
+              secondaryIcon={
+                !debouncedSearch &&
+                activeFilterCount === 0 && (
+                  <Sparkles size={14} className="text-white" />
+                )
+              }
+              title={
+                debouncedSearch || activeFilterCount > 0
+                  ? "Nada encontrado"
+                  : "Finanzas bajo control"
+              }
+              description={
+                debouncedSearch || activeFilterCount > 0
+                  ? "Prueba ajustando tus filtros de búsqueda."
+                  : "Cuando empieces a registrar movimientos, aparecerán mágicamente aquí."
+              }
+              actionButton={
+                !debouncedSearch &&
+                activeFilterCount === 0 && (
+                  <AnimatedButton
+                    text="Primer movimiento"
+                    onClick={() => openModal()}
+                  />
+                )
+              }
+              primaryColor={
+                debouncedSearch || activeFilterCount > 0 ? "zinc" : "emerald"
+              }
               className="mt-6"
             />
           )}
