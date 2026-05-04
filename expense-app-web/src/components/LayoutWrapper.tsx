@@ -3,12 +3,14 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { MobileNavigation } from "./MobileNavigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useUserSetup } from "@/hooks/usePreferences";
 import { CreateTransactionModal } from "./CreateTransactionModal";
 import { useTransactionModal } from "@/store/useTransactionModal";
 import { CreateRecurringModal } from "./CreateRecurringModal";
 import { useRecurringModal } from "@/store/useRecurringModal";
+import { PullToRefresh } from "./PullToRefresh";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,6 +24,11 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     initialData: recurringInitialData,
     closeModal: closeRecurringModal,
   } = useRecurringModal();
+  const queryClient = useQueryClient();
+
+  const handleRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries();
+  }, [queryClient]);
 
   useEffect(() => {
     if (!isLoginPage && !setupRan.current) {
@@ -43,12 +50,12 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex flex-col flex-1 w-0 overflow-hidden">
         <main
-          className="flex-1 relative z-0 overflow-y-auto focus:outline-none lg:pb-0 scroll-smooth"
+          className="flex-1 relative z-0 overflow-y-auto overscroll-none focus:outline-none lg:pb-0 scroll-smooth"
           style={{
             paddingBottom: "calc(5rem + env(safe-area-inset-bottom))",
           }}
         >
-          {children}
+          <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
         </main>
       </div>
       <MobileNavigation />
