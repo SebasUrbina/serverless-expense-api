@@ -394,6 +394,34 @@ function TransactionsContent() {
               </div>
             </div>
           )}
+
+          {/* General transactions summary banner when filters are active */}
+          {!filterShared && (activeFilterCount > 0 || debouncedSearch) && !isLoading && transactions.length > 0 && (
+            <div
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 rounded-2xl mb-4 bg-card border border-border shadow-sm"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-primary">
+                  Resultados filtrados: {transactions.length} {transactions.length === 1 ? "movimiento" : "movimientos"}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-semibold">
+                {transactions.some(tx => tx.type === 'income') && (
+                  <span className="text-emerald-500 flex items-center gap-1">
+                    <ArrowUpRight size={14} />
+                    Ingresos: ${transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString('es-CL')}
+                  </span>
+                )}
+                {transactions.some(tx => tx.type === 'expense') && (
+                  <span className="text-red-500 flex items-center gap-1">
+                    <ArrowDownRight size={14} />
+                    Gastos: ${transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString('es-CL')}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center h-48">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />

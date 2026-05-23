@@ -8,7 +8,7 @@ import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthSelector } from '@/components/MonthSelector';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings, PiggyBank, Calendar, Target, Activity } from 'lucide-react';
 import { formatCompactValue } from '@/lib/utils';
 import Link from 'next/link';
 import type { MonthlySummary, CategorySummary } from '@/types/api';
@@ -150,6 +150,22 @@ export default function AnalyticsPage() {
     }
   };
 
+  // Calculate KPIs for the selected month
+  const selectedMonthData = monthlySummary.find((m) => m.month === filterMonth);
+  const selectedIncome = selectedMonthData?.total_income ?? 0;
+  const selectedExpense = selectedMonthData?.total_expense ?? 0;
+  const selectedSavings = selectedIncome - selectedExpense;
+  const savingsRate = selectedIncome > 0 ? (selectedSavings / selectedIncome) * 100 : 0;
+
+  // Calculate average daily spending
+  const daysInMonth = filterMonth
+    ? new Date(Number(filterMonth.split("-")[0]), Number(filterMonth.split("-")[1]), 0).getDate()
+    : 30;
+  const dailyAverage = selectedExpense / daysInMonth;
+
+  // Top category
+  const topCategory = categorySummary.length > 0 ? categorySummary[0] : null;
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
@@ -175,7 +191,98 @@ export default function AnalyticsPage() {
 
       {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
-        <div className="max-w-7xl mx-auto space-y-4">
+        <div className="max-w-7xl mx-auto space-y-6">
+
+          {/* KPI Cards Row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Ahorro Neto */}
+            <div
+              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-emerald-500/20 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Ahorro Neto
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner">
+                  <PiggyBank size={16} />
+                </div>
+              </div>
+              <div>
+                <p className={`text-xl sm:text-2xl font-black tracking-tight ${selectedSavings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {selectedSavings >= 0 ? '+' : '−'}${Math.abs(selectedSavings).toLocaleString('es-CL')}
+                </p>
+                <p className="text-[11px] text-muted mt-1 font-medium">
+                  Tasa de ahorro: <span className="font-bold text-emerald-500">{savingsRate.toFixed(0)}%</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2: Gasto Diario */}
+            <div
+              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-red-500/20 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Gasto Diario
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shadow-inner">
+                  <Calendar size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-black tracking-tight text-primary">
+                  ${Math.round(dailyAverage).toLocaleString('es-CL')}
+                </p>
+                <p className="text-[11px] text-muted mt-1 font-medium">
+                  Promedio en {daysInMonth} días
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3: Categoría Principal */}
+            <div
+              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-violet-500/20 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Mayor Categoría
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center shadow-inner">
+                  <Target size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-black tracking-tight text-primary truncate" title={topCategory ? topCategory.category : "Ninguna"}>
+                  {topCategory ? `${topCategory.category_icon || ''} ${topCategory.category}` : "Ninguna"}
+                </p>
+                <p className="text-[11px] text-muted mt-1 font-medium">
+                  {topCategory ? `Gasto: $${topCategory.amount.toLocaleString('es-CL')}` : "Sin gastos"}
+                </p>
+              </div>
+            </div>
+
+            {/* Card 4: Eficiencia */}
+            <div
+              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-blue-500/20 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  Eficiencia
+                </span>
+                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shadow-inner">
+                  <Activity size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-xl sm:text-2xl font-black tracking-tight text-primary">
+                  {selectedIncome > 0 ? ((selectedExpense / selectedIncome) * 100).toFixed(0) + "%" : "0%"}
+                </p>
+                <p className="text-[11px] text-muted mt-1 font-medium">
+                  De tus ingresos gastados
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Cashflow Chart */}
           <div
