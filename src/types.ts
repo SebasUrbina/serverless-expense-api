@@ -25,6 +25,7 @@ export const Transaction = z.object({
 	recurring_rule_id: Num({ required: false, description: "Origin recurring rule ID" }),
 	is_shared: Num({ required: false, description: "1 = shared, 0 = personal" }),
 	group_id: Num({ required: false, description: "Shared group ID" }),
+	installments: Num({ required: false, description: "Number of installments" }),
 	splits: z.array(z.object({
 		user_id: Str(),
 		percentage: Num(),

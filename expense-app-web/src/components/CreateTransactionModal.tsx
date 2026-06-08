@@ -34,6 +34,7 @@ type TransactionPayload = {
   date: string;
   is_shared: 0 | 1;
   group_id?: number;
+  installments?: number;
   splits?: Array<{
     user_id: string;
     percentage: number;
@@ -106,6 +107,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   const [groupId, setGroupId] = useState<number | ''>(initialData?.group_id || '');
   const [splitPercentages, setSplitPercentages] = useState<Record<string, number>>(initialSplitPercentages);
 
+  // Installment (Cuotas) State
+  const [isInstallments, setIsInstallments] = useState(false);
+  const [installments, setInstallments] = useState(1);
+
   const resetForm = () => {
     setTitle('');
     setAmount('');
@@ -117,6 +122,8 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     setIsShared(false);
     setGroupId('');
     setSplitPercentages({});
+    setIsInstallments(false);
+    setInstallments(1);
     setError(null);
   };
 
@@ -183,6 +190,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
       date,
       is_shared: 0,
     };
+
+    if (type === 'expense' && isInstallments && installments > 1) {
+      payload.installments = installments;
+    }
 
     if (isShared && groupId && selectedGroup) {
       payload.is_shared = 1;
@@ -440,6 +451,98 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                 )}
               </div>
             </div>
+
+            {/* Installments (Cuotas) Section */}
+            {type === 'expense' && !initialData && (
+              <div className="border-t border-border pt-4 mt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center gap-2 text-xs font-bold uppercase text-secondary">
+                    <Calendar size={14} className={isInstallments ? 'text-orange-400' : ''} />
+                    Pagar en cuotas
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !isInstallments;
+                      setIsInstallments(nextVal);
+                      if (nextVal) {
+                        setInstallments(3); // default to 3 cuotas
+                      } else {
+                        setInstallments(1);
+                      }
+                    }}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                      isInstallments ? 'bg-orange-500' : 'bg-border'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                      isInstallments ? 'translate-x-5' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </div>
+
+                {isInstallments && (
+                  <div className="space-y-3 animate-in fade-in duration-200">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase text-secondary mb-2">Cantidad de cuotas</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min={2}
+                          max={36}
+                          required
+                          value={installments}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            setInstallments(isNaN(val) ? 2 : Math.max(2, Math.min(36, val)));
+                          }}
+                          className="w-20 bg-inset rounded-full px-4 py-2.5 text-primary focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-bold text-center text-sm"
+                        />
+                        <div className="flex gap-1">
+                          {[3, 6, 12, 18, 24].map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => setInstallments(num)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+                                installments === num
+                                  ? 'bg-orange-500 text-white border-orange-500'
+                                  : 'bg-inset text-muted border-border hover:border-orange-500/50 hover:text-orange-300'
+                              }`}
+                            >
+                              {num}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {(() => {
+                      const parsedAmt = amount ? parseInt(amount.replace(/\./g, ''), 10) : 0;
+                      if (parsedAmt > 0 && installments >= 2) {
+                        const baseAmt = Math.floor(parsedAmt / installments);
+                        const remainder = parsedAmt - baseAmt * installments;
+                        const firstAmt = baseAmt + remainder;
+                        const otherAmt = baseAmt;
+                        return (
+                          <p className="text-xs text-secondary italic">
+                            Se crearán {installments} transacciones mensuales de{' '}
+                            <span className="font-bold text-primary">
+                              ${firstAmt.toLocaleString('es-CL')}
+                            </span>{' '}
+                            (primera cuota) y{' '}
+                            <span className="font-bold text-primary">
+                              ${otherAmt.toLocaleString('es-CL')}
+                            </span>{' '}
+                            (restantes).
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Shared Expense Section */}
             {groups.length > 0 && (

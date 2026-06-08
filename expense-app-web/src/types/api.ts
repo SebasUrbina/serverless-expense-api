@@ -18,6 +18,7 @@ export type Transaction = {
   recurring_rule_id?: number;
   is_shared?: number;
   group_id?: number;
+  installments?: number;
   splits?: TransactionSplit[];
   created_at?: string;
   category: string;
