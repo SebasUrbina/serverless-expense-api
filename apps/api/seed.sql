@@ -10,14 +10,14 @@ INSERT OR IGNORE INTO accounts (id, user_id, name, type, balance) VALUES
 (2, 'local_user', 'Tarjeta de Crédito', 'credit', -250000.00),
 (3, 'local_user', 'Efectivo', 'cash', 45000.00);
 
--- Categorías de prueba
+-- Categorías de prueba (los íconos deben ser Emojis Unicode reales)
 INSERT OR IGNORE INTO categories (id, user_id, name, type, icon) VALUES
-(1, 'local_user', 'Supermercado y Alimentación', 'expense', 'shopping-cart'),
-(2, 'local_user', 'Transporte y Combustible', 'expense', 'car'),
-(3, 'local_user', 'Servicios del Hogar', 'expense', 'home'),
-(4, 'local_user', 'Restaurantes y Salidas', 'expense', 'utensils'),
-(5, 'local_user', 'Sueldo e Ingresos', 'income', 'wallet'),
-(6, 'local_user', 'Suscripciones y Tech', 'expense', 'laptop');
+(1, 'local_user', 'Supermercado y Alimentación', 'expense', '🛒'),
+(2, 'local_user', 'Transporte y Combustible', 'expense', '🚗'),
+(3, 'local_user', 'Servicios del Hogar', 'expense', '🏠'),
+(4, 'local_user', 'Restaurantes y Salidas', 'expense', '🍽️'),
+(5, 'local_user', 'Sueldo e Ingresos', 'income', '💼'),
+(6, 'local_user', 'Suscripciones y Tech', 'expense', '💻');
 
 -- Etiquetas de prueba
 INSERT OR IGNORE INTO tags (id, user_id, name) VALUES
