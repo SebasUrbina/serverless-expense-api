@@ -82,7 +82,7 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_IOS_SHORTCUT_URL: ${{ secrets.NEXT_PUBLIC_IOS_SHORTCUT_URL }}
       - name: Deploy to Cloudflare Pages
-        run: pnpm exec wrangler pages deploy apps/web/out --project-name "$PAGES_PROJECT" --branch "$GITHUB_REF_NAME"
+        run: npx wrangler pages deploy apps/web/out --project-name "$PAGES_PROJECT" --branch "$GITHUB_REF_NAME"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN_PAGES || secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
