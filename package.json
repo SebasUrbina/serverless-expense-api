@@ -3,6 +3,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "dev": "pnpm --filter api --filter web --parallel dev",
+    "dev:all": "pnpm --filter api --filter web --parallel dev",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",

@@ -68,26 +68,26 @@ pnpm install
 
 ## 💻 Local Development
 
-### 1. Backend API (`apps/api`)
+### ⚡️ Run All (API + Web Frontend in Parallel)
 
-Navigate to `apps/api` or run directly from the root:
+From the repository root, start both the Cloudflare Worker API and the Next.js Web Frontend simultaneously:
 
 ```bash
-# Start Wrangler dev server (local D1 database)
-pnpm dev:api
-
-# Apply local D1 database migrations
-pnpm db:migrate:local
+pnpm dev
 ```
 
-### 2. Frontend Web (`apps/web`)
+### Run Individually
 
+**Backend API (`apps/api`)**
 ```bash
-# Start Next.js development server
-pnpm dev:web
+pnpm dev:api            # Start Wrangler dev server (local D1)
+pnpm db:migrate:local   # Apply local D1 database migrations
+```
 
-# Build static site export
-pnpm build:web
+**Frontend Web (`apps/web`)**
+```bash
+pnpm dev:web            # Start Next.js development server
+pnpm build:web          # Build static site export
 ```
 
 ---
