@@ -133,3 +133,57 @@ Deployments are handled automatically via `.github/workflows/deploy.yml` on push
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_API_URL`
+
+## Architecture
+
+This project implements a **Dual Authentication** architecture that supports both Long-lived static API Keys (for headless environments like Apple Shortcuts) and short-lived JWTs (for traditional App logins).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 🧍‍♂️ You
+    box rgb(40, 44, 52) iPhone
+    participant Shortcut as ⚡️ Apple Shortcut
+    participant App as 📱 Mobile App
+    end
+    box rgb(33, 40, 54) Cloudflare
+    participant Worker as 🌩️ CF Worker API <br> (/middleware/auth.ts)
+    participant D1 as 🗄️ D1 Database <br> (transactions & api_keys)
+    end
+    participant AuthEngine as 🔑 Supabase/Google Auth
+
+    %% SHORTCUT FLOW
+    rect rgb(30, 80, 50)
+    note right of User: Fast Flow (Apple Shortcut)
+    User->>Shortcut: Log Expense ($5 Coffee)
+    Shortcut->>Worker: POST /api/transactions <br> Header: Bearer [STATIC_API_KEY]
+    Worker->>D1: SELECT user_id FROM api_keys WHERE key = [API_KEY]
+    D1-->>Worker: Returns { user_id: "550e8400-e29..." }
+    note right of Worker: ✅ Shortcut Key Found
+    Worker->>D1: INSERT INTO transactions (..., user_id)
+    D1-->>Worker: OK
+    Worker-->>Shortcut: 200 OK (Expense Created)
+    Shortcut-->>User: 🔔 Success Notification
+    end
+
+    %% MOBILE APP FLOW
+    rect rgb(50, 40, 80)
+    note right of User: Analytical Flow (Mobile App)
+    User->>App: Opens Mobile App
+    App->>AuthEngine: Login Request (Google)
+    AuthEngine-->>App: Returns JWT (Temporary Token)
+
+    App->>Worker: GET /api/transactions <br> Header: Bearer [JWT_TOKEN]
+    Worker->>D1: SELECT user_id FROM api_keys...
+    D1-->>Worker: ❌ Not found (It's a JWT)
+
+    note right of Worker: 🔄 Fallback to JWT Validation
+    Worker->>Worker: Verifies JWT signature with JWT_SECRET
+    note right of Worker: ✅ Valid JWT. Extracts 'sub' (UUID)
+
+    Worker->>D1: SELECT * FROM transactions WHERE user_id = [JWT_UUID]
+    D1-->>Worker: Returns Array [Coffee, Lunch, ...]
+    Worker-->>App: 200 OK (Expense List)
+    App-->>User: 📊 Displays Charts and History
+    end
+```
