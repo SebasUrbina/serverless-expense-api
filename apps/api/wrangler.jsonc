@@ -7,8 +7,7 @@
 	"name": "expense-api",
 	"main": "src/index.ts",
 	"vars": {
-		"IOS_SHORTCUT_URL": "https://www.icloud.com/shortcuts/a066d55051cd4144b17edf9a6d5a554e",
-		"SUPABASE_URL": "https://zyaewkmgxsiqfnevcigz.supabase.co"
+		"IOS_SHORTCUT_URL": "https://www.icloud.com/shortcuts/a066d55051cd4144b17edf9a6d5a554e"
 	},
 	"compatibility_date": "2026-02-25",
 	"observability": {
