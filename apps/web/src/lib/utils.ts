@@ -18,5 +18,7 @@ export function formatDateAbbreviated(dateStr: string) {
   return format(d, 'MMM d');
 }
 
-export const formatCurrency = (value: number) => 
-  value.toLocaleString('es-CL');
+export const formatCurrency = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) return "0";
+  return Math.round(value).toLocaleString("es-CL");
+};

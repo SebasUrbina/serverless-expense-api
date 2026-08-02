@@ -14,6 +14,7 @@
     "db:migrate:apply": "pnpm --filter api db:migrate:apply",
     "db:migrate:status": "pnpm --filter api db:migrate:status",
     "db:seed:local": "pnpm --filter api db:seed:local",
+    "db:seed:more": "pnpm --filter api db:seed:more",
     "db:setup:local": "pnpm --filter api db:setup:local"
   }
 }

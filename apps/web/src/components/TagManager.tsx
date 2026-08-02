@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useTags, useCreateTag, useDeleteTag } from "@/hooks/usePreferences";
-import { Plus, Trash2, Loader2, Hash } from "lucide-react";
+import { Plus, Trash2, Hash } from "lucide-react";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export function TagManager() {
   const { data, isLoading } = useTags();
@@ -30,18 +31,11 @@ export function TagManager() {
     <div className="space-y-4">
       <form
         onSubmit={handleSubmit}
-        className="rounded-2xl p-3 space-y-3"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border-subtle)",
-        }}
+        className="rounded-2xl p-3 space-y-3 bg-card border border-border-subtle"
       >
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
           <div className="flex-1 min-w-0">
-            <label
-              className="block text-[10px] font-semibold uppercase tracking-wider mb-1 px-0.5 sm:hidden"
-              style={{ color: "var(--text-muted)" }}
-            >
+            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1 px-0.5 sm:hidden text-muted">
               Nombre de la etiqueta
             </label>
             <input
@@ -49,21 +43,16 @@ export function TagManager() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej. vacaciones, trabajo, casa"
-              className="w-full rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all"
-              style={{
-                background: "var(--bg-base)",
-                border: "1px solid var(--border)",
-                color: "var(--text-primary)",
-              }}
+              className="w-full rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all bg-card border border-border text-primary"
             />
           </div>
           <button
             type="submit"
             disabled={!name.trim() || createMutation.isPending}
-            className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-primary h-11 px-4 sm:px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
+            className="bg-accent hover:bg-emerald-600 disabled:opacity-50 text-white h-11 px-4 sm:px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
           >
             {createMutation.isPending ? (
-              <Loader2 size={14} className="animate-spin" />
+              <LoadingSpinner size="sm" color="white" />
             ) : (
               <>
                 <Plus size={14} />
@@ -76,24 +65,16 @@ export function TagManager() {
 
       {isLoading ? (
         <div className="flex justify-center py-4">
-          <Loader2
-            className="animate-spin"
-            style={{ color: "var(--text-muted)" }}
-          />
+          <LoadingSpinner color="muted" />
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
             <div
               key={tag.id}
-              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                color: "var(--text-primary)",
-              }}
+              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-card border border-border text-primary hover:bg-card-hover"
             >
-              <Hash size={12} style={{ color: "var(--text-muted)" }} />
+              <Hash size={12} className="text-muted" />
               <span>{tag.name}</span>
               <button
                 onClick={() => setTagToDelete(tag.id)}
@@ -105,10 +86,7 @@ export function TagManager() {
             </div>
           ))}
           {tags.length === 0 && (
-            <p
-              className="text-sm w-full py-2"
-              style={{ color: "var(--text-muted)" }}
-            >
+            <p className="text-sm w-full py-2 text-muted">
               Aún no tienes etiquetas. Agrega una para empezar a organizar.
             </p>
           )}

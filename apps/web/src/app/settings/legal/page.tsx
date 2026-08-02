@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import { ArrowLeft, Scale, FileText, ShieldCheck, AlertTriangle, Mail } from 'lucide-react';
+import { ArrowLeft, Scale, FileText, ShieldCheck } from 'lucide-react';
 
 const APP_NAME = 'Seva';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '1.0.0';
-const DEVELOPER_EMAIL = 'contacto@sevaapp.com';
 const EFFECTIVE_DATE = '1 de enero de 2026';
 
 type LegalSectionProps = {
@@ -16,19 +15,16 @@ type LegalSectionProps = {
 
 function LegalSection({ icon: Icon, iconBg, iconColor, title, children }: LegalSectionProps) {
   return (
-    <div
-      className="rounded-3xl p-5"
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-    >
+    <div className="rounded-3xl p-5 bg-card border border-border shadow-sm">
       <div className="flex items-center gap-3 mb-3">
         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
           <Icon size={16} className={iconColor} />
         </div>
-        <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+        <h2 className="text-sm font-bold text-primary">
           {title}
         </h2>
       </div>
-      <div className="text-xs leading-relaxed space-y-2" style={{ color: 'var(--text-secondary)' }}>
+      <div className="text-xs leading-relaxed space-y-2 text-secondary">
         {children}
       </div>
     </div>
@@ -45,16 +41,15 @@ export default function LegalPage() {
           <div className="pt-6 pb-5 flex items-center gap-3">
             <Link
               href="/settings"
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors bg-card border border-border text-secondary hover:text-primary hover:bg-card-hover"
             >
               <ArrowLeft size={17} />
             </Link>
             <div>
-              <h1 className="text-lg font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="text-lg font-bold leading-tight text-primary">
                 Información legal
               </h1>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs text-muted">
                 Licencia y condiciones de uso
               </p>
             </div>
@@ -62,21 +57,21 @@ export default function LegalPage() {
 
           {/* ── Licencia ── */}
           <div className="mb-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Licencia
             </p>
             <LegalSection icon={Scale} iconBg="bg-indigo-500/10" iconColor="text-indigo-500" title="Licencia de uso">
               <p>
-                Al usar <strong style={{ color: 'var(--text-primary)' }}>{APP_NAME}</strong> (versión {APP_VERSION})
+                Al usar <strong className="text-primary">{APP_NAME}</strong> (versión {APP_VERSION})
                 aceptas los términos de esta licencia, vigente desde el{' '}
-                <strong style={{ color: 'var(--text-primary)' }}>{EFFECTIVE_DATE}</strong>.
+                <strong className="text-primary">{EFFECTIVE_DATE}</strong>.
               </p>
               <p>
-                Se te concede una licencia <strong style={{ color: 'var(--text-primary)' }}>personal,
+                Se te concede una licencia <strong className="text-primary">personal,
                 no exclusiva, intransferible y revocable</strong> para usar esta aplicación
                 exclusivamente para gestionar tus propias finanzas personales.
               </p>
-              <p>Queda expresamente <strong style={{ color: 'var(--text-primary)' }}>prohibido</strong>:</p>
+              <p>Queda expresamente <strong className="text-primary">prohibido</strong>:</p>
               <ul className="list-disc list-inside space-y-1 pl-1">
                 <li>Copiar, modificar o distribuir la aplicación o su código fuente.</li>
                 <li>Usar la aplicación con fines comerciales sin autorización escrita previa.</li>
@@ -87,7 +82,7 @@ export default function LegalPage() {
 
           {/* ── Condiciones de Uso ── */}
           <div className="mb-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Condiciones de uso
             </p>
             <div className="space-y-3">
@@ -129,29 +124,12 @@ export default function LegalPage() {
                   </li>
                 </ul>
               </LegalSection>
-
-              {/* <LegalSection icon={FileText} iconBg="bg-blue-500/10" iconColor="text-blue-500" title="Disponibilidad del servicio">
-                <p>
-                  El servicio se proporciona <strong style={{ color: 'var(--text-primary)' }}>&quot;tal como está&quot;</strong> (as-is).
-                  No se garantiza disponibilidad continua, ausencia de errores ni exactitud
-                  en los cálculos.
-                </p>
-                <p>
-                  El equipo de desarrollo se reserva el derecho de modificar, suspender o
-                  discontinuar funcionalidades en cualquier momento, notificando los cambios
-                  relevantes cuando sea posible.
-                </p>
-                <p>
-                  Las actualizaciones de la aplicación pueden cambiar estas condiciones.
-                  El uso continuado tras una actualización implica la aceptación de los nuevos términos.
-                </p>
-              </LegalSection> */}
             </div>
           </div>
 
           {/* ── Privacidad ── */}
           <div className="mb-4">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Privacidad y datos
             </p>
             <LegalSection icon={ShieldCheck} iconBg="bg-emerald-500/10" iconColor="text-emerald-500" title="Tratamiento de datos personales">
@@ -167,33 +145,14 @@ export default function LegalPage() {
                 </li>
               </ul>
               <p>
-                <strong style={{ color: 'var(--text-primary)' }}>No vendemos ni compartimos</strong> tus
+                <strong className="text-primary">No vendemos ni compartimos</strong> tus
                 datos personales con terceros.
               </p>
             </LegalSection>
           </div>
 
-          {/* ── Contacto ── */}
-          {/* <div className="mb-6">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
-              Contacto
-            </p>
-            <LegalSection icon={Mail} iconBg="bg-sky-500/10" iconColor="text-sky-500" title="Soporte y consultas">
-              <p>
-                Para consultas sobre estos términos, solicitudes de eliminación de datos
-                o cualquier problema con el servicio:
-              </p>
-              <div
-                className="mt-2 rounded-2xl px-4 py-3"
-                style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}
-              >
-                <p style={{ color: 'var(--text-muted)' }}>{DEVELOPER_EMAIL}</p>
-              </div>
-            </LegalSection>
-          </div> */}
-
           {/* Footer */}
-          <p className="text-center text-xs pb-4" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center text-xs pb-4 text-muted">
             {APP_NAME} · Versión {APP_VERSION} · Vigente desde {EFFECTIVE_DATE}
           </p>
 

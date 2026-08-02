@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useAccounts, useCreateAccount, useDeleteAccount, useUpdateAccount } from '@/hooks/usePreferences';
-import { Plus, Trash2, Loader2, Banknote, CreditCard, PiggyBank, Wallet, Pencil, Check, X } from 'lucide-react';
+import { Plus, Trash2, Banknote, CreditCard, PiggyBank, Wallet, Pencil, Check, X } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import type { Account } from '@/types/api';
+import { formatCurrency } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const accountTypeConfig: Record<Account['type'], { label: string; icon: React.ElementType; color: string; bg: string }> = {
   checking: { label: 'Cuenta corriente', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -45,9 +47,6 @@ export function AccountManager() {
     });
   };
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(val);
-
   const beginEditing = (account: Account) => {
     setEditingAccountId(account.id);
     setEditName(account.name);
@@ -86,24 +85,18 @@ export function AccountManager() {
       {/* Add form */}
       <form
         onSubmit={handleSubmit}
-        className="space-y-3 rounded-2xl p-3 sm:p-4"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+        className="space-y-3 rounded-2xl p-3 sm:p-4 bg-card border border-border-subtle"
       >
         {/* Row 1: Type */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <div className="shrink-0 sm:w-[160px]">
-            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5" style={{ color: 'var(--text-muted)' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5 text-muted">
               Tipo
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as Account['type'])}
-              className="w-full rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
+              className="w-full rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
             >
               <option value="checking">Cta. corriente</option>
               <option value="savings">Ahorros</option>
@@ -117,7 +110,7 @@ export function AccountManager() {
         {/* Row 2: Name */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <div className="flex-1 min-w-0">
-            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5" style={{ color: 'var(--text-muted)' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5 text-muted">
               Nombre
             </label>
             <input
@@ -126,12 +119,7 @@ export function AccountManager() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej. Banco Estado"
-              className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
+              className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
             />
           </div>
         </div>
@@ -139,33 +127,28 @@ export function AccountManager() {
         {/* Row 2: Balance + Button */}
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
           <div className="flex-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5" style={{ color: 'var(--text-muted)' }}>
+            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5 text-muted">
               Saldo inicial
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: 'var(--text-muted)' }}>$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted">$</span>
               <input
                 type="number"
                 value={balance}
                 step="1"
                 onChange={(e) => setBalance(e.target.value)}
                 placeholder="0"
-                className="w-full rounded-xl pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                style={{
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                }}
+                className="w-full rounded-xl pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={!name.trim() || createMutation.isPending}
-            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
+            className="bg-accent hover:bg-emerald-600 disabled:opacity-50 text-white h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
           >
             {createMutation.isPending
-              ? <Loader2 size={15} className="animate-spin" />
+              ? <LoadingSpinner size="sm" color="white" />
               : <><Plus size={15} /><span>Agregar cuenta</span></>
             }
           </button>
@@ -175,7 +158,7 @@ export function AccountManager() {
       {/* Accounts list */}
       {isLoading ? (
         <div className="flex justify-center py-6">
-          <Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+          <LoadingSpinner color="muted" />
         </div>
       ) : accounts.length > 0 ? (
         <div className="space-y-2">
@@ -185,11 +168,9 @@ export function AccountManager() {
             return (
               <div
                 key={acc.id}
-                className="rounded-xl px-3 py-2.5 transition-colors"
-                style={{
-                  background: 'var(--bg-card)',
-                  border: `1px solid ${editingAccountId === acc.id ? 'var(--border)' : 'var(--border-subtle)'}`,
-                }}
+                className={`rounded-xl px-3 py-2.5 transition-colors bg-card border ${
+                  editingAccountId === acc.id ? 'border-border' : 'border-border-subtle'
+                }`}
               >
                 <div className="flex items-center gap-2.5">
                   {/* Icon */}
@@ -197,19 +178,19 @@ export function AccountManager() {
                     <Icon size={15} className={cfg.color} />
                   </div>
 
-                  {/* Name + type stacked — takes all available horizontal space */}
+                  {/* Name + type stacked */}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    <p className="font-medium text-sm truncate leading-tight text-primary">
                       {acc.name}
                     </p>
-                    <p className="text-[10px] leading-tight mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[10px] leading-tight mt-0.5 truncate text-muted">
                       {cfg.label}
                     </p>
                   </div>
 
-                  {/* Balance — hidden label on small screens, always show number */}
+                  {/* Balance */}
                   <p className={`font-bold text-sm shrink-0 ${acc.balance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {formatCurrency(acc.balance)}
+                    ${formatCurrency(acc.balance)}
                   </p>
 
                   {/* Actions */}
@@ -218,8 +199,7 @@ export function AccountManager() {
                       type="button"
                       onClick={() => beginEditing(acc)}
                       disabled={updateMutation.isPending || deleteMutation.isPending}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-                      style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors bg-inset border border-border text-primary hover:bg-card-hover"
                       aria-label={`Editar cuenta ${acc.name}`}
                       title="Editar"
                     >
@@ -229,8 +209,7 @@ export function AccountManager() {
                       type="button"
                       onClick={() => setAccountToDelete(acc.id)}
                       disabled={deleteMutation.isPending || updateMutation.isPending}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors text-red-500"
-                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.16)' }}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20"
                       aria-label={`Eliminar cuenta ${acc.name}`}
                       title="Eliminar"
                     >
@@ -240,7 +219,7 @@ export function AccountManager() {
                 </div>
 
                 {editingAccountId === acc.id && (
-                  <div className="mt-2.5 space-y-2.5 rounded-xl p-2.5" style={{ background: 'var(--bg-inset)', border: '1px solid var(--border-subtle)' }}>
+                  <div className="mt-2.5 space-y-2.5 rounded-xl p-2.5 bg-inset border border-border-subtle">
                     <div className="grid grid-cols-[1fr_auto] gap-2">
                       <input
                         autoFocus
@@ -256,18 +235,16 @@ export function AccountManager() {
                             cancelEditing();
                           }
                         }}
-                        className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                        className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
                       />
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: 'var(--text-muted)' }}>$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted">$</span>
                         <input
                           type="number"
                           step="1"
                           value={editBalance}
                           onChange={(e) => setEditBalance(e.target.value)}
-                          className="w-28 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                          className="w-28 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
                         />
                       </div>
                     </div>
@@ -276,8 +253,7 @@ export function AccountManager() {
                       <select
                         value={editType}
                         onChange={(e) => setEditType(e.target.value as Account['type'])}
-                        className="min-w-0 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                        className="min-w-0 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
                       >
                         <option value="checking">Cuenta corriente</option>
                         <option value="savings">Ahorros</option>
@@ -290,18 +266,16 @@ export function AccountManager() {
                           type="button"
                           onClick={() => saveAccount(acc.id)}
                           disabled={!editName.trim() || updateMutation.isPending}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white transition-colors disabled:opacity-50"
-                          style={{ background: '#10b981' }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white transition-colors disabled:opacity-50 bg-emerald-500 hover:bg-emerald-600"
                           aria-label="Guardar cambios"
                           title="Guardar"
                         >
-                          {updateMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                          {updateMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : <Check size={14} />}
                         </button>
                         <button
                           type="button"
                           onClick={cancelEditing}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-                          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors bg-card border border-border text-secondary hover:text-primary"
                           aria-label="Cancelar edición"
                           title="Cancelar"
                         >
@@ -316,7 +290,7 @@ export function AccountManager() {
           })}
         </div>
       ) : (
-        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm text-center py-4 text-muted">
           Aún no tienes cuentas. Agrega una para empezar a registrar tus movimientos.
         </p>
       )}

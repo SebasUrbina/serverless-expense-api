@@ -58,7 +58,7 @@ export function MobileNavigation() {
                     className="flex flex-col items-center justify-center p-2 min-w-[64px] transition-transform active:scale-90 z-20 group"
                     aria-label="Agregar movimiento"
                   >
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center shadow-md group-hover:shadow-lg mb-1 absolute -top-6 border-[3px] theme-border theme-bg transition-all duration-300">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white flex items-center justify-center shadow-md group-hover:shadow-lg mb-1 absolute -top-6 border-[3px] theme-border theme-bg transition-all duration-300">
                       <Plus
                         size={26}
                         strokeWidth={2.5}

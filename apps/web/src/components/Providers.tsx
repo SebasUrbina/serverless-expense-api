@@ -1,6 +1,8 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/lib/AuthProvider';
@@ -59,24 +61,50 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 60 * 1000,
-      },
-    },
-  }));
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 60 * 1000, // 1 minuto por defecto para transacciones
+            gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
+          },
+        },
+      })
+  );
+
+  const [persister] = useState(() => {
+    if (typeof window === 'undefined') return undefined;
+    return createSyncStoragePersister({
+      storage: window.localStorage,
+      key: 'SEVA_QUERY_CACHE',
+    });
+  });
 
   return (
     <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
-        </ThemeProvider>
-        {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
-      </QueryClientProvider>
+      {persister ? (
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{
+            persister,
+            maxAge: 1000 * 60 * 60 * 24, // 24 horas
+            buster: 'v1',
+          }}
+        >
+          <ThemeProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </ThemeProvider>
+          {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+        </PersistQueryClientProvider>
+      ) : (
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </ThemeProvider>
+          {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+        </QueryClientProvider>
+      )}
     </AuthProvider>
   );
 }

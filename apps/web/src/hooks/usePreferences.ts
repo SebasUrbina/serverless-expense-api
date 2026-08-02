@@ -14,6 +14,7 @@ import type {
 export function useCategories() {
   return useQuery<CategoriesResponse>({
     queryKey: ['categories'],
+    staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/categories');
       return res.data;
@@ -24,6 +25,7 @@ export function useCategories() {
 export function useTags() {
   return useQuery<TagsResponse>({
     queryKey: ['tags'],
+    staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/tags');
       return res.data;
@@ -99,6 +101,7 @@ export function useDeleteTag() {
 export function useAccounts() {
   return useQuery<AccountsResponse>({
     queryKey: ['accounts'],
+    staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/accounts');
       return res.data;
@@ -166,6 +169,7 @@ export function useUserSetup() {
 export function useGroups() {
   return useQuery<GroupsResponse>({
     queryKey: ['groups'],
+    staleTime: 5 * 60 * 1000, // 5 minutos
     queryFn: async () => {
       const res = await api.get('/groups');
       return res.data;
@@ -231,6 +235,7 @@ export function useUpdateGroup() {
 export function useApiKey() {
   return useQuery<ApiKeyResponse>({
     queryKey: ['api_key'],
+    staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/keys');
       return res.data;

@@ -11,12 +11,13 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
-  Settings,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { MonthSelector } from "@/components/MonthSelector";
 import { SharedBalancesCard } from "@/components/SharedBalancesCard";
 import { MonthlyBudgetCard } from "@/components/MonthlyBudgetCard";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingState } from "@/components/ui/LoadingSpinner";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -107,63 +108,54 @@ export default function Home() {
     router.push(url);
   };
 
+  const customTitle = (
+    <div>
+      <div className="sm:hidden">
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-muted mb-0.5">
+          Bienvenido 👋
+        </p>
+        <h1 className="truncate text-2xl leading-tight font-extrabold tracking-tight text-primary">
+          {firstName || "Mi resumen"}
+        </h1>
+      </div>
+      <div className="hidden sm:block">
+        <h1 className="truncate text-3xl leading-tight font-black tracking-tighter text-primary sm:text-4xl">
+          <span>{firstName ? `Hola, ${firstName}` : "Mi resumen"}</span>
+          <span className="ml-2 inline-block align-middle text-[0.85em]">
+            👋
+          </span>
+        </h1>
+        <p className="text-sm mt-1 font-medium text-muted">
+          Aquí puedes ver en qué se va tu dinero.
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 sm:items-start sm:gap-4">
-          <div className="min-w-0 flex-1 pr-1">
-            <div className="sm:hidden">
-              <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-muted mb-0.5">
-                Bienvenido 👋
-              </p>
-              <h1 className="truncate text-2xl leading-tight font-extrabold tracking-tight text-primary">
-                {firstName || "Mi resumen"}
-              </h1>
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="truncate text-3xl leading-tight font-black tracking-tighter text-primary sm:text-4xl">
-                <span>{firstName ? `Hola, ${firstName}` : "Mi resumen"}</span>
-                <span className="ml-2 inline-block align-middle text-[0.85em]">
-                  👋
-                </span>
-              </h1>
-              <p className="text-sm mt-1 font-medium text-muted">
-                Aquí puedes ver en qué se va tu dinero.
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
-            <MonthSelector
-              value={filterMonth}
-              onChange={setFilterMonth}
-              className="min-w-0"
-            />
-            <Link
-              href="/settings"
-              className="sm:hidden w-10 h-10 rounded-2xl flex items-center justify-center transition-all bg-inset border border-border text-secondary hover:text-primary hover:bg-card-hover active:scale-95"
-              aria-label="Ajustes"
-            >
-              <Settings size={18} className="text-accent" />
-            </Link>
-            <button
-              onClick={() => openModal()}
-              className="hidden sm:flex bg-accent hover:bg-indigo-500 active:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-all items-center gap-1.5 shadow-sm text-sm whitespace-nowrap hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <span className="text-base leading-none">+</span>
-              <span>Agregar</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title=""
+        customTitle={customTitle}
+        monthSelector={
+          <MonthSelector
+            value={filterMonth}
+            onChange={setFilterMonth}
+            className="min-w-0"
+          />
+        }
+        primaryAction={{
+          label: "Agregar",
+          onClick: () => openModal(),
+        }}
+      />
 
       {/* ── Scrollable Content ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-accent border-r-accent/30" />
-            </div>
+            <LoadingState minHeight="h-64" />
           ) : (
             <div className="space-y-6">
               {/* Bento Grid Layout */}
@@ -171,7 +163,7 @@ export default function Home() {
                 {/* Left Column (spans 2) */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Gasto Hero */}
-                  <div className="rounded-3xl bg-card border border-border p-8 sm:p-10 flex flex-col items-center text-center relative">
+                  <div className="rounded-3xl bg-card border border-border p-8 sm:p-10 flex flex-col items-center text-center relative shadow-sm">
                     <Link
                       href={`/analytics?month=${filterMonth}`}
                       className="absolute top-5 right-5 hidden sm:flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase text-accent bg-accent-soft px-3 py-1.5 rounded-lg transition-colors hover:bg-accent/20"
@@ -203,9 +195,9 @@ export default function Home() {
                         <span
                           className={`text-xs font-bold flex items-center gap-1 tabular-nums ${
                             isExpenseIncrease
-                              ? "text-red-500"
+                              ? "text-red-500 dark:text-red-400"
                               : isExpenseDecrease
-                                ? "text-emerald-600"
+                                ? "text-emerald-600 dark:text-emerald-400"
                                 : "text-secondary"
                           }`}
                         >
@@ -222,14 +214,14 @@ export default function Home() {
                     <div className="w-full max-w-md mx-auto mt-8 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-inset/60">
                       <div className="flex flex-col items-center py-4">
                         <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                          <Wallet size={12} className="text-violet-500" />{" "}
+                          <Wallet size={12} className="text-violet-500 dark:text-violet-400" />{" "}
                           Balance
                         </p>
                         <p
                           className={`font-bold text-sm sm:text-base tabular-nums ${
                             totalBalance < 0
-                              ? "text-red-600"
-                              : "text-violet-600"
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-violet-600 dark:text-violet-400"
                           }`}
                         >
                           ${formatCurrency(totalBalance)}
@@ -237,10 +229,10 @@ export default function Home() {
                       </div>
                       <div className="flex flex-col items-center py-4">
                         <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                          <ArrowUpRight size={12} className="text-emerald-500" />{" "}
+                          <ArrowUpRight size={12} className="text-emerald-500 dark:text-emerald-400" />{" "}
                           Ingresos
                         </p>
-                        <p className="font-bold text-sm sm:text-base text-emerald-600 tabular-nums">
+                        <p className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 tabular-nums">
                           ${formatCurrency(income)}
                         </p>
                       </div>
@@ -263,7 +255,7 @@ export default function Home() {
                   )}
 
                   {/* Categorías: donut + lista */}
-                  <div className="rounded-3xl p-6 bg-card border border-border">
+                  <div className="rounded-3xl p-6 bg-card border border-border shadow-sm">
                     <div className="flex items-center gap-2.5 mb-5">
                       <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
                         <Target size={20} />
@@ -314,23 +306,51 @@ export default function Home() {
                                 ))}
                               </Pie>
                               <Tooltip
-                                formatter={(value, name) => [
-                                  `$${formatCurrency(
-                                    Number(value ?? 0),
-                                  )}`,
-                                  String(name),
-                                ]}
-                                contentStyle={{
-                                  background: "var(--bg-card)",
-                                  border: "1px solid var(--border)",
-                                  borderRadius: 12,
-                                  fontSize: 13,
-                                  color: "var(--text-primary)",
+                                wrapperStyle={{ zIndex: 50, outline: "none" }}
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    const data = payload[0];
+                                    const catName = data.name || data.payload?.category || "";
+                                    const icon = data.payload?.category_icon || "";
+                                    const amount = Number(data.value ?? 0);
+                                    const pct =
+                                      totalExpense > 0
+                                        ? ((amount / totalExpense) * 100).toFixed(1)
+                                        : "0.0";
+                                    const fillColor = data.payload?.fill || "#6366f1";
+
+                                    return (
+                                      <div className="p-3 rounded-2xl shadow-2xl min-w-[160px] bg-card border border-border z-50 relative">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                          <span
+                                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: fillColor }}
+                                          />
+                                          <span className="text-xs font-bold text-primary truncate">
+                                            {icon ? `${icon} ` : ""}
+                                            {catName}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-baseline justify-between gap-3">
+                                          <span className="text-sm font-black text-primary tabular-nums">
+                                            ${formatCurrency(amount)}
+                                          </span>
+                                          <span className="text-xs font-bold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded-md">
+                                            {pct}%
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-muted mt-1 font-medium">
+                                          del gasto mensual
+                                        </p>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
                                 }}
                               />
                             </PieChart>
                           </ResponsiveContainer>
-                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-0">
                             <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
                               Total
                             </span>
@@ -395,8 +415,8 @@ export default function Home() {
                                         <span
                                           className={
                                             isIncrease
-                                              ? "text-red-500"
-                                              : "text-emerald-600"
+                                              ? "text-red-500 dark:text-red-400"
+                                              : "text-emerald-600 dark:text-emerald-400"
                                           }
                                         >
                                           {isIncrease ? "▲" : "▼"} $
@@ -420,7 +440,7 @@ export default function Home() {
                 {/* Right Column (spans 1) */}
                 <div className="lg:col-span-1 space-y-6">
                   {/* Recent Activity */}
-                  <div className="rounded-3xl p-6 flex flex-col h-auto lg:h-[480px] bg-card border border-border">
+                  <div className="rounded-3xl p-6 flex flex-col h-auto lg:h-[480px] bg-card border border-border shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                       <div>
                         <p className="font-bold text-base text-primary">
@@ -454,8 +474,8 @@ export default function Home() {
                               <div
                                 className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-base ${
                                   tx.type === "income"
-                                    ? "bg-emerald-500/10 text-emerald-600"
-                                    : "bg-red-500/10 text-red-600"
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-red-500/10 text-red-600 dark:text-red-400"
                                 }`}
                               >
                                 {tx.category_icon ||
@@ -503,7 +523,7 @@ export default function Home() {
 
                   {/* KPIs */}
                   <div className="flex flex-col gap-4">
-                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border">
+                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border shadow-sm">
                       <div className="min-w-0">
                         <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-3">
                           <TrendingDown size={20} />
@@ -523,7 +543,7 @@ export default function Home() {
                       </p>
                     </div>
 
-                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border">
+                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border shadow-sm">
                       <div className="min-w-0">
                         <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
                           <TrendingUp size={20} />

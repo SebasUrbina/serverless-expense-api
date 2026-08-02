@@ -19,11 +19,10 @@ import {
   Search,
   SlidersHorizontal,
   X,
-  Settings,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { MonthSelector } from "@/components/MonthSelector";
-import Link from "next/link";
 import { useTags, useCategories, useGroups } from "@/hooks/usePreferences";
 import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
@@ -31,20 +30,14 @@ import { CustomSelect } from "@/components/CustomSelect";
 import { useTransactionModal } from "@/store/useTransactionModal";
 import { formatCurrency } from "@/lib/utils";
 import type { Transaction } from "@/types/api";
-import { PageSubtitle, PageTitle } from "@/components/ui/Text";
 import { EmptyState } from "@/components/ui/EmptyState";
 import AnimatedButton from "@/components/ui/AnimatedButton";
-import { Sparkles } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingState } from "@/components/ui/LoadingSpinner";
 
 export default function TransactionsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="px-4 py-8 h-full flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingState minHeight="h-dvh" />}>
       <TransactionsContent />
     </Suspense>
   );
@@ -168,37 +161,15 @@ function TransactionsContent() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-6 pt-6 pb-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <PageTitle>Mis movimientos</PageTitle>
-            <PageSubtitle>
-              Todo lo que entra y sale de tus cuentas.
-            </PageSubtitle>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/settings"
-              className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                color: "var(--text-secondary)",
-              }}
-              aria-label="Ajustes"
-            >
-              <Settings size={18} />
-            </Link>
-            <button
-              onClick={() => openModal()}
-              className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors items-center gap-2 shadow-lg shadow-emerald-500/20 text-sm"
-            >
-              <Plus size={16} />
-              <span>Agregar</span>
-            </button>
-          </div>
-        </div>
-
+      <PageHeader
+        title="Mis movimientos"
+        subtitle="Todo lo que entra y sale de tus cuentas."
+        primaryAction={{
+          label: "Agregar",
+          icon: <Plus size={16} />,
+          onClick: () => openModal(),
+        }}
+      >
         {/* Search + Filter Toggle */}
         {!(
           grouped.length === 0 &&
@@ -208,27 +179,20 @@ function TransactionsContent() {
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
                 size={15}
-                style={{ color: "var(--text-muted)" }}
               />
               <input
                 type="text"
                 placeholder="Buscar un gasto o ingreso..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
-                style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text-primary)",
-                }}
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-base sm:text-sm bg-card border border-border text-primary focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                  style={{ color: "var(--text-muted)" }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-primary transition-colors"
                 >
                   <X size={14} />
                 </button>
@@ -236,23 +200,16 @@ function TransactionsContent() {
             </div>
             <button
               onClick={() => setShowFilters((v) => !v)}
-              className="relative flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background:
-                  showFilters || activeFilterCount > 0
-                    ? "rgba(16,185,129,0.08)"
-                    : "var(--bg-card)",
-                border: `1px solid ${showFilters || activeFilterCount > 0 ? "rgba(16,185,129,0.3)" : "var(--border)"}`,
-                color:
-                  showFilters || activeFilterCount > 0
-                    ? "#10b981"
-                    : "var(--text-secondary)",
-              }}
+              className={`relative flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                showFilters || activeFilterCount > 0
+                  ? "bg-accent/10 border-accent/30 text-accent"
+                  : "bg-card border-border text-secondary hover:text-primary"
+              }`}
             >
               <SlidersHorizontal size={15} />
               <span className="hidden sm:inline">Filtros</span>
               {activeFilterCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 bg-accent text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
@@ -342,20 +299,14 @@ function TransactionsContent() {
               )}
             </div>
           )}
-      </div>
+      </PageHeader>
 
       {/* ── Transaction List ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
         <div className="max-w-7xl mx-auto">
           {/* Shared transactions summary banner */}
           {filterShared && !isLoading && transactions.length > 0 && (
-            <div
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-4"
-              style={{
-                background: "rgba(139,92,246,0.06)",
-                border: "1px solid rgba(139,92,246,0.15)",
-              }}
-            >
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-4 bg-violet-500/10 border border-violet-500/20">
               <Users size={16} className="text-violet-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <span className="text-xs font-semibold text-violet-400">
@@ -363,10 +314,7 @@ function TransactionsContent() {
                   {transactions.length !== 1 ? "s" : ""} compartido
                   {transactions.length !== 1 ? "s" : ""}
                 </span>
-                <span
-                  className="text-xs ml-2"
-                  style={{ color: "var(--text-muted)" }}
-                >
+                <span className="text-xs text-muted ml-2">
                   Total:{" "}
                   <span className="font-bold text-violet-400">
                     $
@@ -397,9 +345,7 @@ function TransactionsContent() {
 
           {/* General transactions summary banner when filters are active */}
           {!filterShared && (activeFilterCount > 0 || debouncedSearch) && !isLoading && transactions.length > 0 && (
-            <div
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 rounded-2xl mb-4 bg-card border border-border shadow-sm"
-            >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 rounded-2xl mb-4 bg-card border border-border shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-xs font-bold text-primary">
@@ -410,42 +356,31 @@ function TransactionsContent() {
                 {transactions.some(tx => tx.type === 'income') && (
                   <span className="text-emerald-500 flex items-center gap-1">
                     <ArrowUpRight size={14} />
-                    Ingresos: ${transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString('es-CL')}
+                    Ingresos: ${formatCurrency(transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0))}
                   </span>
                 )}
                 {transactions.some(tx => tx.type === 'expense') && (
                   <span className="text-red-500 flex items-center gap-1">
                     <ArrowDownRight size={14} />
-                    Gastos: ${transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0).toLocaleString('es-CL')}
+                    Gastos: ${formatCurrency(transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0))}
                   </span>
                 )}
               </div>
             </div>
           )}
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-            </div>
+            <LoadingState minHeight="h-48" />
           ) : grouped.length > 0 ? (
             <div className="space-y-6">
               {grouped.map(({ date, label, items }) => (
                 <div key={date}>
                   {/* Date Group Header */}
                   <div className="flex items-center gap-3 mb-2">
-                    <span
-                      className="text-xs font-semibold capitalize"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
+                    <span className="text-xs font-semibold capitalize text-secondary">
                       {label}
                     </span>
-                    <div
-                      className="flex-1 h-px"
-                      style={{ background: "var(--border)" }}
-                    />
-                    <span
-                      className="text-xs"
-                      style={{ color: "var(--text-muted)" }}
-                    >
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted">
                       {items.length}{" "}
                       {items.length === 1 ? "movimiento" : "movimientos"}
                     </span>
@@ -462,27 +397,19 @@ function TransactionsContent() {
                             if (!canEdit) return;
                             openModal(tx);
                           }}
-                          className="rounded-2xl px-4 py-3.5 flex items-center gap-3 min-h-[68px] transition-all duration-150"
-                          style={{
-                            background: "var(--bg-card)",
-                            border: "1px solid var(--border)",
-                            cursor: canEdit ? "pointer" : "default",
-                          }}
+                          className={`rounded-2xl px-4 py-3.5 flex items-center gap-3 min-h-[68px] transition-all duration-150 bg-card border border-border ${
+                            canEdit ? "cursor-pointer hover:bg-card-hover" : "cursor-default"
+                          }`}
                         >
                           {/* Icon */}
                           <div
                             className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
                               tx.category_icon
-                                ? ""
+                                ? "bg-inset"
                                 : tx.type === "income"
                                   ? "bg-emerald-500/10 text-emerald-500"
                                   : "bg-red-500/10 text-red-500"
                             }`}
-                            style={
-                              tx.category_icon
-                                ? { background: "var(--bg-inset)" }
-                                : {}
-                            }
                           >
                             {tx.category_icon ? (
                               <span>{tx.category_icon}</span>
@@ -496,10 +423,7 @@ function TransactionsContent() {
                           {/* Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <p
-                                className="font-medium text-sm leading-tight truncate"
-                                style={{ color: "var(--text-primary)" }}
-                              >
+                              <p className="font-medium text-sm leading-tight truncate text-primary">
                                 {tx.title}
                               </p>
                               {!!tx.is_shared && (
@@ -510,14 +434,7 @@ function TransactionsContent() {
                             </div>
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {tx.category && (
-                                <span
-                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
-                                  style={{
-                                    background: "var(--bg-inset)",
-                                    color: "var(--text-secondary)",
-                                    border: "1px solid var(--border)",
-                                  }}
-                                >
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-inset text-secondary border border-border">
                                   {tx.category}
                                 </span>
                               )}
@@ -530,12 +447,7 @@ function TransactionsContent() {
                               ).map((name: string, i: number) => (
                                 <span
                                   key={i}
-                                  className="px-1.5 py-0.5 rounded-md text-[10px] font-medium"
-                                  style={{
-                                    background: "var(--bg-inset)",
-                                    color: "var(--text-muted)",
-                                    border: "1px solid var(--border)",
-                                  }}
+                                  className="px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-inset text-muted border border-border"
                                 >
                                   {name}
                                 </span>
@@ -555,11 +467,11 @@ function TransactionsContent() {
                               }}
                             >
                               {tx.type === "income" ? "+" : "-"}$
-                              {tx.amount.toLocaleString("es-CL")}
+                              {formatCurrency(tx.amount)}
                             </p>
                             {!!tx.is_shared && tx.my_split_amount != null && (
                               <p className="text-violet-400 text-xs mt-0.5">
-                                ${tx.my_split_amount.toLocaleString("es-CL")} (
+                                ${formatCurrency(tx.my_split_amount)} (
                                 {tx.my_split_percentage}%)
                               </p>
                             )}

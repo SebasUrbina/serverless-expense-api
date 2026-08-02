@@ -128,26 +128,18 @@ export default function SettingsPage() {
               <img
                 src={avatarUrl}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover mb-3"
-                style={{ boxShadow: '0 0 0 2px var(--border)' }}
+                className="w-20 h-20 rounded-full object-cover mb-3 ring-2 ring-border shadow-sm"
               />
             ) : (
-              <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold mb-3"
-                style={{
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border)',
-                }}
-              >
+              <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold mb-3 bg-card text-secondary border border-border shadow-sm">
                 {initials}
               </div>
             )}
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-xl font-bold text-primary">
               {displayName}
             </h1>
             <div className="flex items-center gap-1.5 mt-1">
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{email}</p>
+              <p className="text-sm text-muted">{email}</p>
               <span className="flex items-center gap-0.5 text-emerald-500 text-xs font-semibold">
                 <CheckCircle2 size={12} />
                 Verificado
@@ -157,20 +149,17 @@ export default function SettingsPage() {
 
           {/* ── Apariencia ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Apariencia
             </p>
-            <div
-              className="rounded-3xl p-4 flex items-center justify-between"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
+            <div className="rounded-3xl p-4 flex items-center justify-between bg-card border border-border shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
                   <Sun size={17} className="text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Modo de pantalla</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Claro, oscuro o automático</p>
+                  <p className="text-sm font-semibold text-primary">Modo de pantalla</p>
+                  <p className="text-xs text-muted">Claro, oscuro o automático</p>
                 </div>
               </div>
               <ThemeToggle />
@@ -179,7 +168,7 @@ export default function SettingsPage() {
 
           {/* ── Finanzas (Accordion) ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Finanzas
             </p>
             <div className="space-y-3">
@@ -204,7 +193,7 @@ export default function SettingsPage() {
 
           {/* ── Integraciones ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Integraciones
             </p>
             <SettingsAccordionSection
@@ -224,24 +213,23 @@ export default function SettingsPage() {
 
           {/* ── Legal ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
               Legal
             </p>
             <Link
               href="/settings/legal"
-              className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+              className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors bg-card border border-border hover:bg-card-hover shadow-sm"
             >
               <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
                 <Scale size={17} className="text-indigo-500" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Información legal</p>
-                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-sm font-semibold text-primary">Información legal</p>
+                <p className="text-xs text-muted">
                   Licencia, términos y privacidad
                 </p>
               </div>
-              <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} className="shrink-0" />
+              <ChevronRight size={16} className="text-muted shrink-0" />
             </Link>
           </div>
 
@@ -250,33 +238,28 @@ export default function SettingsPage() {
             {!showLogoutConfirm ? (
               <button
                 onClick={() => setShowLogoutConfirm(true)}
-                className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors bg-card border border-border hover:bg-card-hover shadow-sm"
               >
                 <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
                   <LogOut size={17} className="text-red-500" />
                 </div>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-semibold text-red-500">Cerrar sesión</p>
-                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-xs text-muted">
                     Salir de tu cuenta en este dispositivo
                   </p>
                 </div>
               </button>
             ) : (
-              <div
-                className="rounded-3xl p-4"
-                style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.2)' }}
-              >
+              <div className="rounded-3xl p-4 bg-red-500/5 border border-red-500/20">
                 <p className="text-sm font-semibold text-red-500 mb-1">¿Seguro que quieres salir?</p>
-                <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-xs mb-4 text-muted">
                   Tendrás que iniciar sesión otra vez para acceder a tu cuenta.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 py-2 rounded-xl text-sm font-medium transition-colors"
-                    style={{ background: 'var(--bg-inset)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                    className="flex-1 py-2 rounded-xl text-sm font-medium transition-colors bg-inset text-secondary border border-border hover:bg-card"
                   >
                     Cancelar
                   </button>
@@ -292,7 +275,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Footer */}
-          <p className="text-center text-xs pb-4" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center text-xs pb-4 text-muted">
             Seva Web · Tus finanzas, tu control · Versión {process.env.NEXT_PUBLIC_APP_VERSION}
           </p>
 

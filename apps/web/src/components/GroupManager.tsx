@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useGroups, useCreateGroup, useJoinGroup, useDeleteGroup, useUpdateGroup } from '@/hooks/usePreferences';
-import { Plus, Loader2, Trash2, Copy, Check, LogIn, Pencil } from 'lucide-react';
+import { Plus, Trash2, Copy, Check, LogIn, Pencil } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function GroupManager() {
   const { data, isLoading } = useGroups();
@@ -57,19 +58,17 @@ export function GroupManager() {
       <div className="flex gap-2">
         <button
           onClick={() => { setShowJoin(!showJoin); setShowCreate(false); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-          style={{
-            background: showJoin ? 'var(--bg-card)' : 'transparent',
-            border: '1px solid var(--border)',
-            color: showJoin ? 'var(--text-primary)' : 'var(--text-secondary)',
-            boxShadow: showJoin ? 'var(--shadow-card)' : 'none',
-          }}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors border ${
+            showJoin
+              ? 'bg-card border-border text-primary shadow-sm'
+              : 'border-border text-secondary hover:text-primary'
+          }`}
         >
           <LogIn size={14} /> Unirme
         </button>
         <button
           onClick={() => { setShowCreate(!showCreate); setShowJoin(false); }}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-emerald-500 hover:bg-emerald-400 text-white"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-colors bg-accent hover:bg-emerald-600 text-white shadow-sm"
         >
           <Plus size={14} /> Crear grupo
         </button>
@@ -84,19 +83,14 @@ export function GroupManager() {
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
             placeholder="Nombre del grupo (ej. Pareja, Viaje)"
-            className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-            }}
+            className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
           />
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0"
+            className="bg-accent hover:bg-emerald-600 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0"
           >
-            {createMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Crear'}
+            {createMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : 'Crear'}
           </button>
         </form>
       )}
@@ -111,24 +105,14 @@ export function GroupManager() {
             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
             placeholder="Código de invitación"
             maxLength={6}
-            className="w-32 rounded-xl px-4 py-2.5 text-sm uppercase tracking-widest font-mono text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-            }}
+            className="w-32 rounded-xl px-4 py-2.5 text-sm uppercase tracking-widest font-mono text-center focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
           />
           <button
             type="submit"
             disabled={joinMutation.isPending}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0"
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-            }}
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shrink-0 bg-card border border-border text-primary hover:bg-card-hover"
           >
-            {joinMutation.isPending ? <Loader2 size={15} className="animate-spin" /> : 'Unirme'}
+            {joinMutation.isPending ? <LoadingSpinner size="sm" color="accent" /> : 'Unirme'}
           </button>
           {joinMutation.isError && (
             <p className="text-red-400 text-xs self-center">Código inválido o ya sos miembro.</p>
@@ -138,14 +122,13 @@ export function GroupManager() {
 
       {/* Groups List */}
       {isLoading ? (
-        <div className="flex justify-center py-6"><Loader2 className="animate-spin" style={{ color: 'var(--text-muted)' }} /></div>
+        <div className="flex justify-center py-6"><LoadingSpinner color="muted" /></div>
       ) : groups.length > 0 ? (
         <div className="space-y-2">
           {groups.map(group => (
             <div
               key={group.id}
-              className="rounded-xl p-4 group/card transition-colors"
-              style={{ background: 'var(--bg-card)' }}
+              className="rounded-xl p-4 group/card transition-colors bg-card border border-border hover:border-border-subtle"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="min-w-0 flex-1">
@@ -167,24 +150,18 @@ export function GroupManager() {
                         }
                         setEditingGroupId(null);
                       }}
-                      className="font-bold px-2 py-0.5 rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                      style={{
-                        background: 'var(--bg-inset)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text-primary)',
-                      }}
+                      className="font-bold px-2 py-0.5 rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-accent/30 bg-inset border border-border text-primary"
                     />
                   ) : (
                     <h4
-                      className="font-bold text-sm flex items-center gap-1.5 cursor-pointer group/name transition-colors"
-                      style={{ color: 'var(--text-primary)' }}
+                      className="font-bold text-sm flex items-center gap-1.5 cursor-pointer group/name transition-colors text-primary"
                       onClick={() => { setEditingGroupId(group.id); setEditName(group.name); }}
                     >
                       {group.name}
-                      <Pencil size={11} className="opacity-0 group-hover/name:opacity-100 transition-opacity" style={{ color: 'var(--text-muted)' }} />
+                      <Pencil size={11} className="opacity-0 group-hover/name:opacity-100 transition-opacity text-muted" />
                     </h4>
                   )}
-                  <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[11px] mt-0.5 text-muted">
                     {group.members.length} miembro{group.members.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -192,12 +169,7 @@ export function GroupManager() {
                   {group.invite_code && (
                     <button
                       onClick={() => copyCode(group.invite_code!, group.id)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors"
-                      style={{
-                        background: 'var(--bg-inset)',
-                        border: '1px solid var(--border)',
-                        color: 'var(--text-secondary)',
-                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors bg-inset border border-border text-secondary hover:text-primary"
                       title="Copiar código de invitación"
                     >
                       {copiedGroupId === group.id ? (
@@ -221,12 +193,7 @@ export function GroupManager() {
                 {group.members.map(member => (
                   <span
                     key={member.user_id}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium"
-                    style={{
-                      background: 'var(--emerald-soft)',
-                      color: '#10b981',
-                      border: '1px solid rgba(16,185,129,0.2)',
-                    }}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                   >
                     {member.nickname}
                   </span>
@@ -236,7 +203,7 @@ export function GroupManager() {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-center py-4" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-sm text-center py-4 text-muted">
           Aún no tienes grupos. Crea uno o únete con un código de invitación.
         </p>
       )}

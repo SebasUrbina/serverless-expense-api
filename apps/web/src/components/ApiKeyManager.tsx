@@ -38,84 +38,50 @@ export function ApiKeyManager() {
           <Key className="text-sky-500" size={20} />
         </div>
         <div>
-          <h3
-            className="text-xl font-bold tracking-tight"
-            style={{ color: "var(--text-primary)" }}
-          >
+          <h3 className="text-xl font-bold tracking-tight text-primary">
             Atajos de Apple
           </h3>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <p className="text-xs text-muted">
             Automatiza tus movimientos de forma simple y segura
           </p>
         </div>
       </div>
 
-      <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
+      <p className="text-sm mb-6 text-secondary">
         Crea una clave privada para registrar movimientos desde tus atajos de
         iPhone. Usa esta clave solo en tus automatizaciones personales y no la
         compartas con nadie.
       </p>
 
-      <div
-        className="rounded-2xl p-4 mb-6"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <p
-          className="text-xs font-semibold uppercase mb-2"
-          style={{ color: "var(--text-secondary)" }}
-        >
+      <div className="rounded-2xl p-4 mb-6 bg-card border border-border">
+        <p className="text-xs font-semibold uppercase mb-2 text-secondary">
           Tu clave privada
         </p>
 
         {isLoading ? (
-          <div
-            className="h-10 animate-pulse rounded-xl"
-            style={{ background: "var(--bg-inset)" }}
-          ></div>
+          <div className="h-10 animate-pulse rounded-xl bg-inset" />
         ) : apiKey ? (
           <div className="flex flex-col sm:flex-row gap-2">
-            <div
-              className="flex-1 flex items-center rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden"
-              style={{
-                background: "var(--bg-inset)",
-                border: "1px solid var(--border-subtle)",
-              }}
-            >
-              <span
-                className="font-mono truncate text-sm"
-                style={{ color: "var(--color-income)" }}
-              >
+            <div className="flex-1 flex items-center rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden bg-inset border border-border-subtle">
+              <span className="font-mono truncate text-sm text-emerald-400">
                 {showKey ? apiKey : "••••••••••••••••••••••••"}
               </span>
             </div>
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors"
-                style={{
-                  background: "var(--bg-inset)",
-                  color: "var(--text-muted)",
-                  border: "1px solid var(--border-subtle)",
-                }}
+                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors bg-inset text-muted border border-border-subtle hover:text-primary"
                 title={showKey ? "Ocultar clave" : "Mostrar clave"}
               >
                 {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors"
-                style={{
-                  background: "var(--bg-inset)",
-                  color: "var(--text-muted)",
-                  border: "1px solid var(--border-subtle)",
-                }}
+                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors bg-inset text-muted border border-border-subtle hover:text-primary"
                 title="Copiar clave"
               >
                 {copied ? (
-                  <Check size={18} style={{ color: "var(--color-income)" }} />
+                  <Check size={18} className="text-emerald-400" />
                 ) : (
                   <Copy size={18} />
                 )}
@@ -123,10 +89,7 @@ export function ApiKeyManager() {
             </div>
           </div>
         ) : (
-          <div
-            className="text-sm italic py-2"
-            style={{ color: "var(--text-secondary)" }}
-          >
+          <div className="text-sm italic py-2 text-secondary">
             Todavía no tienes una clave creada.
           </div>
         )}

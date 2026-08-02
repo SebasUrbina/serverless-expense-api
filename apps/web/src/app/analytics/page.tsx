@@ -8,11 +8,11 @@ import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthSelector } from '@/components/MonthSelector';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings, PiggyBank, Calendar, Target, Activity } from 'lucide-react';
-import { formatCompactValue } from '@/lib/utils';
-import Link from 'next/link';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, PiggyBank, Calendar, Target, Activity } from 'lucide-react';
+import { formatCompactValue, formatCurrency } from '@/lib/utils';
 import type { MonthlySummary, CategorySummary, CategoryTrendResponse } from '@/types/api';
-import { PageSubtitle, PageTitle } from '@/components/ui/Text';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { LoadingState } from '@/components/ui/LoadingSpinner';
 
 const TREND_COLORS = [
   '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
@@ -48,14 +48,8 @@ type TooltipProps = {
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div
-        className="p-3 rounded-2xl shadow-xl min-w-[140px]"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-      >
-        <p
-          className="text-sm font-medium mb-3 pb-2"
-          style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}
-        >
+      <div className="p-3 rounded-2xl shadow-xl min-w-[140px] bg-card border border-border">
+        <p className="text-sm font-medium mb-3 pb-2 text-muted border-b border-border">
           {label}
         </p>
         <div className="space-y-2">
@@ -67,7 +61,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
               <div key={index} className="flex items-center justify-between gap-6">
                 <span className="text-sm font-medium" style={{ color }}>{entry.name}</span>
                 <span className="text-sm font-bold" style={{ color }}>
-                  ${Number(entry.value).toLocaleString('es-CL')}
+                  ${formatCurrency(Number(entry.value))}
                 </span>
               </div>
             );
@@ -200,25 +194,13 @@ export default function AnalyticsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-6 pt-6 pb-4">
-        <div className="max-w-7xl mx-auto flex items-start justify-between gap-4">
-          <div>
-            <PageTitle>Tu dinero en perspectiva</PageTitle>
-            <PageSubtitle>Tendencias, categorías y ahorro a lo largo del tiempo.</PageSubtitle>
-          </div>
-          <div className="shrink-0 relative z-20 flex items-center gap-2">
-            <MonthSelector value={filterMonth} onChange={setFilterMonth} />
-            <Link
-              href="/settings"
-              className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-              aria-label="Ajustes"
-            >
-              <Settings size={18} />
-            </Link>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Tu dinero en perspectiva"
+        subtitle="Tendencias, categorías y ahorro a lo largo del tiempo."
+        monthSelector={
+          <MonthSelector value={filterMonth} onChange={setFilterMonth} />
+        }
+      />
 
       {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
@@ -227,9 +209,7 @@ export default function AnalyticsPage() {
           {/* KPI Cards Row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1: Ahorro Neto */}
-            <div
-              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-emerald-500/20 shadow-sm"
-            >
+            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-emerald-500/20 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Ahorro Neto
@@ -240,7 +220,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <p className={`text-xl sm:text-2xl font-black tracking-tight ${selectedSavings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {selectedSavings >= 0 ? '+' : '−'}${Math.abs(selectedSavings).toLocaleString('es-CL')}
+                  {selectedSavings >= 0 ? '+' : '−'}${formatCurrency(Math.abs(selectedSavings))}
                 </p>
                 <p className="text-[11px] text-muted mt-1 font-medium">
                   Tasa de ahorro: <span className="font-bold text-emerald-500">{savingsRate.toFixed(0)}%</span>
@@ -249,9 +229,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Card 2: Gasto Diario */}
-            <div
-              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-red-500/20 shadow-sm"
-            >
+            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-red-500/20 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Gasto Diario
@@ -262,7 +240,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <p className="text-xl sm:text-2xl font-black tracking-tight text-primary">
-                  ${Math.round(dailyAverage).toLocaleString('es-CL')}
+                  ${formatCurrency(dailyAverage)}
                 </p>
                 <p className="text-[11px] text-muted mt-1 font-medium">
                   Promedio en {daysInMonth} días
@@ -271,9 +249,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Card 3: Categoría Principal */}
-            <div
-              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-violet-500/20 shadow-sm"
-            >
+            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-violet-500/20 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Mayor Categoría
@@ -287,15 +263,13 @@ export default function AnalyticsPage() {
                   {topCategory ? `${topCategory.category_icon || ''} ${topCategory.category}` : "Ninguna"}
                 </p>
                 <p className="text-[11px] text-muted mt-1 font-medium">
-                  {topCategory ? `Gasto: $${topCategory.amount.toLocaleString('es-CL')}` : "Sin gastos"}
+                  {topCategory ? `Gasto: $${formatCurrency(topCategory.amount)}` : "Sin gastos"}
                 </p>
               </div>
             </div>
 
             {/* Card 4: Eficiencia */}
-            <div
-              className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-blue-500/20 shadow-sm"
-            >
+            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-blue-500/20 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Eficiencia
@@ -316,16 +290,11 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Cashflow Chart */}
-          <div
-            className="rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px]"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>Flujo de dinero</p>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Ingresos, gastos y ahorro mes a mes</p>
+          <div className="rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px] bg-card border border-border shadow-sm">
+            <p className="font-bold text-sm mb-1 text-primary">Flujo de dinero</p>
+            <p className="text-xs mb-4 text-muted">Ingresos, gastos y ahorro mes a mes</p>
             {isLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-              </div>
+              <LoadingState minHeight="h-full" />
             ) : chartData.length > 0 ? (
               <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -352,7 +321,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+              <div className="flex-1 flex items-center justify-center text-sm text-muted">
                 Aún no hay datos para mostrar.
               </div>
             )}
@@ -363,20 +332,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 
             {/* Area Chart */}
-            <div
-              className="lg:col-span-2 xl:col-span-3 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px]"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+            <div className="lg:col-span-2 xl:col-span-3 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px] bg-card border border-border shadow-sm">
+              <p className="font-bold text-sm mb-1 text-primary">
                 Flujo anual de dinero
               </p>
-              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-xs mb-4 text-muted">
                 Ingresos y gastos de los últimos 12 meses
               </p>
               {isLoading ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-                </div>
+                <LoadingState minHeight="h-full" />
               ) : chartData.length > 0 ? (
                 <div className="flex-1 min-h-0">
                   <ResponsiveContainer width="100%" height="100%">
@@ -402,25 +366,20 @@ export default function AnalyticsPage() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                <div className="flex-1 flex items-center justify-center text-sm text-muted">
                   Aún no hay suficientes datos.
                 </div>
               )}
             </div>
 
             {/* Category Breakdown */}
-            <div
-              className="lg:col-span-1 xl:col-span-1 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px]"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
-              <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+            <div className="lg:col-span-1 xl:col-span-1 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px] bg-card border border-border shadow-sm">
+              <p className="font-bold text-sm mb-1 text-primary">
                 ¿En qué se va el dinero?
               </p>
-              <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Por categoría este mes</p>
+              <p className="text-xs mb-4 text-muted">Por categoría este mes</p>
               {isLoading ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-                </div>
+                <LoadingState minHeight="h-full" />
               ) : categorySummary.length > 0 ? (
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1">
                   {categorySummary.map((cat, idx) => {
@@ -431,7 +390,7 @@ export default function AnalyticsPage() {
                     return (
                       <div key={idx}>
                         <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-sm font-medium flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+                          <span className="text-sm font-medium flex items-center gap-1.5 text-primary">
                             {cat.category_icon && <span>{cat.category_icon}</span>}
                             {cat.category}
                           </span>
@@ -439,16 +398,16 @@ export default function AnalyticsPage() {
                             {delta !== 0 && cat.previous_amount !== undefined && (
                               <span className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isIncrease ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
                                 {isIncrease ? <ArrowUpRight size={10} className="mr-0.5" /> : <ArrowDownRight size={10} className="mr-0.5" />}
-                                ${Math.abs(delta).toLocaleString('es-CL')}
+                                ${formatCurrency(Math.abs(delta))}
                               </span>
                             )}
-                            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                              ${cat.amount.toLocaleString('es-CL')}
+                            <span className="text-sm font-semibold text-primary">
+                              ${formatCurrency(cat.amount)}
                             </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 rounded-full h-1.5" style={{ background: 'var(--bg-inset)' }}>
+                          <div className="flex-1 rounded-full h-1.5 bg-inset">
                             <div
                               className="bg-emerald-500 h-1.5 rounded-full transition-all duration-700 ease-out"
                               style={{ width: `${percentage}%` }}
@@ -461,7 +420,7 @@ export default function AnalyticsPage() {
                   })}
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                <div className="flex-1 flex items-center justify-center text-sm text-muted">
                   Sin datos de categorías.
                 </div>
               )}
@@ -469,23 +428,18 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Row 2: Savings */}
-          <div
-            className="rounded-3xl p-5 flex flex-col h-[260px] sm:h-[340px]"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
+          <div className="rounded-3xl p-5 flex flex-col h-[260px] sm:h-[340px] bg-card border border-border shadow-sm">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp size={16} className="text-emerald-500" />
-              <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+              <p className="font-bold text-sm text-primary">
                 Tu ahorro mes a mes
               </p>
             </div>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-muted">
               Lo que te sobra después de gastos
             </p>
             {isLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-              </div>
+              <LoadingState minHeight="h-full" />
             ) : savingsData.length > 0 ? (
               <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -497,7 +451,7 @@ export default function AnalyticsPage() {
                       formatter={(value, _name, item) => {
                         const payload = item?.payload as SavingsDatum | undefined;
                         return [
-                          `$${Number(value ?? 0).toLocaleString('es-CL')}`,
+                          `$${formatCurrency(Number(value ?? 0))}`,
                           payload?.isProjection ? 'Ahorro estimado' : 'Ahorro'
                         ];
                       }}
@@ -527,27 +481,22 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+              <div className="flex-1 flex items-center justify-center text-sm text-muted">
                 Aún no hay datos de ahorro.
               </div>
             )}
           </div>
 
           {/* Row 3: Category trend */}
-          <div
-            className="rounded-3xl p-5 flex flex-col h-[360px] sm:h-[440px]"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-          >
-            <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+          <div className="rounded-3xl p-5 flex flex-col h-[360px] sm:h-[440px] bg-card border border-border shadow-sm">
+            <p className="font-bold text-sm mb-1 text-primary">
               Tendencia por categoría
             </p>
-            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mb-4 text-muted">
               Cómo cambia tu gasto por categoría en los últimos 12 meses
             </p>
             {isLoadingTrend ? (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-              </div>
+              <LoadingState minHeight="h-full" />
             ) : trendData.length > 0 && topCategories.length > 0 ? (
               <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -566,7 +515,7 @@ export default function AnalyticsPage() {
                       }}
                       itemStyle={{ color: 'var(--text-primary)' }}
                       formatter={(value, name) => [
-                        `$${Number(value ?? 0).toLocaleString('es-CL')}`,
+                        `$${formatCurrency(Number(value ?? 0))}`,
                         String(name)
                       ]}
                     />
@@ -587,7 +536,7 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+              <div className="flex-1 flex items-center justify-center text-sm text-muted">
                 Aún no hay suficientes datos.
               </div>
             )}

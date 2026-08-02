@@ -4,14 +4,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, TrendingDown, Settings, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Repeat, Plus, Calendar, Zap, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { useRecurringModal } from '@/store/useRecurringModal';
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import type { RecurringRule, RecurringRulesResponse } from '@/types/api';
 import AnimatedButton from '@/components/ui/AnimatedButton';
-import Text, { PageSubtitle, PageTitle } from '@/components/ui/Text';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { LoadingState } from '@/components/ui/LoadingSpinner';
+import { formatCurrency } from '@/lib/utils';
 
 const frequencyLabel: Record<string, string> = {
   daily: 'Diario',
@@ -52,18 +53,18 @@ export default function RecurringPage() {
     },
     onMutate: async ({ id, is_active }) => {
       await queryClient.cancelQueries({ queryKey: ['recurring', 'list'] });
-      
+
       const previousData = queryClient.getQueryData<RecurringRulesResponse>(['recurring', 'list']);
-      
+
       if (previousData) {
         queryClient.setQueryData<RecurringRulesResponse>(['recurring', 'list'], {
           ...previousData,
-          rules: previousData.rules.map(rule => 
+          rules: previousData.rules.map(rule =>
             rule.id === id ? { ...rule, is_active } : rule
           )
         });
       }
-      
+
       return { previousData };
     },
     onError: (_err, _newRule, context) => {
@@ -91,41 +92,21 @@ export default function RecurringPage() {
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
-      <div className="px-4 sm:px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <PageTitle>Gastos fijos</PageTitle>
-            <PageSubtitle>Lo que sale automáticamente cada mes.</PageSubtitle>
-
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/settings"
-              className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-              aria-label="Ajustes"
-            >
-              <Settings size={18} />
-            </Link>
-            <button
-              onClick={() => openModal()}
-              className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-colors items-center gap-2 shadow-lg shadow-emerald-500/20 text-sm"
-            >
-              <Plus size={16} />
-              <span>Nueva regla</span>
-            </button>
-          </div>
-        </div>
-
+      <PageHeader
+        title="Gastos fijos"
+        subtitle="Lo que sale automáticamente cada mes."
+        primaryAction={{
+          label: "Nueva regla",
+          icon: <Plus size={16} />,
+          onClick: () => openModal(),
+        }}
+      >
         {/* Summary Pills */}
         {rules.length > 0 && (
           <div className="flex gap-2 flex-wrap">
-            <div
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
-            >
+            <div className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-card border border-border">
               <Zap size={13} className="text-emerald-400" />
-              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+              <span className="text-xs font-medium text-secondary">
                 {activeRules.length} activos
               </span>
             </div>
@@ -133,7 +114,7 @@ export default function RecurringPage() {
               <div className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-red-500/5 border border-red-500/15">
                 <TrendingDown size={13} className="text-red-400" />
                 <span className="text-xs font-medium text-red-400">
-                  −${totalMonthlyExpenses.toLocaleString('es-CL')}/mes
+                  −${formatCurrency(totalMonthlyExpenses)}/mes
                 </span>
               </div>
             )}
@@ -141,21 +122,19 @@ export default function RecurringPage() {
               <div className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 bg-emerald-500/5 border border-emerald-500/15">
                 <TrendingUp size={13} className="text-emerald-400" />
                 <span className="text-xs font-medium text-emerald-400">
-                  +${totalMonthlyIncome.toLocaleString('es-CL')}/mes
+                  +${formatCurrency(totalMonthlyIncome)}/mes
                 </span>
               </div>
             )}
           </div>
         )}
-      </div>
+      </PageHeader>
 
       {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
-            </div>
+            <LoadingState minHeight="h-48" />
           ) : rules.length === 0 ? (
             <EmptyState
               icon={<Repeat className="w-9 h-9" />}
@@ -170,10 +149,10 @@ export default function RecurringPage() {
               {activeRules.length > 0 && (
                 <div>
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-secondary">
                       Activos
                     </span>
-                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                    <div className="flex-1 h-px bg-border" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                     {activeRules.map(rule => (
@@ -190,10 +169,10 @@ export default function RecurringPage() {
               {inactiveRules.length > 0 && (
                 <div>
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                       Pausados
                     </span>
-                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                    <div className="flex-1 h-px bg-border" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 opacity-60">
                     {inactiveRules.map(rule => (
@@ -215,7 +194,7 @@ export default function RecurringPage() {
       {rules.length > 0 && (
         <button
           onClick={() => openModal()}
-          className={`sm:hidden fixed right-4 z-40 group bg-emerald-500 hover:bg-emerald-400 active:scale-90 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/30 transition-all duration-300 ${
+          className={`sm:hidden fixed right-4 z-40 group bg-accent hover:bg-emerald-600 active:scale-90 text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl shadow-accent/30 transition-all duration-300 ${
             fabMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
           style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom) + 0.75rem)' }}
@@ -236,19 +215,14 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
   return (
     <div
       onClick={() => openModal(rule)}
-      className="rounded-2xl p-4 flex flex-col gap-4 transition-all duration-150 cursor-pointer"
-      style={{
-        background: 'var(--bg-card)',
-        border: `1px solid var(--border)`,
-      }}
+      className="rounded-2xl p-4 flex flex-col gap-4 transition-all duration-150 cursor-pointer bg-card border border-border hover:bg-card-hover"
     >
       {/* Top Row */}
       <div className="flex items-start gap-3">
         <div
           className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-            rule.category_icon ? '' : isIncome ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+            rule.category_icon ? 'bg-inset' : isIncome ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
           }`}
-          style={rule.category_icon ? { background: 'var(--bg-inset)' } : {}}
         >
           {rule.category_icon
             ? <span>{rule.category_icon}</span>
@@ -257,14 +231,11 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm leading-tight truncate" style={{ color: 'var(--text-primary)' }}>
+          <p className="font-semibold text-sm leading-tight truncate text-primary">
             {rule.title}
           </p>
           {rule.category && (
-            <span
-              className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
-              style={{ background: 'var(--bg-inset)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-            >
+            <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-inset text-secondary border border-border">
               {rule.category}
             </span>
           )}
@@ -289,7 +260,7 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
         <div>
           <p className="text-2xl font-bold tracking-tight"
             style={{ color: isIncome ? 'var(--color-income)' : 'var(--color-expense)' }}>
-            {isIncome ? '+' : '−'}${rule.amount.toLocaleString('es-CL')}
+            {isIncome ? '+' : '−'}${formatCurrency(rule.amount)}
           </p>
           <div className="flex items-center gap-1.5 mt-1">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${freqColor}`}>
@@ -302,13 +273,10 @@ function RuleCard({ rule, onToggle }: { rule: RecurringRule; onToggle: () => voi
       </div>
 
       {/* Next Run */}
-      <div
-        className="flex items-center gap-2 rounded-xl px-3 py-2"
-        style={{ background: 'var(--bg-inset)', border: '1px solid var(--border)' }}
-      >
-        <Calendar size={12} style={{ color: 'var(--text-muted)' }} className="shrink-0" />
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Próxima ejecución</span>
-        <span className="text-xs font-semibold ml-auto" style={{ color: 'var(--text-secondary)' }}>
+      <div className="flex items-center gap-2 rounded-xl px-3 py-2 bg-inset border border-border">
+        <Calendar size={12} className="text-muted shrink-0" />
+        <span className="text-xs text-muted">Próxima ejecución</span>
+        <span className="text-xs font-semibold ml-auto text-secondary">
           {format(parseISO(rule.next_run), "d 'de' MMM yyyy", { locale: es })}
         </span>
       </div>

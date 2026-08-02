@@ -90,7 +90,34 @@ export function useDeleteTransaction() {
       const res = await api.delete(`/transactions/${id}`);
       return res.data;
     },
-    onSuccess: () => {
+    onMutate: async (deletedId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+
+      const previousData = queryClient.getQueriesData<TransactionsResponse>({
+        queryKey: ['transactions'],
+      });
+
+      queryClient.setQueriesData<TransactionsResponse>(
+        { queryKey: ['transactions'] },
+        (old) => {
+          if (!old || !old.transactions) return old;
+          return {
+            ...old,
+            transactions: old.transactions.filter((t) => t.id !== deletedId),
+          };
+        }
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _deletedId, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
