@@ -6,7 +6,11 @@
 		"dev": "wrangler dev",
 		"deploy": "wrangler deploy",
 		"start": "wrangler dev",
-		"cf-typegen": "wrangler types"
+		"cf-typegen": "wrangler types",
+		"db:migrate:create": "wrangler d1 migrations create DB",
+		"db:migrate:local": "wrangler d1 migrations apply DB --local",
+		"db:migrate:apply": "wrangler d1 migrations apply DB --remote",
+		"db:migrate:status": "wrangler d1 migrations list DB --remote"
 	},
 	"dependencies": {
 		"better-auth": "^1.6.0",
