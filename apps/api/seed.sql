@@ -1,5 +1,9 @@
 -- Datos Dummy para desarrollo local en Cloudflare D1
 
+-- API Key de prueba para desarrollo o automatizaciones locales
+INSERT OR IGNORE INTO api_keys (id, key, user_id) VALUES
+(1, 'local-dev-api-key', 'local_user');
+
 -- Cuentas de prueba
 INSERT OR IGNORE INTO accounts (id, user_id, name, type, balance) VALUES
 (1, 'local_user', 'Cuenta Corriente', 'checking', 1500000.00),
