@@ -100,34 +100,40 @@ export class TransactionCreate extends OpenAPIRoute {
 
 				// 1. Insert Transaction
 				const txResult = await c.env.DB.prepare(
-					`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id) 
+					`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id)
 					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
 				)
 					.bind(instTitle, instAmt, t.category_id, t.type, t.account_id, userId, instDate, isShared, groupId)
 					.first() as any;
 
-				// 2. Insert Tags if provided
+				// 2 & 3. Insert Tags and Splits in a single combined D1 batch call
+				const batchStmts: any[] = [];
 				if (t.tag_ids && t.tag_ids.length > 0) {
-					const tagStmts = t.tag_ids.map(tagId =>
-						c.env.DB.prepare(`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`).bind(txResult.id, tagId)
-					);
-					await c.env.DB.batch(tagStmts);
+					t.tag_ids.forEach(tagId => {
+						batchStmts.push(
+							c.env.DB.prepare(`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`).bind(txResult.id, tagId)
+						);
+					});
+				}
+				if (isShared && t.splits && t.splits.length > 0) {
+					t.splits.forEach(split => {
+						const splitAmount = Math.round((instAmt * split.percentage) / 100);
+						batchStmts.push(
+							c.env.DB.prepare(
+								`INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`
+							).bind(txResult.id, split.user_id, splitAmount, split.percentage)
+						);
+					});
+				}
+				if (batchStmts.length > 0) {
+					await c.env.DB.batch(batchStmts);
 				}
 
-				// 3. Insert Splits if shared
 				let finalSplits: any[] = [];
 				if (isShared && t.splits && t.splits.length > 0) {
-					const splitStmts = t.splits.map(split => {
-						const splitAmount = Math.round((instAmt * split.percentage) / 100);
-						return c.env.DB.prepare(
-							`INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`
-						).bind(txResult.id, split.user_id, splitAmount, split.percentage);
-					});
-					await c.env.DB.batch(splitStmts);
-
 					// Fetch splits with nicknames for response
 					const splitsResult = await c.env.DB.prepare(`
-						SELECT ts.*, sgm.nickname 
+						SELECT ts.*, sgm.nickname
 						FROM transaction_splits ts
 						LEFT JOIN shared_group_members sgm ON sgm.user_id = ts.user_id AND sgm.group_id = ?
 						WHERE ts.transaction_id = ?
@@ -146,34 +152,40 @@ export class TransactionCreate extends OpenAPIRoute {
 		} else {
 			// 1. Insert Transaction
 			const txResult = await c.env.DB.prepare(
-				`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id) 
+				`INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id)
 				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`
 			)
 				.bind(t.title, t.amount, t.category_id, t.type, t.account_id, userId, t.date, isShared, groupId)
 				.first() as any;
 
-			// 2. Insert Tags if provided
+			// 2 & 3. Insert Tags and Splits in a single combined D1 batch call
+			const batchStmts: any[] = [];
 			if (t.tag_ids && t.tag_ids.length > 0) {
-				const tagStmts = t.tag_ids.map(tagId =>
-					c.env.DB.prepare(`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`).bind(txResult.id, tagId)
-				);
-				await c.env.DB.batch(tagStmts);
+				t.tag_ids.forEach(tagId => {
+					batchStmts.push(
+						c.env.DB.prepare(`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`).bind(txResult.id, tagId)
+					);
+				});
+			}
+			if (isShared && t.splits && t.splits.length > 0) {
+				t.splits.forEach(split => {
+					const splitAmount = Math.round((t.amount * split.percentage) / 100);
+					batchStmts.push(
+						c.env.DB.prepare(
+							`INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`
+						).bind(txResult.id, split.user_id, splitAmount, split.percentage)
+					);
+				});
+			}
+			if (batchStmts.length > 0) {
+				await c.env.DB.batch(batchStmts);
 			}
 
-			// 3. Insert Splits if shared
 			let finalSplits: any[] = [];
 			if (isShared && t.splits && t.splits.length > 0) {
-				const splitStmts = t.splits.map(split => {
-					const splitAmount = Math.round((t.amount * split.percentage) / 100);
-					return c.env.DB.prepare(
-						`INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`
-					).bind(txResult.id, split.user_id, splitAmount, split.percentage);
-				});
-				await c.env.DB.batch(splitStmts);
-
 				// Fetch splits with nicknames for response
 				const splitsResult = await c.env.DB.prepare(`
-					SELECT ts.*, sgm.nickname 
+					SELECT ts.*, sgm.nickname
 					FROM transaction_splits ts
 					LEFT JOIN shared_group_members sgm ON sgm.user_id = ts.user_id AND sgm.group_id = ?
 					WHERE ts.transaction_id = ?

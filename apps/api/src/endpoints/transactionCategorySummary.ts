@@ -56,11 +56,11 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 		}
 
 		let query = `
-			SELECT 
+			SELECT
 				c.name as category,
 				t.category_id as category_id,
 				c.icon as category_icon,
-                t.type as type,
+				t.type as type,
 		`;
 
 		if (month) {
@@ -88,28 +88,28 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 		binds.push(userId);
 
 		if (month) {
-			query += ` AND strftime('%Y-%m', t.date) IN (?, ?)`;
-			binds.push(month, prevMonth);
+			query += ` AND t.date >= ? AND t.date <= ?`;
+			binds.push(`${prevMonth}-01`, `${month}-31`);
 		} else {
 			query += ` AND t.date <= date('now', 'localtime')`;
 		}
 
-        if (type) {
-            query += ` AND t.type = ?`;
-            binds.push(type);
-        }
+		if (type) {
+			query += ` AND t.type = ?`;
+			binds.push(type);
+		}
 
-        query += ` GROUP BY t.category_id, t.type HAVING amount > 0 OR previous_amount > 0 ORDER BY amount DESC`;
+		query += ` GROUP BY t.category_id, t.type HAVING amount > 0 OR previous_amount > 0 ORDER BY amount DESC`;
 
 		const result = await c.env.DB.prepare(query).bind(...binds).all();
-		
+
 		const summary = result.results.map((row: any) => ({
 			category: row.category as string,
 			category_id: row.category_id as number,
 			category_icon: row.category_icon as string | undefined,
 			amount: row.amount as number,
 			previous_amount: row.previous_amount as number,
-            type: row.type as string,
+			type: row.type as string,
 		}));
 
 		return {

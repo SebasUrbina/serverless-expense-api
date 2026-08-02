@@ -29,6 +29,8 @@ export class AccountList extends OpenAPIRoute {
 			`SELECT * FROM accounts WHERE user_id = ? ORDER BY type, name ASC`
 		).bind(userId).all();
 
+		c.header("Cache-Control", "private, max-age=60, stale-while-revalidate=300");
+
 		return {
 			success: true,
 			accounts: results,

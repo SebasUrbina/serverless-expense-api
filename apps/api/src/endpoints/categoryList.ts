@@ -29,6 +29,8 @@ export class CategoryList extends OpenAPIRoute {
 			`SELECT * FROM categories WHERE user_id = ? ORDER BY name ASC`
 		).bind(userId).all();
 
+		c.header("Cache-Control", "private, max-age=60, stale-while-revalidate=300");
+
 		return {
 			success: true,
 			categories: results,
