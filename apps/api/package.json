@@ -10,7 +10,9 @@
 		"db:migrate:create": "wrangler d1 migrations create DB",
 		"db:migrate:local": "wrangler d1 migrations apply DB --local",
 		"db:migrate:apply": "wrangler d1 migrations apply DB --remote",
-		"db:migrate:status": "wrangler d1 migrations list DB --remote"
+		"db:migrate:status": "wrangler d1 migrations list DB --remote",
+		"db:seed:local": "wrangler d1 execute DB --local --file=./seed.sql",
+		"db:setup:local": "wrangler d1 migrations apply DB --local && wrangler d1 execute DB --local --file=./seed.sql"
 	},
 	"dependencies": {
 		"better-auth": "^1.6.0",

@@ -46,7 +46,7 @@ export function Sidebar() {
           <span className="text-xl font-black tracking-tighter theme-text">
             Seva
           </span>
-          <span className="ml-2 text-[9px] font-bold px-2 py-0.5 rounded-full tracking-widest bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+          <span className="ml-2 text-[9px] font-bold px-2 py-0.5 rounded-full tracking-widest bg-accent-soft text-accent border border-accent/20">
             WEB
           </span>
         </div>
@@ -61,12 +61,12 @@ export function Sidebar() {
                 href={item.href}
                 className={`group flex items-center px-3 py-2.5 text-sm font-semibold rounded-2xl transition-all duration-300 ${
                   isActive
-                    ? "theme-inset theme-text border theme-border shadow-inner"
+                    ? "theme-inset theme-text border theme-border"
                     : "theme-muted hover:theme-inset hover:theme-text border border-transparent"
                 }`}
               >
                 <item.icon
-                  className={`flex-shrink-0 mr-3 h-4 w-4 transition-colors duration-300 ${isActive ? "text-emerald-500" : "theme-subtle group-hover:theme-muted"}`}
+                  className={`flex-shrink-0 mr-3 h-4 w-4 transition-colors duration-300 ${isActive ? "text-accent" : "theme-subtle group-hover:theme-muted"}`}
                   aria-hidden="true"
                   strokeWidth={isActive ? 2.5 : 2}
                 />
@@ -105,7 +105,7 @@ export function Sidebar() {
               <p className="text-sm font-bold truncate theme-text">
                 {displayName}
               </p>
-              <p className="text-[11px] font-semibold tracking-wide uppercase truncate text-emerald-500/80">
+              <p className="text-[11px] font-semibold tracking-wide uppercase truncate text-accent/80">
                 Ver perfil
               </p>
             </div>

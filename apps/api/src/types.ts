@@ -76,6 +76,19 @@ export const Account = z.object({
 	created_at: DateTime({ required: false }),
 });
 
+export const Budget = z.object({
+	id: Num({ required: false, description: "Auto-generated ID" }),
+	month: Str({ example: "2026-03", description: "YYYY-MM" }),
+	scope: z.enum(["general", "category"]).openapi({ example: "general" }),
+	category_id: Num({ required: false, description: "Required when scope='category'" }),
+	category_name: Str({ required: false }),
+	category_icon: Str({ required: false }),
+	amount: Num({ example: 1200000 }),
+	user_id: Str({ required: false }),
+	created_at: DateTime({ required: false }),
+	updated_at: DateTime({ required: false }),
+});
+
 export const ErrorResponse = z.object({
 	success: z.literal(false).openapi({ example: false }),
 	error: Str(),

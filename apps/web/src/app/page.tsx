@@ -8,20 +8,50 @@ import {
   Wallet,
   Receipt,
   CreditCard,
-  PieChart as PieChartIcon,
   TrendingUp,
   TrendingDown,
   Target,
   Settings,
 } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { MonthSelector } from "@/components/MonthSelector";
 import { SharedBalancesCard } from "@/components/SharedBalancesCard";
+import { MonthlyBudgetCard } from "@/components/MonthlyBudgetCard";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { useTransactionModal } from "@/store/useTransactionModal";
 import { useAuth } from "@/lib/AuthProvider";
+
+const DONUT_COLORS = [
+  "#6366f1",
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#0ea5e9",
+  "#f43f5e",
+  "#84cc16",
+  "#14b8a6",
+  "#a855f7",
+];
+
+function EmptyDonut() {
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative w-40 h-40">
+        <div className="absolute inset-0 rounded-full border-8 border-dashed border-border" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Target size={22} className="text-muted" />
+        </div>
+      </div>
+      <p className="text-sm text-muted mt-4">
+        Sin datos de categorías este mes.
+      </p>
+    </div>
+  );
+}
 
 export default function Home() {
   const router = useRouter();
@@ -69,6 +99,14 @@ export default function Home() {
   const isExpenseDecrease = expenseDeltaRaw < 0;
   const absExpenseDelta = Math.abs(expenseDeltaRaw).toFixed(0);
 
+  const totalExpense = categorySummary.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const goToCategory = (categoryId: number) => {
+    let url = `/transactions?category_id=${categoryId}`;
+    if (filterMonth) url += `&month=${filterMonth}`;
+    router.push(url);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* ── Header ── */}
@@ -79,12 +117,12 @@ export default function Home() {
               <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-muted mb-0.5">
                 Bienvenido 👋
               </p>
-              <h1 className="truncate text-2xl leading-tight font-extrabold tracking-tight text-primary drop-shadow-md">
+              <h1 className="truncate text-2xl leading-tight font-extrabold tracking-tight text-primary">
                 {firstName || "Mi resumen"}
               </h1>
             </div>
             <div className="hidden sm:block">
-              <h1 className="truncate text-3xl leading-tight font-black tracking-tighter text-primary drop-shadow-md sm:text-4xl">
+              <h1 className="truncate text-3xl leading-tight font-black tracking-tighter text-primary sm:text-4xl">
                 <span>{firstName ? `Hola, ${firstName}` : "Mi resumen"}</span>
                 <span className="ml-2 inline-block align-middle text-[0.85em]">
                   👋
@@ -103,14 +141,14 @@ export default function Home() {
             />
             <Link
               href="/settings"
-              className="sm:hidden w-10 h-10 rounded-2xl flex items-center justify-center transition-all bg-inset backdrop-blur-xl border border-border text-secondary hover:text-primary hover:bg-card-hover active:scale-95"
+              className="sm:hidden w-10 h-10 rounded-2xl flex items-center justify-center transition-all bg-inset border border-border text-secondary hover:text-primary hover:bg-card-hover active:scale-95"
               aria-label="Ajustes"
             >
-              <Settings size={18} className="text-emerald-400" />
+              <Settings size={18} className="text-accent" />
             </Link>
             <button
               onClick={() => openModal()}
-              className="hidden sm:flex bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-all items-center gap-1.5 shadow-lg shadow-emerald-500/20 text-sm whitespace-nowrap hover:scale-[1.02] active:scale-[0.98]"
+              className="hidden sm:flex bg-accent hover:bg-indigo-500 active:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold transition-all items-center gap-1.5 shadow-sm text-sm whitespace-nowrap hover:scale-[1.02] active:scale-[0.98]"
             >
               <span className="text-base leading-none">+</span>
               <span>Agregar</span>
@@ -124,52 +162,52 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-48">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-accent border-r-accent/30" />
             </div>
           ) : (
             <div className="space-y-6">
               {/* Bento Grid Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Hero + Insights + Categories (Spans 2 columns on desktop) */}
+                {/* Left Column (spans 2) */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Massive Centered Expense Hero */}
-                  <div className="flex flex-col items-center justify-center py-8 sm:py-12 relative rounded-[2.5rem] bg-gradient-to-b from-emerald-500/5 to-transparent border border-border backdrop-blur-3xl shadow-card overflow-hidden group hover:border-emerald-500/20 transition-all duration-300">
-                    {/* Subtle background glows */}
-                    <div className="absolute -top-12 -left-12 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                    {/* Link to Analytics */}
+                  {/* Gasto Hero */}
+                  <div className="rounded-3xl bg-card border border-border p-8 sm:p-10 flex flex-col items-center text-center relative">
                     <Link
                       href={`/analytics?month=${filterMonth}`}
-                      className="absolute top-4 right-4 hidden sm:flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300 bg-emerald-500/10 px-4 py-2 rounded-2xl transition-all hover:bg-emerald-500/20"
+                      className="absolute top-5 right-5 hidden sm:flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase text-accent bg-accent-soft px-3 py-1.5 rounded-lg transition-colors hover:bg-accent/20"
                     >
-                      <PieChartIcon size={14} />
                       Desglose detallado
                     </Link>
 
-                    <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.2em] mb-2 text-muted">
+                    <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] mb-2 text-muted">
                       {filterMonth ? "Este mes has gastado" : "Gasto Total"}
                     </p>
                     <div
-                      className="flex items-baseline gap-1 leading-none mb-6 cursor-pointer hover:scale-[1.02] transition-transform duration-300 drop-shadow-sm dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                      className="flex items-baseline gap-1 leading-none mb-5 cursor-pointer hover:opacity-80 transition-opacity tabular-nums"
                       onClick={() => router.push(`/analytics?month=${filterMonth}`)}
                     >
-                      <span className="text-3xl sm:text-4xl font-semibold mb-1 text-secondary">
+                      <span className="text-3xl sm:text-4xl font-bold mb-1 text-secondary">
                         $
                       </span>
-                      <h2 className="text-6xl sm:text-8xl font-black tracking-tighter text-primary">
+                      <h2 className="text-5xl sm:text-7xl font-black tracking-tighter text-primary tabular-nums">
                         {formatCurrency(expense)}
                       </h2>
                     </div>
 
-                    {/* vs previous month indicator */}
+                    {/* vs previous month */}
                     {filterMonth && prevExpense > 0 && (
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-inset border border-border backdrop-blur-md shadow-inner">
+                      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-inset border border-border">
                         <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
                           vs mes pasado
                         </span>
                         <span
-                          className={`text-xs font-black flex items-center gap-1 ${isExpenseIncrease ? "text-red-500 dark:text-red-400 dark:drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" : isExpenseDecrease ? "text-emerald-500 dark:text-emerald-400 dark:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "text-secondary"}`}
+                          className={`text-xs font-bold flex items-center gap-1 tabular-nums ${
+                            isExpenseIncrease
+                              ? "text-red-500"
+                              : isExpenseDecrease
+                                ? "text-emerald-600"
+                                : "text-secondary"
+                          }`}
                         >
                           {isExpenseIncrease
                             ? `+${absExpenseDelta}%`
@@ -180,175 +218,209 @@ export default function Home() {
                       </div>
                     )}
 
-                    {/* Minimalist Flow & Meta Row */}
-                    <div className="w-full max-w-md mx-auto px-6 mt-8 sm:mt-12">
-                      <div className="flex items-center justify-between p-4 rounded-3xl bg-card/80 border border-border backdrop-blur-xl shadow-sm">
-                        <div className="flex flex-col items-center w-1/3">
-                          <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                            <Wallet
-                              size={12}
-                              className="text-indigo-500 dark:text-indigo-400"
-                            />{" "}
-                            Balance
-                          </p>
-                          <p
-                            className={`font-extrabold text-sm sm:text-base ${totalBalance < 0 ? "text-red-600 dark:text-red-400" : "text-indigo-600 dark:text-indigo-300"}`}
-                          >
-                            ${formatCurrency(totalBalance)}
-                          </p>
-                        </div>
-
-                        <div className="w-px h-8 bg-border" />
-
-                        <div className="flex flex-col items-center w-1/3">
-                          <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                            <ArrowUpRight
-                              size={12}
-                              className="text-emerald-500 dark:text-emerald-400"
-                            />{" "}
-                            Ingresos
-                          </p>
-                          <p className="font-extrabold text-sm sm:text-base text-emerald-600 dark:text-emerald-400">
-                            ${formatCurrency(income)}
-                          </p>
-                        </div>
-
-                        <div className="w-px h-8 bg-border" />
-
-                        <div className="flex flex-col items-center w-1/3">
-                          <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                            <CreditCard
-                              size={12}
-                              className="text-blue-500 dark:text-blue-400"
-                            />{" "}
-                            <span className="hidden sm:inline">Movimientos</span>
-                            <span className="sm:hidden">Movs.</span>
-                          </p>
-                          <p className="font-extrabold text-base sm:text-lg text-primary">
-                            {kpiSummary?.transaction_count || 0}
-                          </p>
-                        </div>
+                    {/* Mini metrics */}
+                    <div className="w-full max-w-md mx-auto mt-8 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-inset/60">
+                      <div className="flex flex-col items-center py-4">
+                        <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
+                          <Wallet size={12} className="text-violet-500" />{" "}
+                          Balance
+                        </p>
+                        <p
+                          className={`font-bold text-sm sm:text-base tabular-nums ${
+                            totalBalance < 0
+                              ? "text-red-600"
+                              : "text-violet-600"
+                          }`}
+                        >
+                          ${formatCurrency(totalBalance)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-center py-4">
+                        <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
+                          <ArrowUpRight size={12} className="text-emerald-500" />{" "}
+                          Ingresos
+                        </p>
+                        <p className="font-bold text-sm sm:text-base text-emerald-600 tabular-nums">
+                          ${formatCurrency(income)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-center py-4">
+                        <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
+                          <CreditCard size={12} className="text-blue-500" />{" "}
+                          <span className="hidden sm:inline">Movimientos</span>
+                          <span className="sm:hidden">Movs.</span>
+                        </p>
+                        <p className="font-bold text-base sm:text-lg text-primary tabular-nums">
+                          {kpiSummary?.transaction_count || 0}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Top Spending Categories */}
-                  <div className="rounded-[2rem] p-6 flex flex-col bg-card border border-border shadow-card hover:border-emerald-500/10 transition-all duration-300">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner">
-                        <PieChartIcon size={20} />
+                  {/* Ritmo del mes */}
+                  {filterMonth && (
+                    <MonthlyBudgetCard month={filterMonth} expense={expense} />
+                  )}
+
+                  {/* Categorías: donut + lista */}
+                  <div className="rounded-3xl p-6 bg-card border border-border">
+                    <div className="flex items-center gap-2.5 mb-5">
+                      <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                        <Target size={20} />
                       </div>
                       <div>
-                        <p className="font-bold text-base text-primary">En esto se va tu dinero</p>
-                        <p className="text-xs text-muted mt-0.5">Categorías con más gasto este mes</p>
+                        <p className="font-bold text-base text-primary">
+                          En esto se va tu dinero
+                        </p>
+                        <p className="text-xs text-muted mt-0.5">
+                          Categorías con más gasto este mes
+                        </p>
                       </div>
                     </div>
-                    <div className="flex-1 mt-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {categorySummary && categorySummary.length > 0 ? (
-                          (() => {
-                            const totalExpense = categorySummary.reduce(
-                              (acc, curr) => acc + curr.amount,
-                              0,
-                            );
-                            return categorySummary.map((cat, idx) => {
-                              const delta =
-                                cat.previous_amount !== undefined
-                                  ? cat.amount - cat.previous_amount!
-                                  : 0;
-                              const isIncrease = delta > 0;
-                              const percentage =
-                                totalExpense > 0
-                                  ? ((cat.amount / totalExpense) * 100).toFixed(1)
-                                  : "0.0";
-                              return (
-                                <div
-                                  key={idx}
-                                  className="rounded-2xl p-3.5 flex flex-col gap-3.5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-md group bg-inset border border-border-subtle hover:border-emerald-500/20"
-                                  onClick={() => {
-                                    let url = `/transactions?category_id=${cat.category_id}`;
-                                    if (filterMonth)
-                                      url += `&month=${filterMonth}`;
-                                    router.push(url);
-                                  }}
-                                >
+
+                    {categorySummary.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        {/* Donut */}
+                        <div className="relative h-56 mx-auto w-full max-w-[240px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={categorySummary.map((cat, i) => ({
+                                  ...cat,
+                                  fill: DONUT_COLORS[i % DONUT_COLORS.length],
+                                }))}
+                                dataKey="amount"
+                                nameKey="category"
+                                innerRadius="68%"
+                                outerRadius="100%"
+                                paddingAngle={2}
+                                strokeWidth={0}
+                                onClick={(entry) => {
+                                  const id = (
+                                    entry as
+                                      | { payload?: { category_id?: number } }
+                                      | undefined
+                                  )?.payload?.category_id;
+                                  if (id) goToCategory(id);
+                                }}
+                                cursor="pointer"
+                              >
+                                {categorySummary.map((_, i) => (
+                                  <Cell
+                                    key={i}
+                                    fill={DONUT_COLORS[i % DONUT_COLORS.length]}
+                                    className="outline-none"
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value, name) => [
+                                  `$${formatCurrency(
+                                    Number(value ?? 0),
+                                  )}`,
+                                  String(name),
+                                ]}
+                                contentStyle={{
+                                  background: "var(--bg-card)",
+                                  border: "1px solid var(--border)",
+                                  borderRadius: 12,
+                                  fontSize: 13,
+                                  color: "var(--text-primary)",
+                                }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                              Total
+                            </span>
+                            <span className="text-lg font-black text-primary tabular-nums">
+                              ${formatCurrency(totalExpense)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Lista */}
+                        <div className="space-y-2">
+                          {categorySummary.map((cat, idx) => {
+                            const percentage =
+                              totalExpense > 0
+                                ? ((cat.amount / totalExpense) * 100).toFixed(0)
+                                : "0";
+                            const delta =
+                              cat.previous_amount !== undefined
+                                ? cat.amount - cat.previous_amount!
+                                : 0;
+                            const isIncrease = delta > 0;
+                            const color = DONUT_COLORS[idx % DONUT_COLORS.length];
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-inset transition-colors cursor-pointer"
+                                onClick={() => goToCategory(cat.category_id)}
+                              >
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  style={{ background: color }}
+                                />
+                                <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2.5">
-                                      <div
-                                        className="w-9 h-9 rounded-xl flex items-center justify-center text-base transition-colors group-hover:bg-emerald-500/10 bg-card shadow-inner"
-                                      >
-                                        {cat.category_icon ? (
-                                          <span>{cat.category_icon}</span>
-                                        ) : (
-                                          <Target
-                                            size={14}
-                                            className="text-muted"
-                                          />
-                                        )}
-                                      </div>
-                                      <div>
-                                        <p className="font-bold text-sm text-primary">
-                                          {cat.category}
-                                        </p>
-                                        {cat.previous_amount !== undefined &&
-                                          delta !== 0 && (
-                                            <div className="flex items-center gap-1 mt-0.5">
-                                              <span
-                                                className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isIncrease ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}
-                                              >
-                                                {isIncrease ? (
-                                                  <ArrowUpRight
-                                                    size={9}
-                                                    className="mr-0.5"
-                                                  />
-                                                ) : (
-                                                  <ArrowDownRight
-                                                    size={9}
-                                                    className="mr-0.5"
-                                                  />
-                                                )}
-                                                ${formatCurrency(Math.abs(delta))}
-                                              </span>
-                                              <span className="text-[9px] text-muted">
-                                                vs mes anterior
-                                              </span>
-                                            </div>
-                                          )}
-                                      </div>
-                                    </div>
-                                    <p className="text-red-500 font-bold text-sm">
+                                    <p className="font-semibold text-sm text-primary truncate flex items-center gap-1.5">
+                                      {cat.category_icon && (
+                                        <span>{cat.category_icon}</span>
+                                      )}
+                                      {cat.category}
+                                    </p>
+                                    <p className="font-bold text-sm text-primary tabular-nums shrink-0 ml-2">
                                       ${formatCurrency(cat.amount)}
                                     </p>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex-1 rounded-full h-2 bg-gray-200 dark:bg-gray-800 overflow-hidden">
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <div className="flex-1 h-1.5 rounded-full bg-inset overflow-hidden">
                                       <div
-                                        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-full transition-all duration-1000 ease-out"
-                                        style={{ width: `${percentage}%` }}
+                                        className="h-full rounded-full transition-all duration-700"
+                                        style={{
+                                          width: `${percentage}%`,
+                                          background: color,
+                                        }}
                                       />
                                     </div>
-                                    <span className="text-[11px] font-bold text-red-500 w-10 text-right">
+                                    <span className="text-[10px] font-bold text-muted tabular-nums w-8 text-right">
                                       {percentage}%
                                     </span>
                                   </div>
+                                  {delta !== 0 &&
+                                    cat.previous_amount !== undefined && (
+                                      <p className="text-[10px] text-muted mt-0.5">
+                                        <span
+                                          className={
+                                            isIncrease
+                                              ? "text-red-500"
+                                              : "text-emerald-600"
+                                          }
+                                        >
+                                          {isIncrease ? "▲" : "▼"} $
+                                          {formatCurrency(Math.abs(delta))}
+                                        </span>{" "}
+                                        vs mes anterior
+                                      </p>
+                                    )}
                                 </div>
-                              );
-                            });
-                          })()
-                        ) : (
-                          <div className="flex-1 flex items-center justify-center text-sm py-8 sm:col-span-2 text-muted">
-                            Sin datos de categorías aún.
-                          </div>
-                        )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <EmptyDonut />
+                    )}
                   </div>
                 </div>
 
-                {/* Right Column: Recent Activity + KPIs (Spans 1 column on desktop) */}
+                {/* Right Column (spans 1) */}
                 <div className="lg:col-span-1 space-y-6">
                   {/* Recent Activity */}
-                  <div className="rounded-[2rem] p-6 flex flex-col h-auto lg:h-[480px] bg-card border border-border shadow-card hover:border-emerald-500/10 transition-all duration-300">
+                  <div className="rounded-3xl p-6 flex flex-col h-auto lg:h-[480px] bg-card border border-border">
                     <div className="flex justify-between items-center mb-6">
                       <div>
                         <p className="font-bold text-base text-primary">
@@ -358,7 +430,7 @@ export default function Home() {
                       </div>
                       <Link
                         href="/transactions"
-                        className="text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider hover:text-emerald-500 dark:hover:text-emerald-300 transition-colors bg-emerald-500/10 px-3 py-1.5 rounded-full"
+                        className="text-accent text-[11px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity bg-accent-soft px-3 py-1.5 rounded-full"
                       >
                         Ver todo →
                       </Link>
@@ -368,7 +440,11 @@ export default function Home() {
                         recentTransactions.map((tx) => (
                           <div
                             key={tx.id}
-                            className={`flex justify-between items-center p-3 rounded-2xl transition-all duration-300 ${tx.is_owner !== false ? "cursor-pointer hover:bg-inset hover:scale-[1.01]" : "cursor-default"}`}
+                            className={`flex justify-between items-center p-3 rounded-2xl transition-all duration-300 ${
+                              tx.is_owner !== false
+                                ? "cursor-pointer hover:bg-inset"
+                                : "cursor-default"
+                            }`}
                             onClick={() => {
                               if (tx.is_owner === false) return;
                               openModal(tx);
@@ -376,7 +452,11 @@ export default function Home() {
                           >
                             <div className="flex items-center gap-3.5 min-w-0">
                               <div
-                                className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-base shadow-inner ${tx.type === "income" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"}`}
+                                className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-base ${
+                                  tx.type === "income"
+                                    ? "bg-emerald-500/10 text-emerald-600"
+                                    : "bg-red-500/10 text-red-600"
+                                }`}
                               >
                                 {tx.category_icon ||
                                   (tx.type === "income" ? (
@@ -396,7 +476,7 @@ export default function Home() {
                               </div>
                             </div>
                             <p
-                              className="shrink-0 font-bold text-sm ml-2"
+                              className="shrink-0 font-bold text-sm ml-2 tabular-nums"
                               style={{
                                 color:
                                   tx.type === "income"
@@ -411,9 +491,9 @@ export default function Home() {
                         ))
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full text-muted">
-                          <Receipt className="w-9 h-9 mb-3 opacity-20" />
+                          <Receipt className="w-9 h-9 mb-3 opacity-30" />
                           <p className="text-sm">Aún no hay movimientos</p>
-                          <p className="text-xs mt-1 opacity-60">
+                          <p className="text-xs mt-1 opacity-70">
                             Empieza añadiendo uno ↑
                           </p>
                         </div>
@@ -423,13 +503,13 @@ export default function Home() {
 
                   {/* KPIs */}
                   <div className="flex flex-col gap-4">
-                    <div className="rounded-3xl p-5 flex flex-col justify-between group transition-all duration-300 bg-card border border-border hover:border-red-500/20 shadow-sm">
-                      <div>
-                        <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-3 shadow-inner">
+                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border">
+                      <div className="min-w-0">
+                        <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-3">
                           <TrendingDown size={20} />
                         </div>
-                        <p className="text-xs font-semibold uppercase tracking-wider mb-1 text-muted">
-                          Tu gasto más grande
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                          Gasto más grande
                         </p>
                         <p
                           className="font-bold text-sm mt-1 truncate text-primary"
@@ -438,21 +518,21 @@ export default function Home() {
                           {kpiSummary?.largest_expense_title || "Sin datos"}
                         </p>
                       </div>
-                      <p className="text-2xl font-black text-red-500 mt-3">
+                      <p className="text-2xl font-black text-red-500 tabular-nums shrink-0">
                         ${formatCurrency(kpiSummary?.largest_expense || 0)}
                       </p>
                     </div>
 
-                    <div className="rounded-3xl p-5 flex flex-col justify-between group transition-all duration-300 bg-card border border-border hover:border-emerald-500/20 shadow-sm">
-                      <div>
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3 shadow-inner">
+                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border">
+                      <div className="min-w-0">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
                           <TrendingUp size={20} />
                         </div>
-                        <p className="text-xs font-semibold uppercase tracking-wider mb-1 text-muted">
-                          Tu mayor ingreso
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                          Mayor ingreso
                         </p>
                       </div>
-                      <p className="text-2xl font-black text-emerald-500 mt-3">
+                      <p className="text-2xl font-black text-emerald-500 tabular-nums shrink-0">
                         ${formatCurrency(kpiSummary?.largest_income || 0)}
                       </p>
                     </div>

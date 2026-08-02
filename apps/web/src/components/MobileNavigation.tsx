@@ -36,13 +36,13 @@ export function MobileNavigation() {
                     href={item.href}
                     className={`flex flex-col items-center p-2 min-w-[64px] rounded-2xl transition-all duration-300 ${
                       isActive
-                        ? "text-emerald-500 scale-105 drop-shadow-sm"
+                        ? "text-accent scale-105"
                         : "theme-muted hover:theme-text hover:scale-105"
                     }`}
                   >
                     <item.icon
                       className={`h-5 w-5 mb-1 transition-colors duration-300 ${
-                        isActive ? "text-emerald-500" : ""
+                        isActive ? "text-accent" : ""
                       }`}
                       aria-hidden="true"
                       strokeWidth={isActive ? 2.5 : 2}
@@ -58,7 +58,7 @@ export function MobileNavigation() {
                     className="flex flex-col items-center justify-center p-2 min-w-[64px] transition-transform active:scale-90 z-20 group"
                     aria-label="Agregar movimiento"
                   >
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white flex items-center justify-center shadow-lg group-hover:shadow-xl mb-1 absolute -top-6 border-[3px] theme-border theme-bg transition-all duration-300">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center shadow-md group-hover:shadow-lg mb-1 absolute -top-6 border-[3px] theme-border theme-bg transition-all duration-300">
                       <Plus
                         size={26}
                         strokeWidth={2.5}
@@ -79,13 +79,13 @@ export function MobileNavigation() {
                 href={item.href}
                 className={`flex flex-col items-center p-2 min-w-[64px] rounded-2xl transition-all duration-300 ${
                   isActive
-                    ? "text-emerald-500 scale-105 drop-shadow-sm"
+                    ? "text-accent scale-105"
                     : "theme-muted hover:theme-text hover:scale-105"
                 }`}
               >
                 <item.icon
                   className={`h-5 w-5 mb-1 transition-colors duration-300 ${
-                    isActive ? "text-emerald-500" : ""
+                    isActive ? "text-accent" : ""
                   }`}
                   aria-hidden="true"
                   strokeWidth={isActive ? 2.5 : 2}

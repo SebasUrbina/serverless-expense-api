@@ -122,3 +122,21 @@ CREATE TABLE IF NOT EXISTS transaction_splits (
     percentage INTEGER NOT NULL,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS budgets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    month TEXT NOT NULL,                                -- 'YYYY-MM'
+    scope TEXT NOT NULL CHECK(scope IN ('general','category')),
+    category_id INTEGER,                                -- NOT NULL cuando scope='category'
+    amount REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+-- Un presupuesto 'general' por usuario+mes (category_id es NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_general
+    ON budgets(user_id, month) WHERE scope = 'general';
+-- Un presupuesto por categoría en cada mes
+CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_category
+    ON budgets(user_id, month, category_id) WHERE scope = 'category';

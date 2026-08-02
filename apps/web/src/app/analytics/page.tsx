@@ -11,8 +11,13 @@ import { MonthSelector } from '@/components/MonthSelector';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Settings, PiggyBank, Calendar, Target, Activity } from 'lucide-react';
 import { formatCompactValue } from '@/lib/utils';
 import Link from 'next/link';
-import type { MonthlySummary, CategorySummary } from '@/types/api';
+import type { MonthlySummary, CategorySummary, CategoryTrendResponse } from '@/types/api';
 import { PageSubtitle, PageTitle } from '@/components/ui/Text';
+
+const TREND_COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+  '#0ea5e9', '#f43f5e', '#84cc16', '#14b8a6', '#a855f7',
+];
 
 type ChartDatum = {
   name: string;
@@ -101,9 +106,35 @@ export default function AnalyticsPage() {
     }
   });
 
-  const isLoading = isLoadingSummary || isLoadingCategory;
+  const { data: trendResponse, isLoading: isLoadingTrend } = useQuery<CategoryTrendResponse>({
+    queryKey: ['transactions', 'analytics', 'category-trend'],
+    queryFn: async () => {
+      const res = await api.get('/transactions/summary/category-trend?months=12');
+      return res.data;
+    }
+  });
+
+  const isLoading = isLoadingSummary || isLoadingCategory || isLoadingTrend;
   const monthlySummary = response?.summary || [];
   const categorySummary = categoryResponse?.summary || [];
+
+  // Build stacked-bar trend data: months × (top categories + Otros)
+  const trendMonths = trendResponse?.months || [];
+  const trendCategories = trendResponse?.categories || [];
+  const topCategories = trendCategories.slice(0, 6);
+  const othersCategories = trendCategories.slice(6);
+  const trendData = trendMonths.map((month, idx) => {
+    const parsed = parseISO(`${month}-01`);
+    const datum: Record<string, number | string> = {
+      name: isValid(parsed) ? format(parsed, 'MMM', { locale: es }) : month,
+    };
+    for (const cat of topCategories) {
+      datum[cat.category ?? 'Sin categoría'] = cat.values[idx] || 0;
+    }
+    const othersSum = othersCategories.reduce((s, c) => s + (c.values[idx] || 0), 0);
+    if (othersSum > 0) datum['Otros'] = othersSum;
+    return datum;
+  });
 
   const chartData: ChartDatum[] = monthlySummary
     .filter((item) => item.month)
@@ -498,6 +529,66 @@ export default function AnalyticsPage() {
             ) : (
               <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
                 Aún no hay datos de ahorro.
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Category trend */}
+          <div
+            className="rounded-3xl p-5 flex flex-col h-[360px] sm:h-[440px]"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+          >
+            <p className="font-bold text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+              Tendencia por categoría
+            </p>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              Cómo cambia tu gasto por categoría en los últimos 12 meses
+            </p>
+            {isLoadingTrend ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
+              </div>
+            ) : trendData.length > 0 && topCategories.length > 0 ? (
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
+                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={60} />
+                    <Tooltip
+                      cursor={{ fill: 'var(--border)', opacity: 0.3 }}
+                      contentStyle={{
+                        backgroundColor: 'var(--bg-card)',
+                        borderColor: 'var(--border)',
+                        borderRadius: '12px',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px'
+                      }}
+                      itemStyle={{ color: 'var(--text-primary)' }}
+                      formatter={(value, name) => [
+                        `$${Number(value ?? 0).toLocaleString('es-CL')}`,
+                        String(name)
+                      ]}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }} />
+                    {topCategories.map((cat, i) => (
+                      <Bar
+                        key={cat.category_id ?? i}
+                        dataKey={cat.category ?? 'Sin categoría'}
+                        stackId="trend"
+                        fill={TREND_COLORS[i % TREND_COLORS.length]}
+                        radius={i === topCategories.length - 1 ? [4, 4, 0, 0] : 0}
+                      />
+                    ))}
+                    {othersCategories.length > 0 && (
+                      <Bar dataKey="Otros" stackId="trend" fill="#71717a" radius={[0, 0, 0, 0]} />
+                    )}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-sm" style={{ color: 'var(--text-muted)' }}>
+                Aún no hay suficientes datos.
               </div>
             )}
           </div>

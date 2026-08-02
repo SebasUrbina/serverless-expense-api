@@ -15,7 +15,11 @@ import { RecurringDelete } from "./endpoints/recurringDelete";
 import { TransactionMonthlySummary } from "./endpoints/transactionMonthlySummary";
 import { TransactionCategorySummary } from "./endpoints/transactionCategorySummary";
 import { TransactionKpiSummary } from "./endpoints/transactionKpiSummary";
+import { TransactionCategoryTrend } from "./endpoints/transactionCategoryTrend";
 import { AppConfigFetch } from "./endpoints/appConfigFetch";
+import { BudgetList } from "./endpoints/budgetList";
+import { BudgetUpsert } from "./endpoints/budgetUpsert";
+import { BudgetDelete } from "./endpoints/budgetDelete";
 import { CategoryList } from "./endpoints/categoryList";
 import { CategoryCreate } from "./endpoints/categoryCreate";
 import { CategoryUpdate } from "./endpoints/categoryUpdate";
@@ -74,6 +78,7 @@ openapi.get("/api/transactions", TransactionList);
 openapi.get("/api/transactions/summary/monthly", TransactionMonthlySummary);
 openapi.get("/api/transactions/summary/category", TransactionCategorySummary);
 openapi.get("/api/transactions/summary/kpi", TransactionKpiSummary);
+openapi.get("/api/transactions/summary/category-trend", TransactionCategoryTrend);
 openapi.post("/api/transactions", TransactionCreate);
 openapi.get("/api/transactions/:id", TransactionFetch);
 openapi.put("/api/transactions/:id", TransactionUpdate);
@@ -104,6 +109,11 @@ openapi.delete("/api/categories/:id", CategoryDelete);
 openapi.get("/api/tags", TagList);
 openapi.post("/api/tags", TagCreate);
 openapi.delete("/api/tags/:id", TagDelete);
+
+// ── Budgets ──
+openapi.get("/api/budgets", BudgetList);
+openapi.put("/api/budgets", BudgetUpsert);
+openapi.delete("/api/budgets/:id", BudgetDelete);
 
 // ── Accounts ──
 openapi.get("/api/accounts", AccountList);

@@ -74,6 +74,23 @@ export type Account = {
   created_at?: string;
 };
 
+export type Budget = {
+  id: number;
+  month: string;
+  scope: 'general' | 'category';
+  category_id?: number | null;
+  category_name?: string;
+  category_icon?: string;
+  amount: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type BudgetsResponse = {
+  success: boolean;
+  budgets: Budget[];
+};
+
 export type GroupBalanceMember = {
   user_id: string;
   nickname: string;
@@ -150,6 +167,19 @@ export type MonthlySummaryResponse = {
 
 export type CategorySummaryResponse = {
   summary: CategorySummary[];
+};
+
+export type CategoryTrend = {
+  category_id: number | null;
+  category: string | null;
+  category_icon?: string | null;
+  values: number[];
+};
+
+export type CategoryTrendResponse = {
+  success: boolean;
+  months: string[];
+  categories: CategoryTrend[];
 };
 
 export type KpiSummaryResponse = {
