@@ -119,7 +119,7 @@ export function MonthlyBudgetCard({ month, expense }: Props) {
                     if (e.key === "Escape") setEditing(false);
                   }}
                   inputMode="numeric"
-                  className="w-32 px-2.5 py-1.5 rounded-lg text-sm font-bold text-primary bg-inset border border-border text-right tabular-nums outline-none focus:border-accent"
+                  className="w-32 px-2.5 py-1.5 rounded-lg text-base sm:text-sm font-bold text-primary bg-inset border border-border text-right tabular-nums outline-none focus:border-accent"
                   placeholder="Monto"
                 />
                 <button

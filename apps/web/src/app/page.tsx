@@ -58,6 +58,7 @@ export default function Home() {
   const router = useRouter();
   const { session } = useAuth();
   const [filterMonth, setFilterMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [hoveredCategoryIndex, setHoveredCategoryIndex] = useState<number | null>(null);
   const {
     recentTransactions,
     monthlySummary,
@@ -273,7 +274,13 @@ export default function Home() {
                     {categorySummary.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                         {/* Donut */}
-                        <div className="relative h-56 mx-auto w-full max-w-[240px]">
+                        <div
+                          className="relative h-56 mx-auto w-full max-w-[240px] select-none"
+                          style={{
+                            WebkitUserSelect: "none",
+                            WebkitTouchCallout: "none",
+                          }}
+                        >
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
@@ -287,6 +294,8 @@ export default function Home() {
                                 outerRadius="100%"
                                 paddingAngle={2}
                                 strokeWidth={0}
+                                onMouseEnter={(_, index) => setHoveredCategoryIndex(index)}
+                                onMouseLeave={() => setHoveredCategoryIndex(null)}
                                 onClick={(entry) => {
                                   const id = (
                                     entry as
@@ -350,13 +359,31 @@ export default function Home() {
                               />
                             </PieChart>
                           </ResponsiveContainer>
-                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-0">
-                            <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
-                              Total
-                            </span>
-                            <span className="text-lg font-black text-primary tabular-nums">
-                              ${formatCurrency(totalExpense)}
-                            </span>
+                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-0 select-none">
+                            {hoveredCategoryIndex !== null && categorySummary[hoveredCategoryIndex] ? (
+                              <>
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1 max-w-[150px] truncate">
+                                  {categorySummary[hoveredCategoryIndex].category_icon || "🏷️"}{" "}
+                                  {categorySummary[hoveredCategoryIndex].category} (
+                                  {totalExpense > 0
+                                    ? ((categorySummary[hoveredCategoryIndex].amount / totalExpense) * 100).toFixed(0)
+                                    : 0}
+                                  %)
+                                </span>
+                                <span className="text-lg font-black text-primary tabular-nums mt-0.5">
+                                  ${formatCurrency(categorySummary[hoveredCategoryIndex].amount)}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                                  Total
+                                </span>
+                                <span className="text-lg font-black text-primary tabular-nums">
+                                  ${formatCurrency(totalExpense)}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 

@@ -38,6 +38,7 @@ export const viewport: Viewport = {
   themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
 };
 
 // Script to apply theme before first paint (prevents flash)
