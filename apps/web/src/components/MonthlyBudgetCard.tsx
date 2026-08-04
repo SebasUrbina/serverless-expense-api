@@ -14,9 +14,10 @@ type Props = {
 export function MonthlyBudgetCard({ month, expense }: Props) {
   const { general, isLoading, saveBudget } = useBudget(month);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState<string>("");
 
   const budgetAmount = general?.amount ?? 0;
+  const formatter = new Intl.NumberFormat("es-CL");
 
   const daysInMonth = month
     ? new Date(
@@ -54,7 +55,7 @@ export function MonthlyBudgetCard({ month, expense }: Props) {
         : "text-red-600 dark:text-red-400";
 
   const startEdit = () => {
-    setDraft(String(budgetAmount || ""));
+    setDraft(budgetAmount > 0 ? formatter.format(budgetAmount) : "");
     setEditing(true);
   };
   const commit = () => {
@@ -113,13 +114,20 @@ export function MonthlyBudgetCard({ month, expense }: Props) {
                 <input
                   autoFocus
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    const rawValue = e.target.value.replace(/\D/g, "");
+                    if (!rawValue) {
+                      setDraft("");
+                      return;
+                    }
+                    setDraft(formatter.format(parseInt(rawValue, 10)));
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") commit();
                     if (e.key === "Escape") setEditing(false);
                   }}
                   inputMode="numeric"
-                  className="w-32 px-2.5 py-1.5 rounded-lg text-base sm:text-sm font-bold text-primary bg-inset border border-border text-right tabular-nums outline-none focus:border-accent"
+                  className="w-32 px-2.5 py-1.5 rounded-lg text-base font-bold text-primary bg-inset border border-border text-right tabular-nums outline-none focus:border-accent"
                   placeholder="Monto"
                 />
                 <button

@@ -303,7 +303,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                     }
                     setAmount(new Intl.NumberFormat('es-CL').format(parseInt(rawValue, 10)));
                   }}
-                  className="bg-transparent text-center focus:outline-none font-extrabold text-5xl p-0 min-w-[100px] max-w-[250px] placeholder:text-muted"
+                  className="bg-transparent text-center focus:outline-none text-2xl font-extrabold p-0 min-w-25 max-w-62.5 placeholder:text-muted"
                   style={{
                     width: `${Math.max(amount.length, 1) * 1.1}ch`,
                     color: type === 'expense' ? 'var(--color-expense)' : 'var(--color-income)',
