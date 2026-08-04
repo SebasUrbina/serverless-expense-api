@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { format, parseISO, isValid, subMonths } from "date-fns";
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { format, parseISO, isValid, subMonths } from 'date-fns';
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -11,43 +11,43 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
-} from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { MonthSelector } from "@/components/MonthSelector";
-import { SharedBalancesCard } from "@/components/SharedBalancesCard";
-import { MonthlyBudgetCard } from "@/components/MonthlyBudgetCard";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { LoadingState } from "@/components/ui/LoadingSpinner";
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { formatCurrency } from "@/lib/utils";
-import { useTransactionModal } from "@/store/useTransactionModal";
-import { useAuth } from "@/lib/AuthProvider";
+} from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { MonthSelector } from '@/components/MonthSelector';
+import { SharedBalancesCard } from '@/components/SharedBalancesCard';
+import { MonthlyBudgetCard } from '@/components/MonthlyBudgetCard';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { LoadingState } from '@/components/ui/LoadingSpinner';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils';
+import { useTransactionModal } from '@/store/useTransactionModal';
+import { useAuth } from '@/lib/AuthProvider';
 
 const DONUT_COLORS = [
-  "#6366f1",
-  "#8b5cf6",
-  "#ec4899",
-  "#f59e0b",
-  "#10b981",
-  "#0ea5e9",
-  "#f43f5e",
-  "#84cc16",
-  "#14b8a6",
-  "#a855f7",
+  '#6366f1',
+  '#8b5cf6',
+  '#ec4899',
+  '#f59e0b',
+  '#10b981',
+  '#0ea5e9',
+  '#f43f5e',
+  '#84cc16',
+  '#14b8a6',
+  '#a855f7',
 ];
 
 function EmptyDonut() {
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="relative w-40 h-40">
-        <div className="absolute inset-0 rounded-full border-8 border-dashed border-border" />
+      <div className="relative h-40 w-40">
+        <div className="border-border absolute inset-0 rounded-full border-8 border-dashed" />
         <div className="absolute inset-0 flex items-center justify-center">
           <Target size={22} className="text-muted" />
         </div>
       </div>
-      <p className="text-sm text-muted mt-4">
+      <p className="text-muted mt-4 text-sm">
         Sin datos de categorías este mes.
       </p>
     </div>
@@ -57,8 +57,10 @@ function EmptyDonut() {
 export default function Home() {
   const router = useRouter();
   const { session } = useAuth();
-  const [filterMonth, setFilterMonth] = useState(format(new Date(), "yyyy-MM"));
-  const [hoveredCategoryIndex, setHoveredCategoryIndex] = useState<number | null>(null);
+  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [hoveredCategoryIndex, setHoveredCategoryIndex] = useState<
+    number | null
+  >(null);
   const {
     recentTransactions,
     monthlySummary,
@@ -74,7 +76,7 @@ export default function Home() {
     session?.user?.user_metadata?.full_name ||
     session?.user?.user_metadata?.display_name;
   const firstName =
-    typeof displayName === "string" ? displayName.split(" ")[0] : null;
+    typeof displayName === 'string' ? displayName.split(' ')[0] : null;
 
   const expense = filterMonth
     ? (selectedMonthSummary?.total_expense ?? 0)
@@ -84,7 +86,7 @@ export default function Home() {
     : monthlySummary.reduce((acc, curr) => acc + curr.total_income, 0);
   const previousMonthDate = subMonths(parseISO(`${filterMonth}-01`), 1);
   const previousMonthStr = isValid(previousMonthDate)
-    ? format(previousMonthDate, "yyyy-MM")
+    ? format(previousMonthDate, 'yyyy-MM')
     : null;
   const previousMonthSummary = monthlySummary.find(
     (s) => s.month === previousMonthStr,
@@ -101,7 +103,10 @@ export default function Home() {
   const isExpenseDecrease = expenseDeltaRaw < 0;
   const absExpenseDelta = Math.abs(expenseDeltaRaw).toFixed(0);
 
-  const totalExpense = categorySummary.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpense = categorySummary.reduce(
+    (acc, curr) => acc + curr.amount,
+    0,
+  );
 
   const goToCategory = (categoryId: number) => {
     let url = `/transactions?category_id=${categoryId}`;
@@ -112,21 +117,21 @@ export default function Home() {
   const customTitle = (
     <div>
       <div className="sm:hidden">
-        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-muted mb-0.5">
+        <p className="text-muted mb-0.5 text-[0.65rem] font-bold tracking-[0.2em] uppercase">
           Bienvenido 👋
         </p>
-        <h1 className="truncate text-2xl leading-tight font-extrabold tracking-tight text-primary">
-          {firstName || "Mi resumen"}
+        <h1 className="text-primary truncate text-2xl leading-tight font-extrabold tracking-tight">
+          {firstName || 'Mi resumen'}
         </h1>
       </div>
       <div className="hidden sm:block">
-        <h1 className="truncate text-3xl leading-tight font-black tracking-tighter text-primary sm:text-4xl">
-          <span>{firstName ? `Hola, ${firstName}` : "Mi resumen"}</span>
+        <h1 className="text-primary truncate text-3xl leading-tight font-black tracking-tighter sm:text-4xl">
+          <span>{firstName ? `Hola, ${firstName}` : 'Mi resumen'}</span>
           <span className="ml-2 inline-block align-middle text-[0.85em]">
             👋
           </span>
         </h1>
-        <p className="text-sm mt-1 font-medium text-muted">
+        <p className="text-muted mt-1 text-sm font-medium">
           Aquí puedes ver en qué se va tu dinero.
         </p>
       </div>
@@ -134,7 +139,7 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* ── Header ── */}
       <PageHeader
         title=""
@@ -147,59 +152,61 @@ export default function Home() {
           />
         }
         primaryAction={{
-          label: "Agregar",
+          label: 'Agregar',
           onClick: () => openModal(),
         }}
       />
 
       {/* ── Scrollable Content ── */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
+        <div className="mx-auto max-w-7xl">
           {isLoading ? (
             <LoadingState minHeight="h-64" />
           ) : (
             <div className="space-y-6">
               {/* Bento Grid Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Left Column (spans 2) */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="space-y-6 lg:col-span-2">
                   {/* Gasto Hero */}
-                  <div className="rounded-3xl bg-card border border-border p-8 sm:p-10 flex flex-col items-center text-center relative shadow-sm">
+                  <div className="bg-card border-border relative flex flex-col items-center rounded-3xl border p-8 text-center shadow-sm sm:p-10">
                     <Link
                       href={`/analytics?month=${filterMonth}`}
-                      className="absolute top-5 right-5 hidden sm:flex items-center gap-1.5 text-[11px] font-bold tracking-wide uppercase text-accent bg-accent-soft px-3 py-1.5 rounded-lg transition-colors hover:bg-accent/20"
+                      className="text-accent bg-accent-soft hover:bg-accent/20 absolute top-5 right-5 hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase transition-colors sm:flex"
                     >
                       Desglose detallado
                     </Link>
 
-                    <p className="text-xs sm:text-sm font-semibold uppercase tracking-[0.2em] mb-2 text-muted">
-                      {filterMonth ? "Este mes has gastado" : "Gasto Total"}
+                    <p className="text-muted mb-2 text-xs font-semibold tracking-[0.2em] uppercase sm:text-sm">
+                      {filterMonth ? 'Este mes has gastado' : 'Gasto Total'}
                     </p>
                     <div
-                      className="flex items-baseline gap-1 leading-none mb-5 cursor-pointer hover:opacity-80 transition-opacity tabular-nums"
-                      onClick={() => router.push(`/analytics?month=${filterMonth}`)}
+                      className="mb-5 flex cursor-pointer items-baseline gap-1 leading-none tabular-nums transition-opacity hover:opacity-80"
+                      onClick={() =>
+                        router.push(`/analytics?month=${filterMonth}`)
+                      }
                     >
-                      <span className="text-3xl sm:text-4xl font-bold mb-1 text-secondary">
+                      <span className="text-secondary mb-1 text-3xl font-bold sm:text-4xl">
                         $
                       </span>
-                      <h2 className="text-5xl sm:text-7xl font-black tracking-tighter text-primary tabular-nums">
+                      <h2 className="text-primary text-5xl font-black tracking-tighter tabular-nums sm:text-7xl">
                         {formatCurrency(expense)}
                       </h2>
                     </div>
 
                     {/* vs previous month */}
                     {filterMonth && prevExpense > 0 && (
-                      <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-inset border border-border">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted">
+                      <div className="bg-inset border-border flex items-center gap-2 rounded-full border px-4 py-1.5">
+                        <span className="text-muted text-[10px] font-bold tracking-[0.15em] uppercase">
                           vs mes pasado
                         </span>
                         <span
-                          className={`text-xs font-bold flex items-center gap-1 tabular-nums ${
+                          className={`flex items-center gap-1 text-xs font-bold tabular-nums ${
                             isExpenseIncrease
-                              ? "text-red-500 dark:text-red-400"
+                              ? 'text-red-500 dark:text-red-400'
                               : isExpenseDecrease
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-secondary"
+                                ? 'text-emerald-600 dark:text-emerald-400'
+                                : 'text-secondary'
                           }`}
                         >
                           {isExpenseIncrease
@@ -212,38 +219,44 @@ export default function Home() {
                     )}
 
                     {/* Mini metrics */}
-                    <div className="w-full max-w-md mx-auto mt-8 grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-inset/60">
+                    <div className="divide-border border-border bg-inset/60 mx-auto mt-8 grid w-full max-w-md grid-cols-3 divide-x rounded-2xl border">
                       <div className="flex flex-col items-center py-4">
-                        <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                          <Wallet size={12} className="text-violet-500 dark:text-violet-400" />{" "}
+                        <p className="text-muted mb-1 flex items-center gap-1.5 text-[9px] font-bold tracking-wider uppercase sm:text-[10px]">
+                          <Wallet
+                            size={12}
+                            className="text-violet-500 dark:text-violet-400"
+                          />{' '}
                           Balance
                         </p>
                         <p
-                          className={`font-bold text-sm sm:text-base tabular-nums ${
+                          className={`text-sm font-bold tabular-nums sm:text-base ${
                             totalBalance < 0
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-violet-600 dark:text-violet-400"
+                              ? 'text-red-600 dark:text-red-400'
+                              : 'text-violet-600 dark:text-violet-400'
                           }`}
                         >
                           ${formatCurrency(totalBalance)}
                         </p>
                       </div>
                       <div className="flex flex-col items-center py-4">
-                        <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                          <ArrowUpRight size={12} className="text-emerald-500 dark:text-emerald-400" />{" "}
+                        <p className="text-muted mb-1 flex items-center gap-1.5 text-[9px] font-bold tracking-wider uppercase sm:text-[10px]">
+                          <ArrowUpRight
+                            size={12}
+                            className="text-emerald-500 dark:text-emerald-400"
+                          />{' '}
                           Ingresos
                         </p>
-                        <p className="font-bold text-sm sm:text-base text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        <p className="text-sm font-bold text-emerald-600 tabular-nums sm:text-base dark:text-emerald-400">
                           ${formatCurrency(income)}
                         </p>
                       </div>
                       <div className="flex flex-col items-center py-4">
-                        <p className="text-[9px] sm:text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center gap-1.5 text-muted">
-                          <CreditCard size={12} className="text-blue-500" />{" "}
+                        <p className="text-muted mb-1 flex items-center gap-1.5 text-[9px] font-bold tracking-wider uppercase sm:text-[10px]">
+                          <CreditCard size={12} className="text-blue-500" />{' '}
                           <span className="hidden sm:inline">Movimientos</span>
                           <span className="sm:hidden">Movs.</span>
                         </p>
-                        <p className="font-bold text-base sm:text-lg text-primary tabular-nums">
+                        <p className="text-primary text-base font-bold tabular-nums sm:text-lg">
                           {kpiSummary?.transaction_count || 0}
                         </p>
                       </div>
@@ -256,29 +269,29 @@ export default function Home() {
                   )}
 
                   {/* Categorías: donut + lista */}
-                  <div className="rounded-3xl p-6 bg-card border border-border shadow-sm">
-                    <div className="flex items-center gap-2.5 mb-5">
-                      <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center">
+                  <div className="bg-card border-border rounded-3xl border p-6 shadow-sm">
+                    <div className="mb-5 flex items-center gap-2.5">
+                      <div className="bg-accent/10 text-accent flex h-10 w-10 items-center justify-center rounded-2xl">
                         <Target size={20} />
                       </div>
                       <div>
-                        <p className="font-bold text-base text-primary">
+                        <p className="text-primary text-base font-bold">
                           En esto se va tu dinero
                         </p>
-                        <p className="text-xs text-muted mt-0.5">
+                        <p className="text-muted mt-0.5 text-xs">
                           Categorías con más gasto este mes
                         </p>
                       </div>
                     </div>
 
                     {categorySummary.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                      <div className="grid grid-cols-1 items-center gap-6 md:grid-cols-2">
                         {/* Donut */}
                         <div
-                          className="relative h-56 mx-auto w-full max-w-[240px] select-none"
+                          className="relative mx-auto h-56 w-full max-w-[240px] select-none"
                           style={{
-                            WebkitUserSelect: "none",
-                            WebkitTouchCallout: "none",
+                            WebkitUserSelect: 'none',
+                            WebkitTouchCallout: 'none',
                           }}
                         >
                           <ResponsiveContainer width="100%" height="100%">
@@ -294,8 +307,12 @@ export default function Home() {
                                 outerRadius="100%"
                                 paddingAngle={2}
                                 strokeWidth={0}
-                                onMouseEnter={(_, index) => setHoveredCategoryIndex(index)}
-                                onMouseLeave={() => setHoveredCategoryIndex(null)}
+                                onMouseEnter={(_, index) =>
+                                  setHoveredCategoryIndex(index)
+                                }
+                                onMouseLeave={() =>
+                                  setHoveredCategoryIndex(null)
+                                }
                                 onClick={(entry) => {
                                   const id = (
                                     entry as
@@ -315,40 +332,48 @@ export default function Home() {
                                 ))}
                               </Pie>
                               <Tooltip
-                                wrapperStyle={{ zIndex: 50, outline: "none" }}
+                                wrapperStyle={{ zIndex: 50, outline: 'none' }}
                                 content={({ active, payload }) => {
                                   if (active && payload && payload.length) {
                                     const data = payload[0];
-                                    const catName = data.name || data.payload?.category || "";
-                                    const icon = data.payload?.category_icon || "";
+                                    const catName =
+                                      data.name || data.payload?.category || '';
+                                    const icon =
+                                      data.payload?.category_icon || '';
                                     const amount = Number(data.value ?? 0);
                                     const pct =
                                       totalExpense > 0
-                                        ? ((amount / totalExpense) * 100).toFixed(1)
-                                        : "0.0";
-                                    const fillColor = data.payload?.fill || "#6366f1";
+                                        ? (
+                                            (amount / totalExpense) *
+                                            100
+                                          ).toFixed(1)
+                                        : '0.0';
+                                    const fillColor =
+                                      data.payload?.fill || '#6366f1';
 
                                     return (
-                                      <div className="p-3 rounded-2xl shadow-2xl min-w-[160px] bg-card border border-border z-50 relative">
-                                        <div className="flex items-center gap-2 mb-1.5">
+                                      <div className="bg-card border-border relative z-50 min-w-[160px] rounded-2xl border p-3 shadow-2xl">
+                                        <div className="mb-1.5 flex items-center gap-2">
                                           <span
-                                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                                            style={{ backgroundColor: fillColor }}
+                                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                            style={{
+                                              backgroundColor: fillColor,
+                                            }}
                                           />
-                                          <span className="text-xs font-bold text-primary truncate">
-                                            {icon ? `${icon} ` : ""}
+                                          <span className="text-primary truncate text-xs font-bold">
+                                            {icon ? `${icon} ` : ''}
                                             {catName}
                                           </span>
                                         </div>
                                         <div className="flex items-baseline justify-between gap-3">
-                                          <span className="text-sm font-black text-primary tabular-nums">
+                                          <span className="text-primary text-sm font-black tabular-nums">
                                             ${formatCurrency(amount)}
                                           </span>
-                                          <span className="text-xs font-bold text-accent tabular-nums bg-accent/10 px-2 py-0.5 rounded-md">
+                                          <span className="text-accent bg-accent/10 rounded-md px-2 py-0.5 text-xs font-bold tabular-nums">
                                             {pct}%
                                           </span>
                                         </div>
-                                        <p className="text-[10px] text-muted mt-1 font-medium">
+                                        <p className="text-muted mt-1 text-[10px] font-medium">
                                           del gasto mensual
                                         </p>
                                       </div>
@@ -359,27 +384,42 @@ export default function Home() {
                               />
                             </PieChart>
                           </ResponsiveContainer>
-                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center z-0 select-none">
-                            {hoveredCategoryIndex !== null && categorySummary[hoveredCategoryIndex] ? (
+                          <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center select-none">
+                            {hoveredCategoryIndex !== null &&
+                            categorySummary[hoveredCategoryIndex] ? (
                               <>
-                                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-1 max-w-[150px] truncate">
-                                  {categorySummary[hoveredCategoryIndex].category_icon || "🏷️"}{" "}
-                                  {categorySummary[hoveredCategoryIndex].category} (
+                                <span className="flex max-w-[150px] items-center gap-1 truncate text-[10px] font-bold tracking-wider text-emerald-500 uppercase">
+                                  {categorySummary[hoveredCategoryIndex]
+                                    .category_icon || '🏷️'}{' '}
+                                  {
+                                    categorySummary[hoveredCategoryIndex]
+                                      .category
+                                  }{' '}
+                                  (
                                   {totalExpense > 0
-                                    ? ((categorySummary[hoveredCategoryIndex].amount / totalExpense) * 100).toFixed(0)
+                                    ? (
+                                        (categorySummary[hoveredCategoryIndex]
+                                          .amount /
+                                          totalExpense) *
+                                        100
+                                      ).toFixed(0)
                                     : 0}
                                   %)
                                 </span>
-                                <span className="text-lg font-black text-primary tabular-nums mt-0.5">
-                                  ${formatCurrency(categorySummary[hoveredCategoryIndex].amount)}
+                                <span className="text-primary mt-0.5 text-lg font-black tabular-nums">
+                                  $
+                                  {formatCurrency(
+                                    categorySummary[hoveredCategoryIndex]
+                                      .amount,
+                                  )}
                                 </span>
                               </>
                             ) : (
                               <>
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-muted">
+                                <span className="text-muted text-[10px] font-bold tracking-wider uppercase">
                                   Total
                                 </span>
-                                <span className="text-lg font-black text-primary tabular-nums">
+                                <span className="text-primary text-lg font-black tabular-nums">
                                   ${formatCurrency(totalExpense)}
                                 </span>
                               </>
@@ -393,37 +433,38 @@ export default function Home() {
                             const percentage =
                               totalExpense > 0
                                 ? ((cat.amount / totalExpense) * 100).toFixed(0)
-                                : "0";
+                                : '0';
                             const delta =
                               cat.previous_amount !== undefined
                                 ? cat.amount - cat.previous_amount!
                                 : 0;
                             const isIncrease = delta > 0;
-                            const color = DONUT_COLORS[idx % DONUT_COLORS.length];
+                            const color =
+                              DONUT_COLORS[idx % DONUT_COLORS.length];
                             return (
                               <div
                                 key={idx}
-                                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-inset transition-colors cursor-pointer"
+                                className="hover:bg-inset flex cursor-pointer items-center gap-3 rounded-xl p-2.5 transition-colors"
                                 onClick={() => goToCategory(cat.category_id)}
                               >
                                 <span
-                                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                                  className="h-2.5 w-2.5 shrink-0 rounded-full"
                                   style={{ background: color }}
                                 />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between">
-                                    <p className="font-semibold text-sm text-primary truncate flex items-center gap-1.5">
+                                    <p className="text-primary flex items-center gap-1.5 truncate text-sm font-semibold">
                                       {cat.category_icon && (
                                         <span>{cat.category_icon}</span>
                                       )}
                                       {cat.category}
                                     </p>
-                                    <p className="font-bold text-sm text-primary tabular-nums shrink-0 ml-2">
+                                    <p className="text-primary ml-2 shrink-0 text-sm font-bold tabular-nums">
                                       ${formatCurrency(cat.amount)}
                                     </p>
                                   </div>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <div className="flex-1 h-1.5 rounded-full bg-inset overflow-hidden">
+                                  <div className="mt-1 flex items-center gap-2">
+                                    <div className="bg-inset h-1.5 flex-1 overflow-hidden rounded-full">
                                       <div
                                         className="h-full rounded-full transition-all duration-700"
                                         style={{
@@ -432,23 +473,23 @@ export default function Home() {
                                         }}
                                       />
                                     </div>
-                                    <span className="text-[10px] font-bold text-muted tabular-nums w-8 text-right">
+                                    <span className="text-muted w-8 text-right text-[10px] font-bold tabular-nums">
                                       {percentage}%
                                     </span>
                                   </div>
                                   {delta !== 0 &&
                                     cat.previous_amount !== undefined && (
-                                      <p className="text-[10px] text-muted mt-0.5">
+                                      <p className="text-muted mt-0.5 text-[10px]">
                                         <span
                                           className={
                                             isIncrease
-                                              ? "text-red-500 dark:text-red-400"
-                                              : "text-emerald-600 dark:text-emerald-400"
+                                              ? 'text-red-500 dark:text-red-400'
+                                              : 'text-emerald-600 dark:text-emerald-400'
                                           }
                                         >
-                                          {isIncrease ? "▲" : "▼"} $
+                                          {isIncrease ? '▲' : '▼'} $
                                           {formatCurrency(Math.abs(delta))}
-                                        </span>{" "}
+                                        </span>{' '}
                                         vs mes anterior
                                       </p>
                                     )}
@@ -465,82 +506,84 @@ export default function Home() {
                 </div>
 
                 {/* Right Column (spans 1) */}
-                <div className="lg:col-span-1 space-y-6">
+                <div className="space-y-6 lg:col-span-1">
                   {/* Recent Activity */}
-                  <div className="rounded-3xl p-6 flex flex-col h-auto lg:h-[480px] bg-card border border-border shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
+                  <div className="bg-card border-border flex h-auto flex-col rounded-3xl border p-6 shadow-sm lg:h-[480px]">
+                    <div className="mb-6 flex items-center justify-between">
                       <div>
-                        <p className="font-bold text-base text-primary">
+                        <p className="text-primary text-base font-bold">
                           Últimos movimientos
                         </p>
-                        <p className="text-xs text-muted mt-0.5">Lo más reciente</p>
+                        <p className="text-muted mt-0.5 text-xs">
+                          Lo más reciente
+                        </p>
                       </div>
                       <Link
                         href="/transactions"
-                        className="text-accent text-[11px] font-bold uppercase tracking-wider hover:opacity-80 transition-opacity bg-accent-soft px-3 py-1.5 rounded-full"
+                        className="text-accent bg-accent-soft rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wider uppercase transition-opacity hover:opacity-80"
                       >
                         Ver todo →
                       </Link>
                     </div>
-                    <div className="flex-1 lg:overflow-y-auto space-y-1.5 -mx-2 px-2">
+                    <div className="-mx-2 flex-1 space-y-1.5 px-2 lg:overflow-y-auto">
                       {recentTransactions.length > 0 ? (
                         recentTransactions.map((tx) => (
                           <div
                             key={tx.id}
-                            className={`flex justify-between items-center p-3 rounded-2xl transition-all duration-300 ${
+                            className={`flex items-center justify-between rounded-2xl p-3 transition-all duration-300 ${
                               tx.is_owner !== false
-                                ? "cursor-pointer hover:bg-inset"
-                                : "cursor-default"
+                                ? 'hover:bg-inset cursor-pointer'
+                                : 'cursor-default'
                             }`}
                             onClick={() => {
                               if (tx.is_owner === false) return;
                               openModal(tx);
                             }}
                           >
-                            <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="flex min-w-0 items-center gap-3.5">
                               <div
-                                className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-base ${
-                                  tx.type === "income"
-                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                    : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base ${
+                                  tx.type === 'income'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : 'bg-red-500/10 text-red-600 dark:text-red-400'
                                 }`}
                               >
                                 {tx.category_icon ||
-                                  (tx.type === "income" ? (
+                                  (tx.type === 'income' ? (
                                     <ArrowUpRight size={18} />
                                   ) : (
                                     <ArrowDownRight size={18} />
                                   ))}
                               </div>
                               <div className="min-w-0">
-                                <p className="font-bold text-sm truncate text-primary">
+                                <p className="text-primary truncate text-sm font-bold">
                                   {tx.title}
                                 </p>
-                                <p className="text-xs text-muted mt-0.5 font-medium">
-                                  {tx.category} ·{" "}
-                                  {format(parseISO(tx.date), "d MMM")}
+                                <p className="text-muted mt-0.5 text-xs font-medium">
+                                  {tx.category} ·{' '}
+                                  {format(parseISO(tx.date), 'd MMM')}
                                 </p>
                               </div>
                             </div>
                             <p
-                              className="shrink-0 font-bold text-sm ml-2 tabular-nums"
+                              className="ml-2 shrink-0 text-sm font-bold tabular-nums"
                               style={{
                                 color:
-                                  tx.type === "income"
-                                    ? "var(--color-income)"
-                                    : "var(--color-expense)",
+                                  tx.type === 'income'
+                                    ? 'var(--color-income)'
+                                    : 'var(--color-expense)',
                               }}
                             >
-                              {tx.type === "income" ? "+" : "−"}$
+                              {tx.type === 'income' ? '+' : '−'}$
                               {formatCurrency(tx.amount)}
                             </p>
                           </div>
                         ))
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted">
-                          <Receipt className="w-9 h-9 mb-3 opacity-30" />
+                        <div className="text-muted flex h-full flex-col items-center justify-center">
+                          <Receipt className="mb-3 h-9 w-9 opacity-30" />
                           <p className="text-sm">Aún no hay movimientos</p>
-                          <p className="text-xs mt-1 opacity-70">
+                          <p className="mt-1 text-xs opacity-70">
                             Empieza añadiendo uno ↑
                           </p>
                         </div>
@@ -550,36 +593,36 @@ export default function Home() {
 
                   {/* KPIs */}
                   <div className="flex flex-col gap-4">
-                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border shadow-sm">
+                    <div className="bg-card border-border flex items-center justify-between gap-3 rounded-3xl border p-5 shadow-sm">
                       <div className="min-w-0">
-                        <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mb-3">
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
                           <TrendingDown size={20} />
                         </div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                        <p className="text-muted text-xs font-semibold tracking-wider uppercase">
                           Gasto más grande
                         </p>
                         <p
-                          className="font-bold text-sm mt-1 truncate text-primary"
-                          title={kpiSummary?.largest_expense_title || ""}
+                          className="text-primary mt-1 truncate text-sm font-bold"
+                          title={kpiSummary?.largest_expense_title || ''}
                         >
-                          {kpiSummary?.largest_expense_title || "Sin datos"}
+                          {kpiSummary?.largest_expense_title || 'Sin datos'}
                         </p>
                       </div>
-                      <p className="text-2xl font-black text-red-500 tabular-nums shrink-0">
+                      <p className="shrink-0 text-2xl font-black text-red-500 tabular-nums">
                         ${formatCurrency(kpiSummary?.largest_expense || 0)}
                       </p>
                     </div>
 
-                    <div className="rounded-3xl p-5 flex items-center justify-between gap-3 bg-card border border-border shadow-sm">
+                    <div className="bg-card border-border flex items-center justify-between gap-3 rounded-3xl border p-5 shadow-sm">
                       <div className="min-w-0">
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
+                        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
                           <TrendingUp size={20} />
                         </div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+                        <p className="text-muted text-xs font-semibold tracking-wider uppercase">
                           Mayor ingreso
                         </p>
                       </div>
-                      <p className="text-2xl font-black text-emerald-500 tabular-nums shrink-0">
+                      <p className="shrink-0 text-2xl font-black text-emerald-500 tabular-nums">
                         ${formatCurrency(kpiSummary?.largest_income || 0)}
                       </p>
                     </div>

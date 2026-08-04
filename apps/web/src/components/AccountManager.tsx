@@ -1,18 +1,56 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccounts, useCreateAccount, useDeleteAccount, useUpdateAccount } from '@/hooks/usePreferences';
-import { Plus, Trash2, Banknote, CreditCard, PiggyBank, Wallet, Pencil, Check, X } from 'lucide-react';
+import {
+  useAccounts,
+  useCreateAccount,
+  useDeleteAccount,
+  useUpdateAccount,
+} from '@/hooks/usePreferences';
+import {
+  Plus,
+  Trash2,
+  Banknote,
+  CreditCard,
+  PiggyBank,
+  Wallet,
+  Pencil,
+  Check,
+  X,
+} from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import type { Account } from '@/types/api';
 import { formatCurrency } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
-const accountTypeConfig: Record<Account['type'], { label: string; icon: React.ElementType; color: string; bg: string }> = {
-  checking: { label: 'Cuenta corriente', icon: Banknote, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  savings: { label: 'Ahorros', icon: PiggyBank, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-  credit: { label: 'Tarjeta de crédito', icon: CreditCard, color: 'text-violet-500', bg: 'bg-violet-500/10' },
-  cash: { label: 'Efectivo', icon: Wallet, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+const accountTypeConfig: Record<
+  Account['type'],
+  { label: string; icon: React.ElementType; color: string; bg: string }
+> = {
+  checking: {
+    label: 'Cuenta corriente',
+    icon: Banknote,
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+  },
+  savings: {
+    label: 'Ahorros',
+    icon: PiggyBank,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-500/10',
+  },
+  credit: {
+    label: 'Tarjeta de crédito',
+    icon: CreditCard,
+    color: 'text-violet-500',
+    bg: 'bg-violet-500/10',
+  },
+  cash: {
+    label: 'Efectivo',
+    icon: Wallet,
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+  },
 };
 
 export function AccountManager() {
@@ -35,16 +73,19 @@ export function AccountManager() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    createMutation.mutate({
-      name: name.trim(),
-      type,
-      balance: balance ? parseFloat(balance) : 0
-    }, {
-      onSuccess: () => {
-        setName('');
-        setBalance('');
-      }
-    });
+    createMutation.mutate(
+      {
+        name: name.trim(),
+        type,
+        balance: balance ? parseFloat(balance) : 0,
+      },
+      {
+        onSuccess: () => {
+          setName('');
+          setBalance('');
+        },
+      },
+    );
   };
 
   const beginEditing = (account: Account) => {
@@ -76,7 +117,7 @@ export function AccountManager() {
         onSuccess: () => {
           cancelEditing();
         },
-      }
+      },
     );
   };
 
@@ -85,18 +126,18 @@ export function AccountManager() {
       {/* Add form */}
       <form
         onSubmit={handleSubmit}
-        className="space-y-3 rounded-2xl p-3 sm:p-4 bg-card border border-border-subtle"
+        className="bg-card border-border-subtle space-y-3 rounded-2xl border p-3 sm:p-4"
       >
         {/* Row 1: Type */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <div className="shrink-0 sm:w-[160px]">
-            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5 text-muted">
+            <label className="text-muted mb-1 block px-0.5 text-[10px] font-semibold tracking-wider uppercase">
               Tipo
             </label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as Account['type'])}
-              className="w-full rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
+              className="focus:ring-accent/30 bg-card border-border text-primary w-full rounded-xl border px-3 py-2.5 text-sm font-medium focus:ring-2 focus:outline-none"
             >
               <option value="checking">Cta. corriente</option>
               <option value="savings">Ahorros</option>
@@ -104,13 +145,13 @@ export function AccountManager() {
               <option value="cash">Efectivo</option>
             </select>
           </div>
-          <div className="hidden sm:block flex-1" />
+          <div className="hidden flex-1 sm:block" />
         </div>
 
         {/* Row 2: Name */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <div className="flex-1 min-w-0">
-            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5 text-muted">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <label className="text-muted mb-1 block px-0.5 text-[10px] font-semibold tracking-wider uppercase">
               Nombre
             </label>
             <input
@@ -119,38 +160,44 @@ export function AccountManager() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej. Banco Estado"
-              className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
+              className="focus:ring-accent/30 bg-card border-border text-primary w-full rounded-xl border px-3 py-2.5 text-sm focus:ring-2 focus:outline-none"
             />
           </div>
         </div>
 
         {/* Row 2: Balance + Button */}
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-end">
           <div className="flex-1">
-            <label className="text-[10px] font-semibold uppercase tracking-wider mb-1 block px-0.5 text-muted">
+            <label className="text-muted mb-1 block px-0.5 text-[10px] font-semibold tracking-wider uppercase">
               Saldo inicial
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted">$</span>
+              <span className="text-muted absolute top-1/2 left-3 -translate-y-1/2 text-sm font-bold">
+                $
+              </span>
               <input
                 type="number"
                 value={balance}
                 step="1"
                 onChange={(e) => setBalance(e.target.value)}
                 placeholder="0"
-                className="w-full rounded-xl pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
+                className="focus:ring-accent/30 bg-card border-border text-primary w-full rounded-xl border py-2.5 pr-3 pl-7 text-sm focus:ring-2 focus:outline-none"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={!name.trim() || createMutation.isPending}
-            className="bg-accent hover:bg-emerald-600 disabled:opacity-50 text-white h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
+            className="bg-accent flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
           >
-            {createMutation.isPending
-              ? <LoadingSpinner size="sm" color="white" />
-              : <><Plus size={15} /><span>Agregar cuenta</span></>
-            }
+            {createMutation.isPending ? (
+              <LoadingSpinner size="sm" color="white" />
+            ) : (
+              <>
+                <Plus size={15} />
+                <span>Agregar cuenta</span>
+              </>
+            )}
           </button>
         </div>
       </form>
@@ -162,44 +209,53 @@ export function AccountManager() {
         </div>
       ) : accounts.length > 0 ? (
         <div className="space-y-2">
-          {accounts.map(acc => {
-            const cfg = accountTypeConfig[acc.type] || accountTypeConfig.checking;
+          {accounts.map((acc) => {
+            const cfg =
+              accountTypeConfig[acc.type] || accountTypeConfig.checking;
             const Icon = cfg.icon;
             return (
               <div
                 key={acc.id}
-                className={`rounded-xl px-3 py-2.5 transition-colors bg-card border ${
-                  editingAccountId === acc.id ? 'border-border' : 'border-border-subtle'
+                className={`bg-card rounded-xl border px-3 py-2.5 transition-colors ${
+                  editingAccountId === acc.id
+                    ? 'border-border'
+                    : 'border-border-subtle'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   {/* Icon */}
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${cfg.bg}`}>
+                  <div
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${cfg.bg}`}
+                  >
                     <Icon size={15} className={cfg.color} />
                   </div>
 
                   {/* Name + type stacked */}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate leading-tight text-primary">
+                    <p className="text-primary truncate text-sm leading-tight font-medium">
                       {acc.name}
                     </p>
-                    <p className="text-[10px] leading-tight mt-0.5 truncate text-muted">
+                    <p className="text-muted mt-0.5 truncate text-[10px] leading-tight">
                       {cfg.label}
                     </p>
                   </div>
 
                   {/* Balance */}
-                  <p className={`font-bold text-sm shrink-0 ${acc.balance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  <p
+                    className={`shrink-0 text-sm font-bold ${acc.balance >= 0 ? 'text-emerald-500' : 'text-red-500'}`}
+                  >
                     ${formatCurrency(acc.balance)}
                   </p>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => beginEditing(acc)}
-                      disabled={updateMutation.isPending || deleteMutation.isPending}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors bg-inset border border-border text-primary hover:bg-card-hover"
+                      disabled={
+                        updateMutation.isPending || deleteMutation.isPending
+                      }
+                      className="bg-inset border-border text-primary hover:bg-card-hover inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors"
                       aria-label={`Editar cuenta ${acc.name}`}
                       title="Editar"
                     >
@@ -208,8 +264,10 @@ export function AccountManager() {
                     <button
                       type="button"
                       onClick={() => setAccountToDelete(acc.id)}
-                      disabled={deleteMutation.isPending || updateMutation.isPending}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors text-red-500 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20"
+                      disabled={
+                        deleteMutation.isPending || updateMutation.isPending
+                      }
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition-colors hover:bg-red-500/20"
                       aria-label={`Eliminar cuenta ${acc.name}`}
                       title="Eliminar"
                     >
@@ -219,7 +277,7 @@ export function AccountManager() {
                 </div>
 
                 {editingAccountId === acc.id && (
-                  <div className="mt-2.5 space-y-2.5 rounded-xl p-2.5 bg-inset border border-border-subtle">
+                  <div className="bg-inset border-border-subtle mt-2.5 space-y-2.5 rounded-xl border p-2.5">
                     <div className="grid grid-cols-[1fr_auto] gap-2">
                       <input
                         autoFocus
@@ -235,16 +293,18 @@ export function AccountManager() {
                             cancelEditing();
                           }
                         }}
-                        className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
+                        className="focus:ring-accent/30 bg-card border-border text-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                       />
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted">$</span>
+                        <span className="text-muted absolute top-1/2 left-3 -translate-y-1/2 text-sm font-bold">
+                          $
+                        </span>
                         <input
                           type="number"
                           step="1"
                           value={editBalance}
                           onChange={(e) => setEditBalance(e.target.value)}
-                          className="w-28 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
+                          className="focus:ring-accent/30 bg-card border-border text-primary w-28 rounded-lg border py-2 pr-3 pl-7 text-sm focus:ring-2 focus:outline-none"
                         />
                       </div>
                     </div>
@@ -252,8 +312,10 @@ export function AccountManager() {
                     <div className="flex items-center justify-between gap-2">
                       <select
                         value={editType}
-                        onChange={(e) => setEditType(e.target.value as Account['type'])}
-                        className="min-w-0 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent/30 bg-card border border-border text-primary"
+                        onChange={(e) =>
+                          setEditType(e.target.value as Account['type'])
+                        }
+                        className="focus:ring-accent/30 bg-card border-border text-primary min-w-0 rounded-lg border px-3 py-2 text-sm font-medium focus:ring-2 focus:outline-none"
                       >
                         <option value="checking">Cuenta corriente</option>
                         <option value="savings">Ahorros</option>
@@ -265,17 +327,23 @@ export function AccountManager() {
                         <button
                           type="button"
                           onClick={() => saveAccount(acc.id)}
-                          disabled={!editName.trim() || updateMutation.isPending}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white transition-colors disabled:opacity-50 bg-emerald-500 hover:bg-emerald-600"
+                          disabled={
+                            !editName.trim() || updateMutation.isPending
+                          }
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
                           aria-label="Guardar cambios"
                           title="Guardar"
                         >
-                          {updateMutation.isPending ? <LoadingSpinner size="sm" color="white" /> : <Check size={14} />}
+                          {updateMutation.isPending ? (
+                            <LoadingSpinner size="sm" color="white" />
+                          ) : (
+                            <Check size={14} />
+                          )}
                         </button>
                         <button
                           type="button"
                           onClick={cancelEditing}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors bg-card border border-border text-secondary hover:text-primary"
+                          className="bg-card border-border text-secondary hover:text-primary inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors"
                           aria-label="Cancelar edición"
                           title="Cancelar"
                         >
@@ -290,8 +358,9 @@ export function AccountManager() {
           })}
         </div>
       ) : (
-        <p className="text-sm text-center py-4 text-muted">
-          Aún no tienes cuentas. Agrega una para empezar a registrar tus movimientos.
+        <p className="text-muted py-4 text-center text-sm">
+          Aún no tienes cuentas. Agrega una para empezar a registrar tus
+          movimientos.
         </p>
       )}
 

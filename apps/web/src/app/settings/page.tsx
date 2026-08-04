@@ -3,8 +3,16 @@
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import {
-  LogOut, Wallet, Users, Code2,
-  LayoutGrid, Sun, CheckCircle2, Hash, Scale, ChevronRight
+  LogOut,
+  Wallet,
+  Users,
+  Code2,
+  LayoutGrid,
+  Sun,
+  CheckCircle2,
+  Hash,
+  Scale,
+  ChevronRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -31,11 +39,15 @@ export default function SettingsPage() {
   };
 
   const toggleSection = (id: SectionId) => {
-    setOpenSection(prev => (prev === id ? null : id));
+    setOpenSection((prev) => (prev === id ? null : id));
   };
 
   const user = session?.user;
-  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.display_name || user?.email || 'Usuario';
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.display_name ||
+    user?.email ||
+    'Usuario';
   const email = user?.email || '';
   const avatarUrl = user?.user_metadata?.avatar_url;
   const initials = displayName
@@ -117,30 +129,27 @@ export default function SettingsPage() {
   const IntegrationIcon = integrationSection.icon;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-10">
-        <div className="max-w-2xl mx-auto">
-
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-y-auto px-4 pb-10 sm:px-6">
+        <div className="mx-auto max-w-2xl">
           {/* ── Profile Header ── */}
-          <div className="pt-8 pb-6 flex flex-col items-center text-center">
+          <div className="flex flex-col items-center pt-8 pb-6 text-center">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={avatarUrl}
                 alt="Avatar"
-                className="w-20 h-20 rounded-full object-cover mb-3 ring-2 ring-border shadow-sm"
+                className="ring-border mb-3 h-20 w-20 rounded-full object-cover shadow-sm ring-2"
               />
             ) : (
-              <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold mb-3 bg-card text-secondary border border-border shadow-sm">
+              <div className="bg-card text-secondary border-border mb-3 flex h-20 w-20 items-center justify-center rounded-full border text-2xl font-bold shadow-sm">
                 {initials}
               </div>
             )}
-            <h1 className="text-xl font-bold text-primary">
-              {displayName}
-            </h1>
-            <div className="flex items-center gap-1.5 mt-1">
-              <p className="text-sm text-muted">{email}</p>
-              <span className="flex items-center gap-0.5 text-emerald-500 text-xs font-semibold">
+            <h1 className="text-primary text-xl font-bold">{displayName}</h1>
+            <div className="mt-1 flex items-center gap-1.5">
+              <p className="text-muted text-sm">{email}</p>
+              <span className="flex items-center gap-0.5 text-xs font-semibold text-emerald-500">
                 <CheckCircle2 size={12} />
                 Verificado
               </span>
@@ -149,17 +158,21 @@ export default function SettingsPage() {
 
           {/* ── Apariencia ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
+            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
               Apariencia
             </p>
-            <div className="rounded-3xl p-4 flex items-center justify-between bg-card border border-border shadow-sm">
+            <div className="bg-card border-border flex items-center justify-between rounded-3xl border p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
                   <Sun size={17} className="text-amber-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-primary">Modo de pantalla</p>
-                  <p className="text-xs text-muted">Claro, oscuro o automático</p>
+                  <p className="text-primary text-sm font-semibold">
+                    Modo de pantalla
+                  </p>
+                  <p className="text-muted text-xs">
+                    Claro, oscuro o automático
+                  </p>
                 </div>
               </div>
               <ThemeToggle />
@@ -168,7 +181,7 @@ export default function SettingsPage() {
 
           {/* ── Finanzas (Accordion) ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
+            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
               Finanzas
             </p>
             <div className="space-y-3">
@@ -193,7 +206,7 @@ export default function SettingsPage() {
 
           {/* ── Integraciones ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
+            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
               Integraciones
             </p>
             <SettingsAccordionSection
@@ -213,19 +226,21 @@ export default function SettingsPage() {
 
           {/* ── Legal ── */}
           <div className="mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-widest mb-2 px-1 text-muted">
+            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
               Legal
             </p>
             <Link
               href="/settings/legal"
-              className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors bg-card border border-border hover:bg-card-hover shadow-sm"
+              className="bg-card border-border hover:bg-card-hover flex w-full items-center gap-3.5 rounded-3xl border p-4 shadow-sm transition-colors"
             >
-              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10">
                 <Scale size={17} className="text-indigo-500" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-sm font-semibold text-primary">Información legal</p>
-                <p className="text-xs text-muted">
+                <p className="text-primary text-sm font-semibold">
+                  Información legal
+                </p>
+                <p className="text-muted text-xs">
                   Licencia, términos y privacidad
                 </p>
               </div>
@@ -238,34 +253,38 @@ export default function SettingsPage() {
             {!showLogoutConfirm ? (
               <button
                 onClick={() => setShowLogoutConfirm(true)}
-                className="w-full rounded-3xl p-4 flex items-center gap-3.5 transition-colors bg-card border border-border hover:bg-card-hover shadow-sm"
+                className="bg-card border-border hover:bg-card-hover flex w-full items-center gap-3.5 rounded-3xl border p-4 shadow-sm transition-colors"
               >
-                <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10">
                   <LogOut size={17} className="text-red-500" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-red-500">Cerrar sesión</p>
-                  <p className="text-xs text-muted">
+                  <p className="text-sm font-semibold text-red-500">
+                    Cerrar sesión
+                  </p>
+                  <p className="text-muted text-xs">
                     Salir de tu cuenta en este dispositivo
                   </p>
                 </div>
               </button>
             ) : (
-              <div className="rounded-3xl p-4 bg-red-500/5 border border-red-500/20">
-                <p className="text-sm font-semibold text-red-500 mb-1">¿Seguro que quieres salir?</p>
-                <p className="text-xs mb-4 text-muted">
+              <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-4">
+                <p className="mb-1 text-sm font-semibold text-red-500">
+                  ¿Seguro que quieres salir?
+                </p>
+                <p className="text-muted mb-4 text-xs">
                   Tendrás que iniciar sesión otra vez para acceder a tu cuenta.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 py-2 rounded-xl text-sm font-medium transition-colors bg-inset text-secondary border border-border hover:bg-card"
+                    className="bg-inset text-secondary border-border hover:bg-card flex-1 rounded-xl border py-2 text-sm font-medium transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="flex-1 py-2 rounded-xl text-sm font-semibold bg-red-500 hover:bg-red-600 text-white transition-colors"
+                    className="flex-1 rounded-xl bg-red-500 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600"
                   >
                     Sí, cerrar sesión
                   </button>
@@ -275,10 +294,10 @@ export default function SettingsPage() {
           </div>
 
           {/* Footer */}
-          <p className="text-center text-xs pb-4 text-muted">
-            Seva Web · Tus finanzas, tu control · Versión {process.env.NEXT_PUBLIC_APP_VERSION}
+          <p className="text-muted pb-4 text-center text-xs">
+            Seva Web · Tus finanzas, tu control · Versión{' '}
+            {process.env.NEXT_PUBLIC_APP_VERSION}
           </p>
-
         </div>
       </div>
     </div>

@@ -9,7 +9,12 @@ import { format } from 'date-fns';
 import { X, ChevronDown, Users, Calendar } from 'lucide-react';
 import { formatDateAbbreviated } from '@/lib/utils';
 import { useDeleteTransaction } from '@/hooks/useDashboardData';
-import { useCategories, useAccounts, useTags, useGroups } from '@/hooks/usePreferences';
+import {
+  useCategories,
+  useAccounts,
+  useTags,
+  useGroups,
+} from '@/hooks/usePreferences';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
 import { CustomSelect } from './CustomSelect';
@@ -45,34 +50,50 @@ type ApiErrorResponse = {
   error?: string;
 };
 
-function getInitialSplitPercentages(transaction?: Transaction | null): Record<string, number> {
+function getInitialSplitPercentages(
+  transaction?: Transaction | null,
+): Record<string, number> {
   if (!transaction?.splits?.length) {
     return {};
   }
 
-  return transaction.splits.reduce<Record<string, number>>((accumulator, split) => {
-    accumulator[split.user_id] = split.percentage;
-    return accumulator;
-  }, {});
+  return transaction.splits.reduce<Record<string, number>>(
+    (accumulator, split) => {
+      accumulator[split.user_id] = split.percentage;
+      return accumulator;
+    },
+    {},
+  );
 }
 
-function getEqualSplitPercentages(members: Array<{ user_id: string }>): Record<string, number> {
+function getEqualSplitPercentages(
+  members: Array<{ user_id: string }>,
+): Record<string, number> {
   if (members.length === 0) {
     return {};
   }
 
   const equalPct = Math.floor(100 / members.length);
-  return members.reduce<Record<string, number>>((accumulator, member, index) => {
-    accumulator[member.user_id] = index === 0 ? 100 - equalPct * (members.length - 1) : equalPct;
-    return accumulator;
-  }, {});
+  return members.reduce<Record<string, number>>(
+    (accumulator, member, index) => {
+      accumulator[member.user_id] =
+        index === 0 ? 100 - equalPct * (members.length - 1) : equalPct;
+      return accumulator;
+    },
+    {},
+  );
 }
 
-export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) {
+export function CreateTransactionModal({
+  isOpen,
+  onClose,
+  initialData,
+}: Props) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   // Fetch dynamic categories
-  const { data: categoriesData, isLoading: isLoadingCategories } = useCategories();
+  const { data: categoriesData, isLoading: isLoadingCategories } =
+    useCategories();
   const categories = categoriesData?.categories || [];
 
   // Fetch dynamic accounts
@@ -90,22 +111,43 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   const initialSplitPercentages = getInitialSplitPercentages(initialData);
 
   // Form State
-  const [type, setType] = useState<'expense' | 'income'>(initialData?.type ?? 'expense');
+  const [type, setType] = useState<'expense' | 'income'>(
+    initialData?.type ?? 'expense',
+  );
   const [title, setTitle] = useState(initialData?.title ?? '');
-  const [amount, setAmount] = useState(initialData ? new Intl.NumberFormat('es-CL').format(initialData.amount) : '');
-  const [categoryId, setCategoryId] = useState<number | ''>(initialData?.category_id || '');
-  const [accountId, setAccountId] = useState<number | ''>(initialData?.account_id || '');
+  const [amount, setAmount] = useState(
+    initialData
+      ? new Intl.NumberFormat('es-CL').format(initialData.amount)
+      : '',
+  );
+  const [categoryId, setCategoryId] = useState<number | ''>(
+    initialData?.category_id || '',
+  );
+  const [accountId, setAccountId] = useState<number | ''>(
+    initialData?.account_id || '',
+  );
   const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
-  const [date, setDate] = useState(initialData ? format(new Date(initialData.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState(
+    initialData
+      ? format(new Date(initialData.date), 'yyyy-MM-dd')
+      : format(new Date(), 'yyyy-MM-dd'),
+  );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successSnapshot, setSuccessSnapshot] = useState<{ amount: string; type: 'expense' | 'income' } | null>(null);
+  const [successSnapshot, setSuccessSnapshot] = useState<{
+    amount: string;
+    type: 'expense' | 'income';
+  } | null>(null);
 
   // Shared expense state
   const [isShared, setIsShared] = useState(Boolean(initialData?.is_shared));
-  const [groupId, setGroupId] = useState<number | ''>(initialData?.group_id || '');
-  const [splitPercentages, setSplitPercentages] = useState<Record<string, number>>(initialSplitPercentages);
+  const [groupId, setGroupId] = useState<number | ''>(
+    initialData?.group_id || '',
+  );
+  const [splitPercentages, setSplitPercentages] = useState<
+    Record<string, number>
+  >(initialSplitPercentages);
 
   // Installment (Cuotas) State
   const [isInstallments, setIsInstallments] = useState(false);
@@ -128,7 +170,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   };
 
   // Get currently selected group
-  const selectedGroup = groups.find(g => g.id === groupId);
+  const selectedGroup = groups.find((g) => g.id === groupId);
 
   const mutation = useMutation({
     mutationFn: async (newTx: TransactionPayload) => {
@@ -152,8 +194,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     },
     onError: (err: AxiosError<ApiErrorResponse> | Error) => {
       const msg = isAxiosError<ApiErrorResponse>(err)
-        ? (err.response?.data?.error || err.message || 'Failed to save transaction. Try again.')
-        : (err.message || 'Failed to save transaction. Try again.');
+        ? err.response?.data?.error ||
+          err.message ||
+          'Failed to save transaction. Try again.'
+        : err.message || 'Failed to save transaction. Try again.';
       setError(msg);
       setLoading(false);
     },
@@ -166,7 +210,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
       deleteMutation.mutate(initialData.id, {
         onSuccess: () => {
           resetAndClose();
-        }
+        },
       });
     }
   };
@@ -198,7 +242,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     if (isShared && groupId && selectedGroup) {
       payload.is_shared = 1;
       payload.group_id = groupId;
-      payload.splits = selectedGroup.members.map(m => ({
+      payload.splits = selectedGroup.members.map((m) => ({
         user_id: m.user_id,
         percentage: splitPercentages[m.user_id] || 0,
       }));
@@ -208,7 +252,7 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
     }
 
     mutation.mutate(payload, {
-       onSettled: () => setLoading(false)
+      onSettled: () => setLoading(false),
     });
   };
 
@@ -220,7 +264,12 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
   if (!isOpen) return null;
 
   if (showSuccess && successSnapshot) {
-    return <TransactionSuccessOverlay amount={successSnapshot.amount} type={successSnapshot.type} />;
+    return (
+      <TransactionSuccessOverlay
+        amount={successSnapshot.amount}
+        type={successSnapshot.type}
+      />
+    );
   }
 
   return (
@@ -239,119 +288,164 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
         />
       }
     >
-        <div className="sticky top-0 z-30 flex items-center justify-between bg-card/90 px-4 pb-4 pt-5 backdrop-blur sm:p-6">
-          <button type="button" onClick={resetAndClose} className="px-5 py-2.5 bg-inset text-primary rounded-full font-semibold text-sm sm:hidden hover:bg-border transition-colors">
-            Cancelar
-          </button>
-          
-          <h2 className="text-lg sm:text-xl font-bold text-primary absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0">
-            {initialData ? 'Editar' : (type === 'expense' ? 'Agregar gasto' : 'Agregar ingreso')}
-          </h2>
-          
-          <button 
-            type="submit" 
-            form="transaction-form" 
-            disabled={loading || !title || !amount || categoryId === '' || accountId === '' || (isShared && groupId !== '' && selectedGroup != null && Object.values(splitPercentages).reduce((a, b) => a + b, 0) !== 100)}
-            className="px-5 py-2.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full font-bold text-sm sm:hidden disabled:opacity-50 transition-colors"
-          >
-            Guardar
-          </button>
+      <div className="bg-card/90 sticky top-0 z-30 flex items-center justify-between px-4 pt-5 pb-4 backdrop-blur sm:p-6">
+        <button
+          type="button"
+          onClick={resetAndClose}
+          className="bg-inset text-primary hover:bg-border rounded-full px-5 py-2.5 text-sm font-semibold transition-colors sm:hidden"
+        >
+          Cancelar
+        </button>
 
-          <button onClick={resetAndClose} className="hidden sm:block p-2 bg-inset rounded-full text-muted hover:text-white hover:bg-card-hover transition-colors">
-            <X size={20} />
+        <h2 className="text-primary absolute left-1/2 -translate-x-1/2 text-lg font-bold sm:static sm:translate-x-0 sm:text-xl">
+          {initialData
+            ? 'Editar'
+            : type === 'expense'
+              ? 'Agregar gasto'
+              : 'Agregar ingreso'}
+        </h2>
+
+        <button
+          type="submit"
+          form="transaction-form"
+          disabled={
+            loading ||
+            !title ||
+            !amount ||
+            categoryId === '' ||
+            accountId === '' ||
+            (isShared &&
+              groupId !== '' &&
+              selectedGroup != null &&
+              Object.values(splitPercentages).reduce((a, b) => a + b, 0) !==
+                100)
+          }
+          className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-600 transition-colors disabled:opacity-50 sm:hidden dark:text-emerald-400"
+        >
+          Guardar
+        </button>
+
+        <button
+          onClick={resetAndClose}
+          className="bg-inset text-muted hover:bg-card-hover hidden rounded-full p-2 transition-colors hover:text-white sm:block"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="p-6">
+        {/* Type Toggle */}
+        <div className="bg-inset mb-6 flex rounded-xl p-1">
+          <button
+            onClick={() => setType('expense')}
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+          >
+            Gasto
+          </button>
+          <button
+            onClick={() => setType('income')}
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+          >
+            Ingreso
           </button>
         </div>
 
-        <div className="p-6">
-          {/* Type Toggle */}
-          <div className="flex bg-inset rounded-xl p-1 mb-6">
-            <button
-              onClick={() => setType('expense')}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-            >
-              Gasto
-            </button>
-            <button
-              onClick={() => setType('income')}
-              className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-            >
-              Ingreso
-            </button>
-          </div>
-
-          <form id="transaction-form" onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Amount & Date - Ultra minimalist top */}
-            <div className="flex flex-col items-center justify-center mb-6 mt-4">
-              <div className="relative inline-flex items-baseline mb-3">
-                <span
-                  className="text-2xl font-bold mr-1"
-                  style={{ color: type === 'expense' ? 'var(--color-expense)' : 'var(--color-income)' }}
-                >
-                  $
-                </span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  required
-                  value={amount}
-                  onChange={(e) => {
-                    const rawValue = e.target.value.replace(/\D/g, '');
-                    if (!rawValue) {
-                      setAmount('');
-                      return;
-                    }
-                    setAmount(new Intl.NumberFormat('es-CL').format(parseInt(rawValue, 10)));
-                  }}
-                  className="bg-transparent text-center focus:outline-none text-2xl font-extrabold p-0 min-w-25 max-w-62.5 placeholder:text-muted"
-                  style={{
-                    width: `${Math.max(amount.length, 1) * 1.1}ch`,
-                    color: type === 'expense' ? 'var(--color-expense)' : 'var(--color-income)',
-                  }}
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Center Date Pill */}
-              <div className="relative inline-block">
-                <div className="bg-black dark:bg-white text-white dark:text-black rounded-full px-4 py-2 flex items-center gap-2 text-xs font-bold cursor-pointer hover:opacity-80 transition-opacity shadow-sm">
-                  <Calendar size={14} />
-                  <span>{formatDateAbbreviated(date)}</span>
-                  <ChevronDown size={14} />
-                </div>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* Detail */}
-            <div>
-              <label className="block text-sm font-semibold text-secondary mb-2">Detalle de la compra</label>
+        <form
+          id="transaction-form"
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
+          {/* Amount & Date - Ultra minimalist top */}
+          <div className="mt-4 mb-6 flex flex-col items-center justify-center">
+            <div className="relative mb-3 inline-flex items-baseline">
+              <span
+                className="mr-1 text-2xl font-bold"
+                style={{
+                  color:
+                    type === 'expense'
+                      ? 'var(--color-expense)'
+                      : 'var(--color-income)',
+                }}
+              >
+                $
+              </span>
               <input
                 type="text"
-                required={false}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-inset rounded-full px-5 py-3.5 text-primary placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-medium text-base"
-                placeholder="Algún detalle para no olvidar?..."
+                inputMode="numeric"
+                required
+                value={amount}
+                onChange={(e) => {
+                  const rawValue = e.target.value.replace(/\D/g, '');
+                  if (!rawValue) {
+                    setAmount('');
+                    return;
+                  }
+                  setAmount(
+                    new Intl.NumberFormat('es-CL').format(
+                      parseInt(rawValue, 10),
+                    ),
+                  );
+                }}
+                className="placeholder:text-muted max-w-62.5 min-w-25 bg-transparent p-0 text-center text-2xl font-extrabold focus:outline-none"
+                style={{
+                  width: `${Math.max(amount.length, 1) * 1.1}ch`,
+                  color:
+                    type === 'expense'
+                      ? 'var(--color-expense)'
+                      : 'var(--color-income)',
+                }}
+                placeholder="0"
               />
             </div>
 
+            {/* Center Date Pill */}
+            <div className="relative inline-block">
+              <div className="flex cursor-pointer items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-80 dark:bg-white dark:text-black">
+                <Calendar size={14} />
+                <span>{formatDateAbbreviated(date)}</span>
+                <ChevronDown size={14} />
+              </div>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+              />
+            </div>
+          </div>
 
+          {/* Detail */}
+          <div>
+            <label className="text-secondary mb-2 block text-sm font-semibold">
+              Detalle de la compra
+            </label>
+            <input
+              type="text"
+              required={false}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="bg-inset text-primary placeholder:text-muted focus:ring-border w-full rounded-full px-5 py-3.5 text-base font-medium transition-colors duration-200 focus:ring-1 focus:outline-none"
+              placeholder="Algún detalle para no olvidar?..."
+            />
+          </div>
 
-            {/* Category Bento Grid */}
-            <div>
-              <label className="block text-sm font-semibold text-secondary mb-3">Categoría</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {isLoadingCategories ? (
-                  Array(6).fill(0).map((_, i) => <div key={i} className="aspect-square bg-inset animate-pulse rounded-2xl" />)
-                ) : (
-                  categories
+          {/* Category Bento Grid */}
+          <div>
+            <label className="text-secondary mb-3 block text-sm font-semibold">
+              Categoría
+            </label>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {isLoadingCategories
+                ? Array(6)
+                    .fill(0)
+                    .map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-inset aspect-square animate-pulse rounded-2xl"
+                      />
+                    ))
+                : categories
                     .filter((cat) => cat.type === type)
                     .map((cat) => {
                       const isSelected = categoryId === cat.id;
@@ -362,231 +456,284 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                           key={cat.id}
                           type="button"
                           onClick={() => setCategoryId(cat.id)}
-                          className={`flex flex-col items-center justify-center p-2 pt-4 pb-3 aspect-square rounded-2xl border transition-all ${
+                          className={`flex aspect-square flex-col items-center justify-center rounded-2xl border p-2 pt-4 pb-3 transition-all ${
                             isSelected
-                              ? 'bg-orange-500/10 border-orange-400/50 scale-[1.02] shadow-sm'
+                              ? 'scale-[1.02] border-orange-400/50 bg-orange-500/10 shadow-sm'
                               : 'bg-card border-border hover:bg-card-hover'
                           }`}
                         >
-                          <span className="text-2xl mb-1">{cat.icon || '🏷️'}</span>
-                          <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-center px-1 leading-tight ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}>
+                          <span className="mb-1 text-2xl">
+                            {cat.icon || '🏷️'}
+                          </span>
+                          <span
+                            className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}
+                          >
                             {cat.name}
                           </span>
                         </button>
                       );
-                    })
-                )}
-              </div>
+                    })}
             </div>
+          </div>
 
-            {/* Accounts Bento Grid */}
-            <div>
-              <label className="block text-sm font-semibold text-secondary mb-3">Cuenta</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {isLoadingAccounts ? (
-                  Array(3).fill(0).map((_, i) => <div key={i} className="h-16 bg-inset animate-pulse rounded-2xl" />)
-                ) : (
-                  accounts.map((acc) => {
+          {/* Accounts Bento Grid */}
+          <div>
+            <label className="text-secondary mb-3 block text-sm font-semibold">
+              Cuenta
+            </label>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {isLoadingAccounts
+                ? Array(3)
+                    .fill(0)
+                    .map((_, i) => (
+                      <div
+                        key={i}
+                        className="bg-inset h-16 animate-pulse rounded-2xl"
+                      />
+                    ))
+                : accounts.map((acc) => {
                     const isSelected = accountId === acc.id;
                     const getIcon = (t: string) => {
-                       switch(t.toLowerCase()) {
-                         case 'cash': return '💵';
-                         case 'bank': return '🏦';
-                         case 'credit': return '💳';
-                         case 'investment': return '📈';
-                         default: return '💰';
-                       }
+                      switch (t.toLowerCase()) {
+                        case 'cash':
+                          return '💵';
+                        case 'bank':
+                          return '🏦';
+                        case 'credit':
+                          return '💳';
+                        case 'investment':
+                          return '📈';
+                        default:
+                          return '💰';
+                      }
                     };
                     return (
                       <button
                         key={acc.id}
                         type="button"
                         onClick={() => setAccountId(acc.id)}
-                        className={`flex flex-col items-center justify-center p-2 pt-3 pb-2 rounded-2xl border transition-all ${
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-2 pt-3 pb-2 transition-all ${
                           isSelected
-                            ? 'bg-blue-500/10 border-blue-400/50 scale-[1.02] shadow-sm'
+                            ? 'scale-[1.02] border-blue-400/50 bg-blue-500/10 shadow-sm'
                             : 'bg-card border-border hover:bg-card-hover'
                         }`}
                       >
-                        <span className="text-xl mb-1">{getIcon(acc.type)}</span>
-                        <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wide text-center px-1 leading-tight ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
+                        <span className="mb-1 text-xl">
+                          {getIcon(acc.type)}
+                        </span>
+                        <span
+                          className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}
+                        >
                           {acc.name}
                         </span>
                       </button>
                     );
-                  })
-                )}
-              </div>
+                  })}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-[10px] font-bold uppercase text-secondary mb-2 ml-1">Tags</label>
-              <div className="flex flex-wrap gap-2">
-                {isLoadingTags ? (
-                  <div className="h-8 w-full animate-pulse bg-inset rounded-lg"></div>
-                ) : (
-                  tags.map(tag => {
-                    const isSelected = tagIds.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => {
-                          if (isSelected) {
-                            setTagIds(tagIds.filter(id => id !== tag.id));
-                          } else {
-                            setTagIds([...tagIds, tag.id]);
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                          isSelected 
-                            ? 'bg-primary text-card border-primary shadow-sm scale-105' 
-                            : 'bg-inset text-muted border-border hover:border-border-subtle'
-                        }`}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
+          <div>
+            <label className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase">
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {isLoadingTags ? (
+                <div className="bg-inset h-8 w-full animate-pulse rounded-lg"></div>
+              ) : (
+                tags.map((tag) => {
+                  const isSelected = tagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setTagIds(tagIds.filter((id) => id !== tag.id));
+                        } else {
+                          setTagIds([...tagIds, tag.id]);
+                        }
+                      }}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
+                        isSelected
+                          ? 'bg-primary text-card border-primary scale-105 shadow-sm'
+                          : 'bg-inset text-muted border-border hover:border-border-subtle'
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })
+              )}
             </div>
+          </div>
 
-            {/* Installments (Cuotas) Section */}
-            {type === 'expense' && !initialData && (
-              <div className="border-t border-border pt-4 mt-2">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="flex items-center gap-2 text-xs font-bold uppercase text-secondary">
-                    <Calendar size={14} className={isInstallments ? 'text-orange-400' : ''} />
-                    Pagar en cuotas
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const nextVal = !isInstallments;
-                      setIsInstallments(nextVal);
-                      if (nextVal) {
-                        setInstallments(3); // default to 3 cuotas
-                      } else {
-                        setInstallments(1);
-                      }
-                    }}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      isInstallments ? 'bg-orange-500' : 'bg-border'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+          {/* Installments (Cuotas) Section */}
+          {type === 'expense' && !initialData && (
+            <div className="border-border mt-2 border-t pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <label className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
+                  <Calendar
+                    size={14}
+                    className={isInstallments ? 'text-orange-400' : ''}
+                  />
+                  Pagar en cuotas
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !isInstallments;
+                    setIsInstallments(nextVal);
+                    if (nextVal) {
+                      setInstallments(3); // default to 3 cuotas
+                    } else {
+                      setInstallments(1);
+                    }
+                  }}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${
+                    isInstallments ? 'bg-orange-500' : 'bg-border'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
                       isInstallments ? 'translate-x-5' : 'translate-x-0'
-                    }`} />
-                  </button>
-                </div>
+                    }`}
+                  />
+                </button>
+              </div>
 
-                {isInstallments && (
-                  <div className="space-y-3 animate-in fade-in duration-200">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase text-secondary mb-2">Cantidad de cuotas</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          min={2}
-                          max={36}
-                          required
-                          value={installments}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10);
-                            setInstallments(isNaN(val) ? 2 : Math.max(2, Math.min(36, val)));
-                          }}
-                          className="w-20 bg-inset rounded-full px-4 py-2.5 text-primary focus:outline-none focus:ring-1 focus:ring-border transition-colors duration-200 font-bold text-center text-sm"
-                        />
-                        <div className="flex gap-1">
-                          {[3, 6, 12, 18, 24].map((num) => (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => setInstallments(num)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                                installments === num
-                                  ? 'bg-orange-500 text-white border-orange-500'
-                                  : 'bg-inset text-muted border-border hover:border-orange-500/50 hover:text-orange-300'
-                              }`}
-                            >
-                              {num}
-                            </button>
-                          ))}
-                        </div>
+              {isInstallments && (
+                <div className="animate-in fade-in space-y-3 duration-200">
+                  <div>
+                    <label className="text-secondary mb-2 block text-xs font-semibold uppercase">
+                      Cantidad de cuotas
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={2}
+                        max={36}
+                        required
+                        value={installments}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setInstallments(
+                            isNaN(val) ? 2 : Math.max(2, Math.min(36, val)),
+                          );
+                        }}
+                        className="bg-inset text-primary focus:ring-border w-20 rounded-full px-4 py-2.5 text-center text-sm font-bold transition-colors duration-200 focus:ring-1 focus:outline-none"
+                      />
+                      <div className="flex gap-1">
+                        {[3, 6, 12, 18, 24].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setInstallments(num)}
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
+                              installments === num
+                                ? 'border-orange-500 bg-orange-500 text-white'
+                                : 'bg-inset text-muted border-border hover:border-orange-500/50 hover:text-orange-300'
+                            }`}
+                          >
+                            {num}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    {(() => {
-                      const parsedAmt = amount ? parseInt(amount.replace(/\./g, ''), 10) : 0;
-                      if (parsedAmt > 0 && installments >= 2) {
-                        const baseAmt = Math.floor(parsedAmt / installments);
-                        const remainder = parsedAmt - baseAmt * installments;
-                        const firstAmt = baseAmt + remainder;
-                        const otherAmt = baseAmt;
-                        return (
-                          <p className="text-xs text-secondary italic">
-                            Se crearán {installments} transacciones mensuales de{' '}
-                            <span className="font-bold text-primary">
-                              ${firstAmt.toLocaleString('es-CL')}
-                            </span>{' '}
-                            (primera cuota) y{' '}
-                            <span className="font-bold text-primary">
-                              ${otherAmt.toLocaleString('es-CL')}
-                            </span>{' '}
-                            (restantes).
-                          </p>
-                        );
-                      }
-                      return null;
-                    })()}
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Shared Expense Section */}
-            {groups.length > 0 && (
-              <div className="border-t border-border pt-4 mt-2">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="flex items-center gap-2 text-xs font-bold uppercase text-secondary">
-                    <Users size={14} className={isShared ? 'text-violet-400' : ''} />
-                    Gasto Compartido
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsShared(!isShared)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      isShared ? 'bg-violet-500' : 'bg-border'
-                    }`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                      isShared ? 'translate-x-5' : 'translate-x-0'
-                    }`} />
-                  </button>
+                  {(() => {
+                    const parsedAmt = amount
+                      ? parseInt(amount.replace(/\./g, ''), 10)
+                      : 0;
+                    if (parsedAmt > 0 && installments >= 2) {
+                      const baseAmt = Math.floor(parsedAmt / installments);
+                      const remainder = parsedAmt - baseAmt * installments;
+                      const firstAmt = baseAmt + remainder;
+                      const otherAmt = baseAmt;
+                      return (
+                        <p className="text-secondary text-xs italic">
+                          Se crearán {installments} transacciones mensuales de{' '}
+                          <span className="text-primary font-bold">
+                            ${firstAmt.toLocaleString('es-CL')}
+                          </span>{' '}
+                          (primera cuota) y{' '}
+                          <span className="text-primary font-bold">
+                            ${otherAmt.toLocaleString('es-CL')}
+                          </span>{' '}
+                          (restantes).
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
+              )}
+            </div>
+          )}
 
-                {isShared && (
-                  <div className="space-y-3 animate-in fade-in duration-200">
-                    <div>
-                      <label className="block text-xs font-semibold uppercase text-secondary mb-1">Grupo</label>
-                      <CustomSelect
-                        value={groupId}
-                        onChange={(val) => {
-                          const nextGroupId = typeof val === 'number' ? val : Number(val);
-                          const nextGroup = groups.find((group) => group.id === nextGroupId);
-                          setGroupId(nextGroupId);
-                          setSplitPercentages(nextGroup ? getEqualSplitPercentages(nextGroup.members) : {});
-                        }}
-                        placeholder="Seleccionar grupo"
-                        options={groups.map(g => ({ value: g.id, label: `👥 ${g.name}` }))}
-                      />
-                    </div>
+          {/* Shared Expense Section */}
+          {groups.length > 0 && (
+            <div className="border-border mt-2 border-t pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <label className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
+                  <Users
+                    size={14}
+                    className={isShared ? 'text-violet-400' : ''}
+                  />
+                  Gasto Compartido
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsShared(!isShared)}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${
+                    isShared ? 'bg-violet-500' : 'bg-border'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                      isShared ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
 
-                    {selectedGroup && (() => {
+              {isShared && (
+                <div className="animate-in fade-in space-y-3 duration-200">
+                  <div>
+                    <label className="text-secondary mb-1 block text-xs font-semibold uppercase">
+                      Grupo
+                    </label>
+                    <CustomSelect
+                      value={groupId}
+                      onChange={(val) => {
+                        const nextGroupId =
+                          typeof val === 'number' ? val : Number(val);
+                        const nextGroup = groups.find(
+                          (group) => group.id === nextGroupId,
+                        );
+                        setGroupId(nextGroupId);
+                        setSplitPercentages(
+                          nextGroup
+                            ? getEqualSplitPercentages(nextGroup.members)
+                            : {},
+                        );
+                      }}
+                      placeholder="Seleccionar grupo"
+                      options={groups.map((g) => ({
+                        value: g.id,
+                        label: `👥 ${g.name}`,
+                      }))}
+                    />
+                  </div>
+
+                  {selectedGroup &&
+                    (() => {
                       const members = selectedGroup.members;
                       const is2Members = members.length === 2;
-                      const parsedAmt = amount ? parseInt(amount.replace(/\./g, ''), 10) : 0;
-                      const firstPct = splitPercentages[members[0]?.user_id] || 0;
+                      const parsedAmt = amount
+                        ? parseInt(amount.replace(/\./g, ''), 10)
+                        : 0;
+                      const firstPct =
+                        splitPercentages[members[0]?.user_id] || 0;
 
                       // Preset buttons config
                       const presets = is2Members
@@ -598,7 +745,12 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                             { label: '100 / 0', values: [100, 0] },
                           ]
                         : [
-                            { label: 'Igual', values: members.map(() => Math.floor(100 / members.length)) },
+                            {
+                              label: 'Igual',
+                              values: members.map(() =>
+                                Math.floor(100 / members.length),
+                              ),
+                            },
                           ];
 
                       const applyPreset = (values: number[]) => {
@@ -612,9 +764,12 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                           }
                         });
                         // Fix rounding: ensure total = 100
-                        const total = Object.values(pcts).reduce((a, b) => a + b, 0);
+                        const total = Object.values(pcts).reduce(
+                          (a, b) => a + b,
+                          0,
+                        );
                         if (total !== 100 && members.length > 0) {
-                          pcts[members[0].user_id] += (100 - total);
+                          pcts[members[0].user_id] += 100 - total;
                         }
                         setSplitPercentages(pcts);
                       };
@@ -630,7 +785,9 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
                       return (
                         <div className="space-y-3">
-                          <label className="block text-xs font-semibold uppercase text-secondary">División</label>
+                          <label className="text-secondary block text-xs font-semibold uppercase">
+                            División
+                          </label>
 
                           {/* Preset Buttons */}
                           <div className="flex flex-wrap gap-1.5">
@@ -643,9 +800,9 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                                   key={preset.label}
                                   type="button"
                                   onClick={() => applyPreset(preset.values)}
-                                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
+                                  className={`rounded-lg border px-3 py-1 text-xs font-bold transition-all ${
                                     isActive
-                                      ? 'bg-violet-500 text-white border-violet-500'
+                                      ? 'border-violet-500 bg-violet-500 text-white'
                                       : 'bg-inset text-muted border-border hover:border-violet-500/50 hover:text-violet-300'
                                   }`}
                                 >
@@ -664,8 +821,10 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                                 max={100}
                                 step={5}
                                 value={firstPct}
-                                onChange={(e) => handleSliderChange(parseInt(e.target.value))}
-                                className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                                onChange={(e) =>
+                                  handleSliderChange(parseInt(e.target.value))
+                                }
+                                className="h-2 w-full cursor-pointer appearance-none rounded-full"
                                 style={{
                                   background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${firstPct}%, #3f3f46 ${firstPct}%, #3f3f46 100%)`,
                                 }}
@@ -676,10 +835,17 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                           {/* Member breakdown */}
                           {members.map((member) => {
                             const pct = splitPercentages[member.user_id] || 0;
-                            const splitAmt = Math.round((parsedAmt * pct) / 100);
+                            const splitAmt = Math.round(
+                              (parsedAmt * pct) / 100,
+                            );
                             return (
-                              <div key={member.user_id} className="flex items-center gap-3 bg-inset/50 rounded-xl px-3 py-2">
-                                <span className="text-violet-400 text-sm font-medium flex-1 truncate">{member.nickname}</span>
+                              <div
+                                key={member.user_id}
+                                className="bg-inset/50 flex items-center gap-3 rounded-xl px-3 py-2"
+                              >
+                                <span className="flex-1 truncate text-sm font-medium text-violet-400">
+                                  {member.nickname}
+                                </span>
                                 {!is2Members && (
                                   <input
                                     type="range"
@@ -688,19 +854,22 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
                                     step={5}
                                     value={pct}
                                     onChange={(e) => {
-                                      setSplitPercentages(prev => ({
+                                      setSplitPercentages((prev) => ({
                                         ...prev,
-                                        [member.user_id]: parseInt(e.target.value) || 0,
+                                        [member.user_id]:
+                                          parseInt(e.target.value) || 0,
                                       }));
                                     }}
-                                    className="w-20 h-1.5 rounded-full appearance-none cursor-pointer"
+                                    className="h-1.5 w-20 cursor-pointer appearance-none rounded-full"
                                     style={{
                                       background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${pct}%, #3f3f46 ${pct}%, #3f3f46 100%)`,
                                     }}
                                   />
                                 )}
-                                <span className="text-white text-sm font-bold w-10 text-center">{pct}%</span>
-                                <span className="text-muted text-sm font-mono w-24 text-right">
+                                <span className="w-10 text-center text-sm font-bold text-white">
+                                  {pct}%
+                                </span>
+                                <span className="text-muted w-24 text-right font-mono text-sm">
                                   ${splitAmt.toLocaleString('es-CL')}
                                 </span>
                               </div>
@@ -709,42 +878,62 @@ export function CreateTransactionModal({ isOpen, onClose, initialData }: Props) 
 
                           {/* Validation */}
                           {(() => {
-                            const total = Object.values(splitPercentages).reduce((a, b) => a + b, 0);
+                            const total = Object.values(
+                              splitPercentages,
+                            ).reduce((a, b) => a + b, 0);
                             return total !== 100 ? (
-                              <p className="text-red-400 text-xs">Debe sumar 100% (actualmente {total}%)</p>
+                              <p className="text-xs text-red-400">
+                                Debe sumar 100% (actualmente {total}%)
+                              </p>
                             ) : null;
                           })()}
                         </div>
                       );
                     })()}
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
+          )}
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm">
-                ⚠️ {error}
-              </div>
-            )}
+          {error && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              ⚠️ {error}
+            </div>
+          )}
 
-            <SubmitButton
-              loading={loading}
-              disabled={loading || !title || !amount || categoryId === '' || accountId === '' || !!(isShared && groupId && selectedGroup && Object.values(splitPercentages).reduce((a, b) => a + b, 0) !== 100)}
-              variant={type}
-              text={initialData ? 'Guardar cambios' : `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`}
+          <SubmitButton
+            loading={loading}
+            disabled={
+              loading ||
+              !title ||
+              !amount ||
+              categoryId === '' ||
+              accountId === '' ||
+              !!(
+                isShared &&
+                groupId &&
+                selectedGroup &&
+                Object.values(splitPercentages).reduce((a, b) => a + b, 0) !==
+                  100
+              )
+            }
+            variant={type}
+            text={
+              initialData
+                ? 'Guardar cambios'
+                : `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`
+            }
+          />
+
+          {initialData && (
+            <DeleteButton
+              onClick={() => setIsDeleteModalOpen(true)}
+              disabled={loading}
+              text="Borrar movimiento"
             />
-
-            {initialData && (
-              <DeleteButton
-                onClick={() => setIsDeleteModalOpen(true)}
-                disabled={loading}
-                text="Borrar movimiento"
-              />
-            )}
-          </form>
-        </div>
-
+          )}
+        </form>
+      </div>
     </BaseModal>
   );
 }

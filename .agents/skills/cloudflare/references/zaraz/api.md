@@ -24,11 +24,21 @@ Properties persist for page session. Use for user identification and segmentatio
 ## zaraz.ecommerce()
 
 ```javascript
-zaraz.ecommerce('Product Viewed', { product_id: 'SKU123', name: 'Widget', price: 49.99 });
-zaraz.ecommerce('Product Added', { product_id: 'SKU123', quantity: 2, price: 49.99 });
+zaraz.ecommerce('Product Viewed', {
+  product_id: 'SKU123',
+  name: 'Widget',
+  price: 49.99,
+});
+zaraz.ecommerce('Product Added', {
+  product_id: 'SKU123',
+  quantity: 2,
+  price: 49.99,
+});
 zaraz.ecommerce('Order Completed', {
-  order_id: 'ORD-789', total: 149.98, currency: 'USD',
-  products: [{ product_id: 'SKU123', quantity: 2, price: 49.99 }]
+  order_id: 'ORD-789',
+  total: 149.98,
+  currency: 'USD',
+  products: [{ product_id: 'SKU123', quantity: 2, price: 49.99 }],
 });
 ```
 
@@ -57,7 +67,8 @@ zaraz.consent.set('marketing', true);
 
 // Listen
 zaraz.consent.addEventListener('consentChanged', () => {
-  if (zaraz.consent.getAll().marketing) zaraz.track('marketing_consent_granted');
+  if (zaraz.consent.getAll().marketing)
+    zaraz.track('marketing_consent_granted');
 });
 ```
 
@@ -74,8 +85,8 @@ console.log(zaraz.tools); // View loaded tools
 ## Cookie Methods
 
 ```javascript
-zaraz.getCookie('session_id');  // Zaraz namespace
-zaraz.readCookie('_ga');        // Any cookie
+zaraz.getCookie('session_id'); // Zaraz namespace
+zaraz.readCookie('_ga'); // Any cookie
 ```
 
 ## Async Behavior
@@ -108,5 +119,9 @@ interface Zaraz {
   getCookie(name: string): string | undefined;
   readCookie(name: string): string | undefined;
 }
-declare global { interface Window { zaraz: Zaraz; } }
+declare global {
+  interface Window {
+    zaraz: Zaraz;
+  }
+}
 ```

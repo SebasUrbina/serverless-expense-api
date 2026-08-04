@@ -1,7 +1,13 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Users, ArrowRight, CheckCircle2, ExternalLink, Receipt } from 'lucide-react';
+import {
+  Users,
+  ArrowRight,
+  CheckCircle2,
+  ExternalLink,
+  Receipt,
+} from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -11,7 +17,11 @@ import { formatCurrency } from '@/lib/utils';
 import { useState } from 'react';
 import Link from 'next/link';
 import { SettleConfirmModal } from './SettleConfirmModal';
-import type { GroupBalance, SettlementPair, GroupBalancesResponse } from '@/types/api';
+import type {
+  GroupBalance,
+  SettlementPair,
+  GroupBalancesResponse,
+} from '@/types/api';
 
 function useGroupBalances(month: string) {
   return useQuery<GroupBalancesResponse>({
@@ -40,7 +50,12 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
   } | null>(null);
 
   const settleMutation = useMutation({
-    mutationFn: async ({ groupId, month, accountId, settlements }: {
+    mutationFn: async ({
+      groupId,
+      month,
+      accountId,
+      settlements,
+    }: {
       groupId: number;
       month: string;
       accountId: number;
@@ -63,7 +78,10 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
 
   if (!isLoading && balances.length === 0) return null;
 
-  const handleConfirmSettle = (accountId: number, selectedPairs: SettlementPair[]) => {
+  const handleConfirmSettle = (
+    accountId: number,
+    selectedPairs: SettlementPair[],
+  ) => {
     if (!settleTarget || settleMutation.isPending) return;
     settleMutation.mutate({
       groupId: settleTarget.group.group_id,
@@ -73,24 +91,28 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
     });
   };
 
-  const monthLabel = format(new Date(currentMonth + '-01'), 'MMMM yyyy', { locale: es });
+  const monthLabel = format(new Date(currentMonth + '-01'), 'MMMM yyyy', {
+    locale: es,
+  });
 
   return (
     <>
-      <div className="rounded-3xl p-5 sm:p-6 mt-4 lg:col-span-3 xl:col-span-4 bg-card border border-border">
-        <div className="flex items-center justify-between mb-5">
+      <div className="bg-card border-border mt-4 rounded-3xl border p-5 sm:p-6 lg:col-span-3 xl:col-span-4">
+        <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-violet-500/10">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
               <Users className="text-violet-500" size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-primary">Gastos compartidos</h3>
-              <p className="text-xs capitalize text-muted">{monthLabel}</p>
+              <h3 className="text-primary text-sm font-bold">
+                Gastos compartidos
+              </h3>
+              <p className="text-muted text-xs capitalize">{monthLabel}</p>
             </div>
           </div>
           <Link
             href={`/transactions?shared=1&month=${currentMonth}`}
-            className="flex items-center gap-1 text-[11px] font-semibold text-violet-400 hover:text-violet-300 bg-violet-500/10 px-3 py-1.5 rounded-xl transition-colors"
+            className="flex items-center gap-1 rounded-xl bg-violet-500/10 px-3 py-1.5 text-[11px] font-semibold text-violet-400 transition-colors hover:text-violet-300"
           >
             <Receipt size={12} />
             <span className="hidden sm:inline">Ver movimientos</span>
@@ -102,18 +124,23 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
             <LoadingSpinner color="accent" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {balances.map(group => {
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {balances.map((group) => {
               const members = group.members;
               if (members.length < 2) return null;
 
               const hasActivity = group.transaction_count > 0;
 
               // Compute settlement pairs using minimum cash flow
-              const nets = members.map(m => ({ ...m }));
-              const settlementPairs: { debtor: string; creditor: string; amount: number }[] = [];
+              const nets = members.map((m) => ({ ...m }));
+              const settlementPairs: {
+                debtor: string;
+                creditor: string;
+                amount: number;
+              }[] = [];
               while (true) {
-                let maxC = nets[0], maxD = nets[0];
+                let maxC = nets[0],
+                  maxD = nets[0];
                 for (const m of nets) {
                   if (m.net > maxC.net) maxC = m;
                   if (m.net < maxD.net) maxD = m;
@@ -121,25 +148,34 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
                 if (Math.abs(maxD.net) < 1 && Math.abs(maxC.net) < 1) break;
                 const amt = Math.min(Math.abs(maxD.net), maxC.net);
                 if (amt < 1) break;
-                settlementPairs.push({ debtor: maxD.nickname, creditor: maxC.nickname, amount: Math.round(amt) });
+                settlementPairs.push({
+                  debtor: maxD.nickname,
+                  creditor: maxC.nickname,
+                  amount: Math.round(amt),
+                });
                 maxD.net += amt;
                 maxC.net -= amt;
               }
               const hasDebts = settlementPairs.length > 0;
 
               // Find current user's balance for hero display
-              const myBalance = members.find(m => m.user_id === userId);
+              const myBalance = members.find((m) => m.user_id === userId);
               const myNet = myBalance?.net ?? 0;
-              const otherMember = members.find(m => m.user_id !== userId);
+              const otherMember = members.find((m) => m.user_id !== userId);
 
               return (
-                <div key={group.group_id} className="rounded-2xl p-4 transition-colors flex flex-col bg-inset border border-border-subtle">
+                <div
+                  key={group.group_id}
+                  className="bg-inset border-border-subtle flex flex-col rounded-2xl border p-4 transition-colors"
+                >
                   {/* Group header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-bold text-sm tracking-tight text-primary">{group.group_name}</span>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-primary text-sm font-bold tracking-tight">
+                      {group.group_name}
+                    </span>
                     <Link
                       href={`/transactions?shared=1&group_id=${group.group_id}&month=${currentMonth}`}
-                      className="text-[10px] uppercase font-bold px-2 py-1 rounded-lg flex items-center gap-1 hover:opacity-80 transition-opacity text-muted bg-card border border-border"
+                      className="text-muted bg-card border-border flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase transition-opacity hover:opacity-80"
                     >
                       {group.transaction_count} movs
                       <ExternalLink size={9} />
@@ -147,58 +183,82 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
                   </div>
 
                   {!hasActivity ? (
-                    <div className="flex-1 flex items-center justify-center py-6">
-                      <p className="text-sm italic text-center text-muted">No hay gastos compartidos este mes</p>
+                    <div className="flex flex-1 items-center justify-center py-6">
+                      <p className="text-muted text-center text-sm italic">
+                        No hay gastos compartidos este mes
+                      </p>
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col">
+                    <div className="flex flex-1 flex-col">
                       {/* Hero debt amount */}
-                      <div className="rounded-xl px-4 py-4 mb-4 text-center bg-card border border-border-subtle">
+                      <div className="bg-card border-border-subtle mb-4 rounded-xl border px-4 py-4 text-center">
                         {hasDebts ? (
                           <>
-                            <p className="text-[10px] uppercase font-bold tracking-wider mb-1.5 text-muted">
-                              {myNet > 0 ? 'Te deben' : myNet < 0 ? 'Debes' : 'Sin deudas'}
+                            <p className="text-muted mb-1.5 text-[10px] font-bold tracking-wider uppercase">
+                              {myNet > 0
+                                ? 'Te deben'
+                                : myNet < 0
+                                  ? 'Debes'
+                                  : 'Sin deudas'}
                             </p>
-                            <p className={`text-3xl font-extrabold tracking-tight ${myNet > 0 ? 'text-emerald-500' : myNet < 0 ? 'text-red-400' : 'text-primary'}`}>
+                            <p
+                              className={`text-3xl font-extrabold tracking-tight ${myNet > 0 ? 'text-emerald-500' : myNet < 0 ? 'text-red-400' : 'text-primary'}`}
+                            >
                               ${formatCurrency(Math.abs(myNet))}
                             </p>
                             {otherMember && myNet !== 0 && (
-                              <p className="text-[11px] mt-1.5 font-medium text-muted">
+                              <p className="text-muted mt-1.5 text-[11px] font-medium">
                                 {myNet > 0
                                   ? `${otherMember.nickname} te debe`
-                                  : `Le debes a ${otherMember.nickname}`
-                                }
+                                  : `Le debes a ${otherMember.nickname}`}
                               </p>
                             )}
                           </>
                         ) : (
                           <div className="flex items-center justify-center gap-2">
-                            <CheckCircle2 size={16} className="text-emerald-500" />
-                            <span className="text-emerald-500 text-sm font-semibold">Todo saldado — sin deudas</span>
+                            <CheckCircle2
+                              size={16}
+                              className="text-emerald-500"
+                            />
+                            <span className="text-sm font-semibold text-emerald-500">
+                              Todo saldado — sin deudas
+                            </span>
                           </div>
                         )}
                       </div>
 
                       {/* Member breakdown */}
-                      <div className="space-y-2.5 mb-4">
-                        {members.map(member => {
+                      <div className="mb-4 space-y-2.5">
+                        {members.map((member) => {
                           const isMe = member.user_id === userId;
                           return (
-                            <div key={member.user_id} className="flex items-center justify-between text-sm">
+                            <div
+                              key={member.user_id}
+                              className="flex items-center justify-between text-sm"
+                            >
                               <div className="flex items-center gap-2">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold uppercase ${isMe ? 'bg-violet-500/15 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                                <div
+                                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold uppercase ${isMe ? 'bg-violet-500/15 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'}`}
+                                >
                                   {member.nickname.substring(0, 2)}
                                 </div>
-                                <span className="font-medium text-xs text-secondary">
-                                  {member.nickname}{isMe ? ' (tú)' : ''}
+                                <span className="text-secondary text-xs font-medium">
+                                  {member.nickname}
+                                  {isMe ? ' (tú)' : ''}
                                 </span>
                               </div>
                               <div className="flex items-center gap-3">
-                                <span className="text-[10px] flex gap-1 text-muted">
-                                  Pagó <span className="font-semibold text-secondary">${formatCurrency(member.total_paid)}</span>
+                                <span className="text-muted flex gap-1 text-[10px]">
+                                  Pagó{' '}
+                                  <span className="text-secondary font-semibold">
+                                    ${formatCurrency(member.total_paid)}
+                                  </span>
                                 </span>
-                                <span className="text-[10px] flex gap-1 text-muted">
-                                  Cuota <span className="font-semibold text-secondary">${formatCurrency(member.total_share)}</span>
+                                <span className="text-muted flex gap-1 text-[10px]">
+                                  Cuota{' '}
+                                  <span className="text-secondary font-semibold">
+                                    ${formatCurrency(member.total_share)}
+                                  </span>
                                 </span>
                               </div>
                             </div>
@@ -209,28 +269,50 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
                       {/* Settlement section */}
                       <div className="mt-auto">
                         {hasDebts ? (
-                          <div className="space-y-2 pt-3 border-t border-dashed border-border-subtle">
+                          <div className="border-border-subtle space-y-2 border-t border-dashed pt-3">
                             {settlementPairs.map((pair, i) => (
-                              <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl border bg-card border-border-subtle">
-                                <span className="text-xs font-semibold text-secondary">{pair.debtor}</span>
-                                <ArrowRight size={12} className="text-emerald-500 mx-auto" />
-                                <span className="text-xs font-semibold text-secondary">{pair.creditor}</span>
-                                <span className="text-emerald-500 text-xs font-bold ml-2">${formatCurrency(pair.amount)}</span>
+                              <div
+                                key={i}
+                                className="bg-card border-border-subtle flex items-center gap-2 rounded-xl border px-3 py-2.5"
+                              >
+                                <span className="text-secondary text-xs font-semibold">
+                                  {pair.debtor}
+                                </span>
+                                <ArrowRight
+                                  size={12}
+                                  className="mx-auto text-emerald-500"
+                                />
+                                <span className="text-secondary text-xs font-semibold">
+                                  {pair.creditor}
+                                </span>
+                                <span className="ml-2 text-xs font-bold text-emerald-500">
+                                  ${formatCurrency(pair.amount)}
+                                </span>
                               </div>
                             ))}
                             <button
-                              onClick={() => setSettleTarget({ group, pairs: settlementPairs })}
+                              onClick={() =>
+                                setSettleTarget({
+                                  group,
+                                  pairs: settlementPairs,
+                                })
+                              }
                               disabled={!accounts.length}
-                              className="w-full flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-not-allowed text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] mt-2 shadow-sm shadow-emerald-500/20"
+                              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-emerald-500/50"
                             >
                               <CheckCircle2 size={14} />
                               Saldar deudas ({settlementPairs.length})
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-border-subtle mt-3 bg-card">
-                            <CheckCircle2 size={14} className="text-emerald-500" />
-                            <span className="text-emerald-500 text-xs font-semibold">Todo saldado — sin deudas</span>
+                          <div className="border-border-subtle bg-card mt-3 flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5">
+                            <CheckCircle2
+                              size={14}
+                              className="text-emerald-500"
+                            />
+                            <span className="text-xs font-semibold text-emerald-500">
+                              Todo saldado — sin deudas
+                            </span>
                           </div>
                         )}
                       </div>

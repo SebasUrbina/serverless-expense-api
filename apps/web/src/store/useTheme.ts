@@ -23,15 +23,17 @@ export const useTheme = create<ThemeStore>()(
           return 'dark';
         }
         if (theme === 'system') {
-          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          return window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
         }
         return theme;
       },
     }),
     {
       name: 'seva-theme',
-    }
-  )
+    },
+  ),
 );
 
 export function applyTheme(theme: Theme) {
@@ -41,7 +43,9 @@ export function applyTheme(theme: Theme) {
 
   const root = document.documentElement;
   if (theme === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches;
     root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
   } else {
     root.setAttribute('data-theme', theme);
@@ -56,7 +60,12 @@ export function initTheme() {
     applyTheme(theme);
   } catch {
     // Default to system
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches;
+    document.documentElement.setAttribute(
+      'data-theme',
+      prefersDark ? 'dark' : 'light',
+    );
   }
 }

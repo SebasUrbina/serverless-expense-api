@@ -4,11 +4,11 @@
 
 Three sub-projects sharing a single Cloudflare Workers REST API backend:
 
-| Sub-project | Path | Purpose |
-|-------------|------|---------|
-| **API** (root) | `src/` | Cloudflare Workers + Hono + Chanfana (OpenAPI). Auth middleware, D1 (SQLite), cron job |
-| **Web** | `expense-app-web/` | Next.js 16 + React 19, TanStack Query, Zustand, Recharts, Tailwind CSS |
-| **Mobile** | `expense-app-mobile/` | Expo (React Native 0.81), Expo Router, NativeWind, TanStack Query |
+| Sub-project    | Path                  | Purpose                                                                                |
+| -------------- | --------------------- | -------------------------------------------------------------------------------------- |
+| **API** (root) | `src/`                | Cloudflare Workers + Hono + Chanfana (OpenAPI). Auth middleware, D1 (SQLite), cron job |
+| **Web**        | `expense-app-web/`    | Next.js 16 + React 19, TanStack Query, Zustand, Recharts, Tailwind CSS                 |
+| **Mobile**     | `expense-app-mobile/` | Expo (React Native 0.81), Expo Router, NativeWind, TanStack Query                      |
 
 **Auth:** Supabase JWT (`Authorization: Bearer`) validated against JWKS in `src/middleware/auth.ts`. Static API keys (`X-API-Key`) supported for iOS Shortcuts. Both clients (web + mobile) use Axios with auto-injected JWT from Supabase session.
 
@@ -21,6 +21,7 @@ Three sub-projects sharing a single Cloudflare Workers REST API backend:
 ## Build & Dev Commands
 
 **API (root):**
+
 ```
 npm run dev          # wrangler dev — local Worker
 npm run deploy       # wrangler deploy
@@ -28,6 +29,7 @@ npm run cf-typegen   # regenerate worker-configuration.d.ts after wrangler.jsonc
 ```
 
 **Web (`expense-app-web/`):**
+
 ```
 npm run dev    # Next.js dev server
 npm run build  # production build
@@ -35,6 +37,7 @@ npm run lint   # ESLint
 ```
 
 **Mobile (`expense-app-mobile/`):**
+
 ```
 npm start          # Metro bundler
 npm run android    # Android emulator

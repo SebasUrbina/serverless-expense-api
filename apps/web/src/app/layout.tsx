@@ -1,32 +1,32 @@
-import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
-import "./globals.css";
-import { Providers } from "@/components/Providers";
-import { LayoutWrapper } from "@/components/LayoutWrapper";
-import { PWAController } from "@/components/PWAController";
+import type { Metadata, Viewport } from 'next';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+import './globals.css';
+import { Providers } from '@/components/Providers';
+import { LayoutWrapper } from '@/components/LayoutWrapper';
+import { PWAController } from '@/components/PWAController';
 
 const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-sans',
 });
 
 export const metadata: Metadata = {
-  title: "Seva | ¿En qué se va mi plata?",
+  title: 'Seva | ¿En qué se va mi plata?',
   description:
-    "Controla tus gastos, ingresos y finanzas personales de forma simple e intuitiva.",
-  manifest: "/manifest.json",
-  applicationName: "Seva",
+    'Controla tus gastos, ingresos y finanzas personales de forma simple e intuitiva.',
+  manifest: '/manifest.json',
+  applicationName: 'Seva',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Seva",
+    statusBarStyle: 'default',
+    title: 'Seva',
   },
   icons: {
-    apple: "/apple-touch-icon.png",
+    apple: '/apple-touch-icon.png',
     icon: [
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
     ],
   },
   formatDetection: {
@@ -35,8 +35,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
-  width: "device-width",
+  themeColor: '#09090b',
+  width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
 };

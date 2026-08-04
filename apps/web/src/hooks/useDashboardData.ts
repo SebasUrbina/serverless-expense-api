@@ -11,66 +11,81 @@ import type {
 } from '@/types/api';
 
 export function useDashboardData(filterMonth?: string) {
-  const { data: recentTransactions, isLoading: isLoadingRecent } = useQuery<TransactionsResponse>({
-    queryKey: ['transactions', 'recent', filterMonth],
-    queryFn: async () => {
-      let url = '/transactions?limit=15'; // fetch a bit more for a specific month
-      
-      if (filterMonth) {
-        const start = `${filterMonth}-01`;
-        const dateObj = parseISO(start);
-        if (isValid(dateObj)) {
-          const end = format(endOfMonth(dateObj), 'yyyy-MM-dd');
-          url += `&startDate=${start}&endDate=${end}`;
+  const { data: recentTransactions, isLoading: isLoadingRecent } =
+    useQuery<TransactionsResponse>({
+      queryKey: ['transactions', 'recent', filterMonth],
+      queryFn: async () => {
+        let url = '/transactions?limit=15'; // fetch a bit more for a specific month
+
+        if (filterMonth) {
+          const start = `${filterMonth}-01`;
+          const dateObj = parseISO(start);
+          if (isValid(dateObj)) {
+            const end = format(endOfMonth(dateObj), 'yyyy-MM-dd');
+            url += `&startDate=${start}&endDate=${end}`;
+          }
         }
-      }
 
-      const res = await api.get(url);
-      return res.data;
-    }
-  });
+        const res = await api.get(url);
+        return res.data;
+      },
+    });
 
-  const { data: monthlySummaryResp, isLoading: isLoadingSummary } = useQuery<MonthlySummaryResponse>({
-    queryKey: ['transactions', 'monthlySummary'],
-    queryFn: async () => {
-      const res = await api.get('/transactions/summary/monthly?months=6');
-      return res.data;
-    }
-  });
+  const { data: monthlySummaryResp, isLoading: isLoadingSummary } =
+    useQuery<MonthlySummaryResponse>({
+      queryKey: ['transactions', 'monthlySummary'],
+      queryFn: async () => {
+        const res = await api.get('/transactions/summary/monthly?months=6');
+        return res.data;
+      },
+    });
 
-  const { data: categorySummaryResp, isLoading: isLoadingCategory } = useQuery<CategorySummaryResponse>({
-    queryKey: ['transactions', 'categorySummary', filterMonth],
-    queryFn: async () => {
-      let url = '/transactions/summary/category?type=expense';
-      if (filterMonth) url += `&month=${filterMonth}`;
-      const res = await api.get(url);
-      return res.data;
-    }
-  });
+  const { data: categorySummaryResp, isLoading: isLoadingCategory } =
+    useQuery<CategorySummaryResponse>({
+      queryKey: ['transactions', 'categorySummary', filterMonth],
+      queryFn: async () => {
+        let url = '/transactions/summary/category?type=expense';
+        if (filterMonth) url += `&month=${filterMonth}`;
+        const res = await api.get(url);
+        return res.data;
+      },
+    });
 
-  const { data: kpiSummaryResp, isLoading: isLoadingKpi } = useQuery<KpiSummaryResponse>({
-    queryKey: ['transactions', 'kpiSummary', filterMonth],
-    queryFn: async () => {
-      let url = '/transactions/summary/kpi';
-      if (filterMonth) url += `?month=${filterMonth}`;
-      const res = await api.get(url);
-      return res.data;
-    }
-  });
+  const { data: kpiSummaryResp, isLoading: isLoadingKpi } =
+    useQuery<KpiSummaryResponse>({
+      queryKey: ['transactions', 'kpiSummary', filterMonth],
+      queryFn: async () => {
+        let url = '/transactions/summary/kpi';
+        if (filterMonth) url += `?month=${filterMonth}`;
+        const res = await api.get(url);
+        return res.data;
+      },
+    });
 
   const monthlySummary = monthlySummaryResp?.summary || [];
   const categorySummary = categorySummaryResp?.summary || [];
-  const kpiSummary = kpiSummaryResp?.kpis || { largest_expense: null, largest_expense_title: null, largest_income: null, transaction_count: 0 };
-  
-  const selectedMonthSummary = filterMonth
-    ? monthlySummary.find(s => s.month === filterMonth)
-    : (monthlySummary.length > 0 ? monthlySummary[0] : null);
+  const kpiSummary = kpiSummaryResp?.kpis || {
+    largest_expense: null,
+    largest_expense_title: null,
+    largest_income: null,
+    transaction_count: 0,
+  };
 
-  // Calculate total balance approximately from the summary 
+  const selectedMonthSummary = filterMonth
+    ? monthlySummary.find((s) => s.month === filterMonth)
+    : monthlySummary.length > 0
+      ? monthlySummary[0]
+      : null;
+
+  // Calculate total balance approximately from the summary
   // (In a real app, this should probably come from a separate /balances endpoint)
-  const totalBalance = filterMonth && selectedMonthSummary
-    ? selectedMonthSummary.total_income - selectedMonthSummary.total_expense
-    : monthlySummary.reduce((acc, curr) => acc + curr.total_income - curr.total_expense, 0);
+  const totalBalance =
+    filterMonth && selectedMonthSummary
+      ? selectedMonthSummary.total_income - selectedMonthSummary.total_expense
+      : monthlySummary.reduce(
+          (acc, curr) => acc + curr.total_income - curr.total_expense,
+          0,
+        );
 
   return {
     recentTransactions: recentTransactions?.transactions || [],
@@ -79,7 +94,8 @@ export function useDashboardData(filterMonth?: string) {
     kpiSummary,
     selectedMonthSummary,
     totalBalance,
-    isLoading: isLoadingRecent || isLoadingSummary || isLoadingCategory || isLoadingKpi
+    isLoading:
+      isLoadingRecent || isLoadingSummary || isLoadingCategory || isLoadingKpi,
   };
 }
 
@@ -105,7 +121,7 @@ export function useDeleteTransaction() {
             ...old,
             transactions: old.transactions.filter((t) => t.id !== deletedId),
           };
-        }
+        },
       );
 
       return { previousData };

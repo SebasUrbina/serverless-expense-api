@@ -6,19 +6,19 @@
 // app/offline/page.tsx
 export default function OfflinePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-leather-950">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-4">📡</div>
-        <h1 className="font-bitter text-2xl text-leather-100 mb-2">
+    <div className="bg-leather-950 flex min-h-screen items-center justify-center p-4">
+      <div className="max-w-md text-center">
+        <div className="mb-4 text-6xl">📡</div>
+        <h1 className="font-bitter text-leather-100 mb-2 text-2xl">
           You're Offline
         </h1>
         <p className="text-leather-400 mb-6">
-          Check your connection and try again. Your saved data is still available.
+          Check your connection and try again. Your saved data is still
+          available.
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-3 bg-ember-500 hover:bg-ember-600
-                     text-white rounded-lg font-medium"
+          className="bg-ember-500 hover:bg-ember-600 rounded-lg px-6 py-3 font-medium text-white"
         >
           Try Again
         </button>
@@ -73,8 +73,7 @@ export function OfflineBanner() {
   if (isOnline) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 bg-amber-600 text-white
-                    py-2 px-4 text-center text-sm z-50">
+    <div className="fixed top-0 right-0 left-0 z-50 bg-amber-600 px-4 py-2 text-center text-sm text-white">
       You're offline. Some features may be unavailable.
     </div>
   );
@@ -88,10 +87,7 @@ export function OfflineBanner() {
 import { useState, useEffect } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
 
-export function useOfflineData<T>(
-  key: string,
-  fetcher: () => Promise<T>
-) {
+export function useOfflineData<T>(key: string, fetcher: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const isOnline = useOnlineStatus();

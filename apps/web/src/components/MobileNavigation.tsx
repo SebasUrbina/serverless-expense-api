@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LayoutDashboard, Receipt, Repeat, PieChart, Plus } from "lucide-react";
-import { useTransactionModal } from "@/store/useTransactionModal";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, Receipt, Repeat, PieChart, Plus } from 'lucide-react';
+import { useTransactionModal } from '@/store/useTransactionModal';
 
 export const navigation = [
-  { name: "Inicio", href: "/", icon: LayoutDashboard },
-  { name: "Movimientos", href: "/transactions", icon: Receipt },
-  { name: "Recurrentes", href: "/recurring", icon: Repeat },
-  { name: "Análisis", href: "/analytics", icon: PieChart },
+  { name: 'Inicio', href: '/', icon: LayoutDashboard },
+  { name: 'Movimientos', href: '/transactions', icon: Receipt },
+  { name: 'Recurrentes', href: '/recurring', icon: Repeat },
+  { name: 'Análisis', href: '/analytics', icon: PieChart },
 ];
 
 export function MobileNavigation() {
@@ -19,10 +19,10 @@ export function MobileNavigation() {
     <>
       {/* ── Bottom Navigation Bar ── */}
       <div
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pt-2 pb-6"
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+        className="fixed right-0 bottom-0 left-0 z-50 px-4 pt-2 pb-6 lg:hidden"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
       >
-        <nav className="flex justify-around items-center relative theme-card backdrop-blur-xl border theme-border rounded-3xl shadow-elevated px-2 py-1 mx-auto max-w-sm">
+        <nav className="theme-card theme-border shadow-elevated relative mx-auto flex max-w-sm items-center justify-around rounded-3xl border px-2 py-1 backdrop-blur-xl">
           {navigation.map((item, index) => {
             const isActive = pathname === item.href;
 
@@ -34,15 +34,15 @@ export function MobileNavigation() {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex flex-col items-center p-2 min-w-[64px] rounded-2xl transition-all duration-300 ${
+                    className={`flex min-w-[64px] flex-col items-center rounded-2xl p-2 transition-all duration-300 ${
                       isActive
-                        ? "text-accent scale-105"
-                        : "theme-muted hover:theme-text hover:scale-105"
+                        ? 'text-accent scale-105'
+                        : 'theme-muted hover:theme-text hover:scale-105'
                     }`}
                   >
                     <item.icon
-                      className={`h-5 w-5 mb-1 transition-colors duration-300 ${
-                        isActive ? "text-accent" : ""
+                      className={`mb-1 h-5 w-5 transition-colors duration-300 ${
+                        isActive ? 'text-accent' : ''
                       }`}
                       aria-hidden="true"
                       strokeWidth={isActive ? 2.5 : 2}
@@ -55,17 +55,17 @@ export function MobileNavigation() {
                   <button
                     type="button"
                     onClick={() => openTransactionModal()}
-                    className="flex flex-col items-center justify-center p-2 min-w-[64px] transition-transform active:scale-90 z-20 group"
+                    className="group z-20 flex min-w-[64px] flex-col items-center justify-center p-2 transition-transform active:scale-90"
                     aria-label="Agregar movimiento"
                   >
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white flex items-center justify-center shadow-md group-hover:shadow-lg mb-1 absolute -top-6 border-[3px] theme-border theme-bg transition-all duration-300">
+                    <div className="theme-border theme-bg absolute -top-6 mb-1 flex h-14 w-14 items-center justify-center rounded-full border-[3px] bg-gradient-to-tr from-emerald-600 to-emerald-400 text-white shadow-md transition-all duration-300 group-hover:shadow-lg">
                       <Plus
                         size={26}
                         strokeWidth={2.5}
-                        className="rotate-0 transition-transform group-hover:rotate-90 duration-300"
+                        className="rotate-0 transition-transform duration-300 group-hover:rotate-90"
                       />
                     </div>
-                    <span className="text-[10px] font-medium tracking-wide text-transparent select-none mt-7">
+                    <span className="mt-7 text-[10px] font-medium tracking-wide text-transparent select-none">
                       Add
                     </span>
                   </button>
@@ -77,15 +77,15 @@ export function MobileNavigation() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center p-2 min-w-[64px] rounded-2xl transition-all duration-300 ${
+                className={`flex min-w-[64px] flex-col items-center rounded-2xl p-2 transition-all duration-300 ${
                   isActive
-                    ? "text-accent scale-105"
-                    : "theme-muted hover:theme-text hover:scale-105"
+                    ? 'text-accent scale-105'
+                    : 'theme-muted hover:theme-text hover:scale-105'
                 }`}
               >
                 <item.icon
-                  className={`h-5 w-5 mb-1 transition-colors duration-300 ${
-                    isActive ? "text-accent" : ""
+                  className={`mb-1 h-5 w-5 transition-colors duration-300 ${
+                    isActive ? 'text-accent' : ''
                   }`}
                   aria-hidden="true"
                   strokeWidth={isActive ? 2.5 : 2}

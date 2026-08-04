@@ -17,7 +17,14 @@ type Props = {
   size?: 'default' | 'small';
 };
 
-export function CustomSelect({ value, onChange, options, placeholder = 'Select an option', disabled = false, size = 'default' }: Props) {
+export function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder = 'Select an option',
+  disabled = false,
+  size = 'default',
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -26,7 +33,10 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -43,37 +53,49 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-          size === 'small' ? 'px-3 h-[42px]' : 'px-4 py-3'
+        className={`flex w-full items-center justify-between rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+          size === 'small' ? 'h-[42px] px-3' : 'px-4 py-3'
         } ${isOpen ? '' : 'hover:bg-(--bg-inset)'}`}
         style={{
           background: 'var(--bg-card)',
           border: `1px solid ${isOpen ? 'var(--text-secondary)' : 'var(--border)'}`,
-          boxShadow: isOpen ? '0 0 0 1px var(--text-secondary)' : 'none'
+          boxShadow: isOpen ? '0 0 0 1px var(--text-secondary)' : 'none',
         }}
       >
-        <span 
-          className="flex-1 min-w-0 truncate pr-2 text-sm text-left font-medium transition-colors"
-          style={{ color: selectedOption ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+        <span
+          className="min-w-0 flex-1 truncate pr-2 text-left text-sm font-medium transition-colors"
+          style={{
+            color: selectedOption
+              ? 'var(--text-primary)'
+              : 'var(--text-secondary)',
+          }}
         >
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown 
-          size={16} 
+        <ChevronDown
+          size={16}
           className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           style={{ color: 'var(--text-secondary)' }}
         />
       </button>
 
       {isOpen && !disabled && (
-        <div 
-          className="absolute z-50 w-full min-w-[140px] mt-2 left-0 sm:right-auto rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto p-1.5"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+        <div
+          className="animate-in fade-in zoom-in-95 absolute left-0 z-50 mt-2 max-h-60 w-full min-w-[140px] overflow-hidden overflow-y-auto rounded-2xl p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] duration-200 sm:right-auto"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+          }}
         >
           {options.length === 0 ? (
-            <div className="px-3 py-2 text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Sin opciones</div>
+            <div
+              className="px-3 py-2 text-sm font-medium"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Sin opciones
+            </div>
           ) : (
-            <div className="flex flex-col gap-0.5 relative">
+            <div className="relative flex flex-col gap-0.5">
               {options.map((option) => {
                 const isSelected = option.value === value;
                 return (
@@ -84,15 +106,19 @@ export function CustomSelect({ value, onChange, options, placeholder = 'Select a
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                      isSelected 
-                        ? 'bg-emerald-500/10 text-emerald-500 font-medium' 
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                      isSelected
+                        ? 'bg-emerald-500/10 font-medium text-emerald-500'
                         : 'font-medium hover:bg-(--bg-inset)'
                     }`}
                     style={{ color: isSelected ? '' : 'var(--text-primary)' }}
                   >
-                    <span className="truncate text-left flex-1 pr-2">{option.label}</span>
-                    {isSelected && <Check size={16} className="shrink-0 text-emerald-500" />}
+                    <span className="flex-1 truncate pr-2 text-left">
+                      {option.label}
+                    </span>
+                    {isSelected && (
+                      <Check size={16} className="shrink-0 text-emerald-500" />
+                    )}
                   </button>
                 );
               })}

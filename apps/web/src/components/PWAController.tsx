@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { Download, RefreshCcw, WifiOff, X } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import { Download, RefreshCcw, WifiOff, X } from 'lucide-react';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
 
 export function PWAController() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [isOnline, setIsOnline] = useState(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === 'undefined') {
       return true;
     }
 
@@ -23,7 +23,7 @@ export function PWAController() {
     useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === 'undefined') {
       return;
     }
 
@@ -39,28 +39,28 @@ export function PWAController() {
       setShowInstallCard(false);
     };
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("appinstalled", handleInstalled);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleInstalled);
 
     return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       window.removeEventListener(
-        "beforeinstallprompt",
+        'beforeinstallprompt',
         handleBeforeInstallPrompt,
       );
-      window.removeEventListener("appinstalled", handleInstalled);
+      window.removeEventListener('appinstalled', handleInstalled);
     };
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
       return;
     }
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const registration of registrations) {
           registration.unregister();
@@ -73,23 +73,23 @@ export function PWAController() {
 
     const registerServiceWorker = async () => {
       try {
-        const registration = await navigator.serviceWorker.register("/sw.js", {
-          scope: "/",
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
         });
 
         if (registration.waiting && isMounted) {
           setUpdateReady(registration);
         }
 
-        registration.addEventListener("updatefound", () => {
+        registration.addEventListener('updatefound', () => {
           const installingWorker = registration.installing;
           if (!installingWorker) {
             return;
           }
 
-          installingWorker.addEventListener("statechange", () => {
+          installingWorker.addEventListener('statechange', () => {
             if (
-              installingWorker.state === "installed" &&
+              installingWorker.state === 'installed' &&
               navigator.serviceWorker.controller &&
               isMounted
             ) {
@@ -121,27 +121,27 @@ export function PWAController() {
 
     await deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
-    if (choice.outcome === "accepted") {
+    if (choice.outcome === 'accepted') {
       setShowInstallCard(false);
     }
     setDeferredPrompt(null);
   };
 
   const handleApplyUpdate = () => {
-    updateReady?.waiting?.postMessage({ type: "SKIP_WAITING" });
+    updateReady?.waiting?.postMessage({ type: 'SKIP_WAITING' });
     window.location.reload();
   };
 
   return (
     <>
       {!isOnline ? (
-        <div className="fixed inset-x-3 top-3 z-[120] flex items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-2xl animate-seva-slide-up sm:left-auto sm:right-4 sm:top-4 sm:w-[360px] bg-card border border-border">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0">
+        <div className="animate-seva-slide-up bg-card border-border fixed inset-x-3 top-3 z-[120] flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm shadow-2xl sm:top-4 sm:right-4 sm:left-auto sm:w-[360px]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
             <WifiOff size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-primary">Estás sin conexión</p>
-            <p className="text-xs text-muted">
+            <p className="text-primary font-semibold">Estás sin conexión</p>
+            <p className="text-muted text-xs">
               Seva seguirá mostrando contenido cacheado cuando esté disponible.
             </p>
           </div>
@@ -149,33 +149,34 @@ export function PWAController() {
       ) : null}
 
       {canInstall ? (
-        <div className="fixed inset-x-3 bottom-[6.2rem] z-[115] animate-seva-slide-up sm:bottom-4 sm:left-auto sm:right-4 sm:w-[360px]">
-          <div className="rounded-3xl p-5 shadow-2xl bg-card border border-border">
+        <div className="animate-seva-slide-up fixed inset-x-3 bottom-[6.2rem] z-[115] sm:right-4 sm:bottom-4 sm:left-auto sm:w-[360px]">
+          <div className="bg-card border-border rounded-3xl border p-5 shadow-2xl">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">
+                <p className="text-[10px] font-bold tracking-wider text-emerald-500 uppercase">
                   Instalar app
                 </p>
-                <h2 className="mt-1 text-base font-bold text-primary">
+                <h2 className="text-primary mt-1 text-base font-bold">
                   Guarda Seva en tu pantalla de inicio
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setShowInstallCard(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-muted transition-colors hover:text-primary hover:bg-card-hover"
+                className="text-muted hover:text-primary hover:bg-card-hover inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors"
                 aria-label="Cerrar recomendación de instalación"
               >
                 <X size={16} />
               </button>
             </div>
-            <p className="text-xs leading-relaxed text-secondary">
-              Entra más rápido, disfruta experiencia de app nativa y accede a tus datos sin conexión.
+            <p className="text-secondary text-xs leading-relaxed">
+              Entra más rápido, disfruta experiencia de app nativa y accede a
+              tus datos sin conexión.
             </p>
             <button
               type="button"
               onClick={() => void handleInstall()}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all bg-emerald-500 hover:bg-emerald-600 shadow-sm active:scale-[0.98]"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-600 active:scale-[0.98]"
             >
               <Download size={16} />
               Instalar Seva
@@ -185,21 +186,22 @@ export function PWAController() {
       ) : null}
 
       {updateReady ? (
-        <div className="fixed inset-x-3 bottom-[6.2rem] z-[115] animate-seva-slide-up sm:bottom-4 sm:left-auto sm:right-4 sm:w-[360px]">
-          <div className="rounded-3xl p-5 shadow-2xl bg-card border border-border">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+        <div className="animate-seva-slide-up fixed inset-x-3 bottom-[6.2rem] z-[115] sm:right-4 sm:bottom-4 sm:left-auto sm:w-[360px]">
+          <div className="bg-card border-border rounded-3xl border p-5 shadow-2xl">
+            <p className="text-muted text-[10px] font-bold tracking-wider uppercase">
               Actualización lista
             </p>
-            <h2 className="mt-1 text-base font-bold text-primary">
+            <h2 className="text-primary mt-1 text-base font-bold">
               Hay una nueva versión de Seva
             </h2>
-            <p className="mt-2 text-xs leading-relaxed text-secondary">
-              Recarga para usar la versión más reciente y mantener el caché sincronizado.
+            <p className="text-secondary mt-2 text-xs leading-relaxed">
+              Recarga para usar la versión más reciente y mantener el caché
+              sincronizado.
             </p>
             <button
               type="button"
               onClick={handleApplyUpdate}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white transition-all bg-emerald-500 hover:bg-emerald-600 shadow-sm active:scale-[0.98]"
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-600 active:scale-[0.98]"
             >
               <RefreshCcw size={16} />
               Actualizar ahora

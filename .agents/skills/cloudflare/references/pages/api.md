@@ -30,11 +30,11 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 // Method-specific
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { request, env, params, data } = context;
-  
-  const user = await env.DB.prepare(
-    'SELECT * FROM users WHERE id = ?'
-  ).bind(params.id).first();
-  
+
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?')
+    .bind(params.id)
+    .first();
+
   return Response.json(user);
 };
 
@@ -50,13 +50,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
 ```typescript
 interface EventContext<Env, Params, Data> {
-  request: Request;              // HTTP request
-  env: Env;                      // Bindings (KV, D1, R2, etc.)
-  params: Params;                // Route parameters
-  data: Data;                    // Middleware-shared data
-  waitUntil: (promise: Promise<any>) => void;  // Background tasks
+  request: Request; // HTTP request
+  env: Env; // Bindings (KV, D1, R2, etc.)
+  params: Params; // Route parameters
+  data: Data; // Middleware-shared data
+  waitUntil: (promise: Promise<any>) => void; // Background tasks
   next: () => Promise<Response>; // Next handler
-  passThroughOnException: () => void;  // Error fallback (not in advanced mode)
+  passThroughOnException: () => void; // Error fallback (not in advanced mode)
 }
 ```
 
@@ -115,14 +115,18 @@ export const onRequest = [errorHandler, auth];
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   // KV
   const cached = await env.KV.get('key', 'json');
-  await env.KV.put('key', JSON.stringify({data: 'value'}), {expirationTtl: 3600});
-  
+  await env.KV.put('key', JSON.stringify({ data: 'value' }), {
+    expirationTtl: 3600,
+  });
+
   // D1
-  const result = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
-  
+  const result = await env.DB.prepare('SELECT * FROM users WHERE id = ?')
+    .bind(userId)
+    .first();
+
   // R2, Queue, AI - see respective reference docs
-  
-  return Response.json({success: true});
+
+  return Response.json({ success: true });
 };
 ```
 
@@ -135,15 +139,15 @@ Full Workers API, bypasses file-based routing:
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    
+
     // Custom routing
     if (url.pathname.startsWith('/api/')) {
       return new Response('API response');
     }
-    
+
     // REQUIRED: Serve static assets
     return env.ASSETS.fetch(request);
-  }
+  },
 };
 ```
 
@@ -154,11 +158,12 @@ export default {
 Automatically optimizes function execution location based on traffic patterns.
 
 **Configuration** (in wrangler.jsonc):
+
 ```jsonc
 {
   "placement": {
-    "mode": "smart"  // Enables optimization (default: off)
-  }
+    "mode": "smart", // Enables optimization (default: off)
+  },
 }
 ```
 
@@ -187,10 +192,13 @@ const data = await DB.prepare('SELECT * FROM users').all();
 // Solid Start (server function)
 import { getRequestEvent } from 'solid-js/web';
 const event = getRequestEvent();
-const data = await event.locals.runtime.env.DB.prepare('SELECT * FROM users').all();
+const data = await event.locals.runtime.env.DB.prepare(
+  'SELECT * FROM users',
+).all();
 ```
 
 **✅ Supported adapters** (2026):
+
 - **SvelteKit**: `@sveltejs/adapter-cloudflare`
 - **Astro**: Built-in Cloudflare adapter
 - **Nuxt**: Set `nitro.preset: 'cloudflare-pages'` in `nuxt.config.ts`
@@ -198,6 +206,7 @@ const data = await event.locals.runtime.env.DB.prepare('SELECT * FROM users').al
 - **Solid Start**: `@solidjs/start-cloudflare-pages`
 
 **❌ Deprecated/Unsupported**:
+
 - **Next.js**: Official adapter (`@cloudflare/next-on-pages`) deprecated. Use Vercel or self-host on Workers.
 - **Remix**: Official adapter (`@remix-run/cloudflare-pages`) deprecated. Migrate to supported frameworks.
 

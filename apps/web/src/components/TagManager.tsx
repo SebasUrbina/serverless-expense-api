@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useTags, useCreateTag, useDeleteTag } from "@/hooks/usePreferences";
-import { Plus, Trash2, Hash } from "lucide-react";
-import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useState } from 'react';
+import { useTags, useCreateTag, useDeleteTag } from '@/hooks/usePreferences';
+import { Plus, Trash2, Hash } from 'lucide-react';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function TagManager() {
   const { data, isLoading } = useTags();
   const createMutation = useCreateTag();
   const deleteMutation = useDeleteTag();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState('');
   const [tagToDelete, setTagToDelete] = useState<number | null>(null);
 
   const tags = data?.tags || [];
@@ -22,7 +22,7 @@ export function TagManager() {
     createMutation.mutate(
       { name: name.trim() },
       {
-        onSuccess: () => setName(""),
+        onSuccess: () => setName(''),
       },
     );
   };
@@ -31,11 +31,11 @@ export function TagManager() {
     <div className="space-y-4">
       <form
         onSubmit={handleSubmit}
-        className="rounded-2xl p-3 space-y-3 bg-card border border-border-subtle"
+        className="bg-card border-border-subtle space-y-3 rounded-2xl border p-3"
       >
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
-          <div className="flex-1 min-w-0">
-            <label className="block text-[10px] font-semibold uppercase tracking-wider mb-1 px-0.5 sm:hidden text-muted">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <label className="text-muted mb-1 block px-0.5 text-[10px] font-semibold tracking-wider uppercase sm:hidden">
               Nombre de la etiqueta
             </label>
             <input
@@ -43,13 +43,13 @@ export function TagManager() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ej. vacaciones, trabajo, casa"
-              className="w-full rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 transition-all bg-card border border-border text-primary"
+              className="focus:ring-accent/30 bg-card border-border text-primary w-full rounded-xl border px-3.5 py-3 text-sm transition-all focus:ring-2 focus:outline-none"
             />
           </div>
           <button
             type="submit"
             disabled={!name.trim() || createMutation.isPending}
-            className="bg-accent hover:bg-emerald-600 disabled:opacity-50 text-white h-11 px-4 sm:px-5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 shrink-0"
+            className="bg-accent flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50 sm:px-5"
           >
             {createMutation.isPending ? (
               <LoadingSpinner size="sm" color="white" />
@@ -72,21 +72,21 @@ export function TagManager() {
           {tags.map((tag) => (
             <div
               key={tag.id}
-              className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-card border border-border text-primary hover:bg-card-hover"
+              className="group bg-card border-border text-primary hover:bg-card-hover flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all"
             >
               <Hash size={12} className="text-muted" />
               <span>{tag.name}</span>
               <button
                 onClick={() => setTagToDelete(tag.id)}
                 disabled={deleteMutation.isPending}
-                className="ml-0.5 text-red-400 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:text-red-500"
+                className="ml-0.5 text-red-400 transition-opacity hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
               >
                 <Trash2 size={12} />
               </button>
             </div>
           ))}
           {tags.length === 0 && (
-            <p className="text-sm w-full py-2 text-muted">
+            <p className="text-muted w-full py-2 text-sm">
               Aún no tienes etiquetas. Agrega una para empezar a organizar.
             </p>
           )}

@@ -31,6 +31,7 @@ serverless-expense-api/
 ## 🛠 Tech Stack
 
 **Backend (`apps/api`)**
+
 - **Runtime:** Cloudflare Workers
 - **Framework:** Hono + Chanfana (OpenAPI)
 - **Database:** Cloudflare D1 (Serverless SQLite)
@@ -39,11 +40,13 @@ serverless-expense-api/
 - **Auth Provider:** Supabase (JWT Verification) & Long-Lived Static API Keys
 
 **Frontend Web (`apps/web`)**
+
 - **Framework:** Next.js 16 (App Router + Turbopack)
 - **Styling:** Tailwind CSS v4
 - **State & Data Fetching:** TanStack React Query v5 & Zustand
 
 **Frontend Mobile (`apps/mobile`)**
+
 - **Framework:** React Native (Expo SDK 54)
 - **Navigation:** Expo Router
 - **Styling:** NativeWind (Tailwind CSS v3)
@@ -53,6 +56,7 @@ serverless-expense-api/
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 22+
 - [pnpm](https://pnpm.io/) (`corepack enable` or `npm i -g pnpm`)
 
@@ -79,12 +83,14 @@ pnpm dev
 ### Run Individually
 
 **Backend API (`apps/api`)**
+
 ```bash
 pnpm dev:api            # Start Wrangler dev server (local D1)
 pnpm db:migrate:local   # Apply local D1 database migrations
 ```
 
 **Frontend Web (`apps/web`)**
+
 ```bash
 pnpm dev:web            # Start Next.js development server
 pnpm build:web          # Build static site export
@@ -98,12 +104,12 @@ This project uses **Cloudflare D1 Native Migrations**. All database schema chang
 
 ### Migration Commands
 
-| Command | Description |
-| :--- | :--- |
-| `pnpm db:migrate:create <name>` | Create a new SQL migration file in `apps/api/migrations/` |
-| `pnpm db:migrate:local` | Apply pending migrations to the local D1 database |
-| `pnpm db:migrate:apply` | Apply pending migrations to the remote production D1 database |
-| `pnpm db:migrate:status` | Check migration status against the remote production database |
+| Command                         | Description                                                   |
+| :------------------------------ | :------------------------------------------------------------ |
+| `pnpm db:migrate:create <name>` | Create a new SQL migration file in `apps/api/migrations/`     |
+| `pnpm db:migrate:local`         | Apply pending migrations to the local D1 database             |
+| `pnpm db:migrate:apply`         | Apply pending migrations to the remote production D1 database |
+| `pnpm db:migrate:status`        | Check migration status against the remote production database |
 
 ### How to apply schema changes
 
@@ -128,6 +134,7 @@ Deployments are handled automatically via `.github/workflows/deploy.yml` on push
 - **Web Frontend (`apps/web`):** Builds static export and deploys to Cloudflare Pages.
 
 ### Required GitHub Secrets
+
 - `CLOUDFLARE_ACCOUNT_ID`
 - `CLOUDFLARE_API_TOKEN` (or `CLOUDFLARE_API_TOKEN_WORKERS` / `CLOUDFLARE_API_TOKEN_PAGES`)
 - `NEXT_PUBLIC_SUPABASE_URL`

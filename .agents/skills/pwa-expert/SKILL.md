@@ -1,32 +1,33 @@
 ---
 name: pwa-expert
-description: Progressive Web App development with Service Workers, offline support, and app-like behavior. Use for caching strategies, install prompts, push notifications, background sync. Activate on "PWA",
+description:
+  Progressive Web App development with Service Workers, offline support, and app-like behavior. Use for caching strategies, install prompts, push notifications, background sync. Activate on "PWA",
   "Service Worker", "offline", "install prompt", "beforeinstallprompt", "manifest.json", "workbox", "cache-first". NOT for native app development (use React Native), general web performance (use performance
   docs), or server-side rendering.
 allowed-tools:
-- Read
-- Write
-- Edit
-- Bash
-- Grep
-- Glob
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
 metadata:
   category: Design & Creative
   tags:
-  - pwa
-  - service-worker
-  - offline
-  - caching
-  - installable
-  - workbox
-  - manifest
+    - pwa
+    - service-worker
+    - offline
+    - caching
+    - installable
+    - workbox
+    - manifest
   pairs-with:
-  - skill: mobile-ux-optimizer
-    reason: PWAs target mobile users requiring touch optimization and responsive layout patterns
-  - skill: caching-strategies
-    reason: Service Worker cache strategies (stale-while-revalidate, cache-first) are core PWA patterns
-  - skill: react-performance-optimizer
-    reason: PWA performance budgets require aggressive React optimization for fast initial loads
+    - skill: mobile-ux-optimizer
+      reason: PWAs target mobile users requiring touch optimization and responsive layout patterns
+    - skill: caching-strategies
+      reason: Service Worker cache strategies (stale-while-revalidate, cache-first) are core PWA patterns
+    - skill: react-performance-optimizer
+      reason: PWA performance budgets require aggressive React optimization for fast initial loads
 ---
 
 # Progressive Web App Expert
@@ -125,12 +126,12 @@ Build installable, offline-capable web apps with Service Workers, smart caching,
 
 ### Display Modes
 
-| Mode | Description |
-|------|-------------|
-| `fullscreen` | No browser UI, full screen |
+| Mode         | Description                        |
+| ------------ | ---------------------------------- |
+| `fullscreen` | No browser UI, full screen         |
 | `standalone` | App-like, no URL bar (recommended) |
-| `minimal-ui` | Some browser controls |
-| `browser` | Normal browser tab |
+| `minimal-ui` | Some browser controls              |
+| `browser`    | Normal browser tab                 |
 
 ### Link in HTML
 
@@ -139,7 +140,10 @@ Build installable, offline-capable web apps with Service Workers, smart caching,
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#1a1410" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 </head>
 ```
@@ -179,7 +183,7 @@ const STATIC_ASSETS = ['/', '/offline', '/manifest.json'];
 // Install: Cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)),
   );
   self.skipWaiting();
 });
@@ -187,9 +191,13 @@ self.addEventListener('install', (event) => {
 // Activate: Clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
+        ),
+      ),
   );
   self.clients.claim();
 });
@@ -204,13 +212,13 @@ self.addEventListener('fetch', (event) => {
 
 ## Caching Strategies
 
-| Strategy | Best For | Tradeoff |
-|----------|----------|----------|
-| Cache-First | Static assets, fonts, images | Stale until cache updated |
-| Network-First | API data, user content | Slower, needs connectivity |
-| Stale-While-Revalidate | Balance freshness/speed | Background updates |
-| Network-Only | Auth, real-time data | No offline support |
-| Cache-Only | Versioned assets | Never updates |
+| Strategy               | Best For                     | Tradeoff                   |
+| ---------------------- | ---------------------------- | -------------------------- |
+| Cache-First            | Static assets, fonts, images | Stale until cache updated  |
+| Network-First          | API data, user content       | Slower, needs connectivity |
+| Stale-While-Revalidate | Balance freshness/speed      | Background updates         |
+| Network-Only           | Auth, real-time data         | No offline support         |
+| Cache-Only             | Versioned assets             | Never updates              |
 
 > **See:** `references/service-worker-patterns.md` for full implementations
 
@@ -243,6 +251,7 @@ const handleInstall = async () => {
 ## Offline Experience
 
 Key patterns:
+
 - Offline page fallback for navigation failures
 - `useOnlineStatus` hook to detect connectivity
 - Offline banner to inform users
@@ -298,15 +307,15 @@ Options for Next.js PWA:
 
 ## Quick Reference
 
-| Task | Solution |
-|------|----------|
-| Check if installed | `window.matchMedia('(display-mode: standalone)').matches` |
-| Force SW update | `registration.update()` |
-| Clear all caches | `caches.keys().then(keys => keys.forEach(k => caches.delete(k)))` |
-| Check online | `navigator.onLine` |
-| Get SW registration | `navigator.serviceWorker.ready` |
-| Skip waiting | `self.skipWaiting()` in SW |
-| Take control | `self.clients.claim()` in SW |
+| Task                | Solution                                                          |
+| ------------------- | ----------------------------------------------------------------- |
+| Check if installed  | `window.matchMedia('(display-mode: standalone)').matches`         |
+| Force SW update     | `registration.update()`                                           |
+| Clear all caches    | `caches.keys().then(keys => keys.forEach(k => caches.delete(k)))` |
+| Check online        | `navigator.onLine`                                                |
+| Get SW registration | `navigator.serviceWorker.ready`                                   |
+| Skip waiting        | `self.skipWaiting()` in SW                                        |
+| Take control        | `self.clients.claim()` in SW                                      |
 
 ## Testing PWA
 

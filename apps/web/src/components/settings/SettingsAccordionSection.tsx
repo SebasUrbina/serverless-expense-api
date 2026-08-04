@@ -30,7 +30,7 @@ export function SettingsAccordionSection({
 }: SettingsAccordionSectionProps) {
   return (
     <div
-      className="rounded-3xl overflow-hidden transition-all duration-200"
+      className="overflow-hidden rounded-3xl transition-all duration-200"
       style={{
         background: isOpen ? accentBg : 'var(--bg-card)',
         border: `1px solid ${isOpen ? accentBorder : 'var(--border)'}`,
@@ -39,16 +39,24 @@ export function SettingsAccordionSection({
     >
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3.5 px-4 py-4 transition-all duration-200 text-left"
+        className="flex w-full items-center gap-3.5 px-4 py-4 text-left transition-all duration-200"
       >
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 ${iconBg} ${isOpen ? 'scale-105' : ''}`}>
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-transform duration-200 ${iconBg} ${isOpen ? 'scale-105' : ''}`}
+        >
           <Icon size={17} className={iconColor} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <div className="min-w-0 flex-1">
+          <p
+            className="text-sm font-semibold"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {title}
           </p>
-          <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+          <p
+            className="truncate text-xs"
+            style={{ color: 'var(--text-muted)' }}
+          >
             {subtitle}
           </p>
         </div>
@@ -60,10 +68,13 @@ export function SettingsAccordionSection({
       </button>
 
       {isOpen && (
-        <div className="px-3 pb-3 pt-0 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="animate-in fade-in slide-in-from-top-2 px-3 pt-0 pb-3 duration-200">
           <div
-            className="rounded-[1.35rem] px-4 pb-5 pt-4"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)' }}
+            className="rounded-[1.35rem] px-4 pt-4 pb-5"
+            style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border-subtle)',
+            }}
           >
             {children}
           </div>

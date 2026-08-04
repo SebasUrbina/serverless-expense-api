@@ -14,7 +14,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -78,14 +79,12 @@ export function InstallPrompt() {
   if (!isInstallable || dismissed) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-4 md:w-80
-                    bg-leather-800 border border-leather-600 rounded-lg p-4 shadow-lg
-                    animate-slide-up z-50">
+    <div className="bg-leather-800 border-leather-600 animate-slide-up fixed right-4 bottom-20 left-4 z-50 rounded-lg border p-4 shadow-lg md:right-4 md:left-auto md:w-80">
       <div className="flex items-start gap-3">
-        <img src="/icons/icon-64.png" alt="" className="w-12 h-12 rounded-lg" />
+        <img src="/icons/icon-64.png" alt="" className="h-12 w-12 rounded-lg" />
         <div className="flex-1">
-          <h3 className="font-bitter text-lg text-leather-100">Install JB4L</h3>
-          <p className="text-sm text-leather-400 mt-1">
+          <h3 className="font-bitter text-leather-100 text-lg">Install JB4L</h3>
+          <p className="text-leather-400 mt-1 text-sm">
             Get quick access and offline support
           </p>
         </div>
@@ -97,17 +96,16 @@ export function InstallPrompt() {
           ✕
         </button>
       </div>
-      <div className="flex gap-2 mt-4">
+      <div className="mt-4 flex gap-2">
         <button
           onClick={() => setDismissed(true)}
-          className="flex-1 px-4 py-2 text-leather-400 hover:text-leather-200"
+          className="text-leather-400 hover:text-leather-200 flex-1 px-4 py-2"
         >
           Not now
         </button>
         <button
           onClick={install}
-          className="flex-1 px-4 py-2 bg-ember-500 hover:bg-ember-600
-                     text-white rounded-lg font-medium"
+          className="bg-ember-500 hover:bg-ember-600 flex-1 rounded-lg px-4 py-2 font-medium text-white"
         >
           Install
         </button>

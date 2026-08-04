@@ -6,12 +6,13 @@
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/hello') return Response.json({ message: 'Hello' });
+    if (url.pathname === '/api/hello')
+      return Response.json({ message: 'Hello' });
     if (url.pathname === '/api/echo' && request.method === 'POST') {
       return Response.json({ received: await request.json() });
     }
     return Response.json({ error: 'Not found' }, { status: 404 });
-  }
+  },
 };
 ```
 
@@ -20,14 +21,14 @@ export default {
 ```javascript
 const routes = {
   '/': () => new Response('Home'),
-  '/api/users': () => Response.json([{ id: 1, name: 'Alice' }])
+  '/api/users': () => Response.json([{ id: 1, name: 'Alice' }]),
 };
 
 export default {
   async fetch(request) {
     const handler = routes[new URL(request.url).pathname];
     return handler ? handler() : new Response('Not Found', { status: 404 });
-  }
+  },
 };
 ```
 
@@ -39,9 +40,11 @@ export default {
     const url = new URL(request.url);
     url.hostname = 'api.example.com';
     return fetch(url.toString(), {
-      method: request.method, headers: request.headers, body: request.body
+      method: request.method,
+      headers: request.headers,
+      body: request.body,
     });
-  }
+  },
 };
 ```
 
@@ -55,15 +58,15 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        }
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
       });
     }
     const response = await fetch('https://api.example.com', request);
     const modified = new Response(response.body, response);
     modified.headers.set('Access-Control-Allow-Origin', '*');
     return modified;
-  }
+  },
 };
 ```
 
@@ -80,7 +83,7 @@ export default {
       if (response.status === 200) await cache.put(request, response.clone());
     }
     return response;
-  }
+  },
 };
 ```
 
@@ -109,7 +112,7 @@ export default {
       return Response.json({ error: 'Invalid token' }, { status: 403 });
     }
     return Response.json({ message: 'Authenticated' });
-  }
+  },
 };
 ```
 
@@ -125,7 +128,7 @@ export default {
     } catch (error) {
       return Response.json({ error: error.message }, { status: 500 });
     }
-  }
+  },
 };
 ```
 

@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { usePathname } from "next/navigation";
-import { Sidebar } from "./Sidebar";
-import { MobileNavigation } from "./MobileNavigation";
-import { useEffect, useRef, useCallback } from "react";
-import { useUserSetup } from "@/hooks/usePreferences";
-import { CreateTransactionModal } from "./CreateTransactionModal";
-import { useTransactionModal } from "@/store/useTransactionModal";
-import { CreateRecurringModal } from "./CreateRecurringModal";
-import { useRecurringModal } from "@/store/useRecurringModal";
-import { PullToRefresh } from "./PullToRefresh";
-import { useQueryClient } from "@tanstack/react-query";
+import { usePathname } from 'next/navigation';
+import { Sidebar } from './Sidebar';
+import { MobileNavigation } from './MobileNavigation';
+import { useEffect, useRef, useCallback } from 'react';
+import { useUserSetup } from '@/hooks/usePreferences';
+import { CreateTransactionModal } from './CreateTransactionModal';
+import { useTransactionModal } from '@/store/useTransactionModal';
+import { CreateRecurringModal } from './CreateRecurringModal';
+import { useRecurringModal } from '@/store/useRecurringModal';
+import { PullToRefresh } from './PullToRefresh';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLoginPage = pathname === "/login";
+  const isLoginPage = pathname === '/login';
 
   const { mutate: runSetup } = useUserSetup();
   const setupRan = useRef(false);
@@ -39,20 +39,20 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (isLoginPage) {
     return (
-      <main className="min-h-dvh overflow-y-auto theme-bg theme-text">
+      <main className="theme-bg theme-text min-h-dvh overflow-y-auto">
         {children}
       </main>
     );
   }
 
   return (
-    <div className="flex min-h-dvh h-dvh overflow-hidden theme-bg theme-text selection:bg-emerald-500/30">
+    <div className="theme-bg theme-text flex h-dvh min-h-dvh overflow-hidden selection:bg-emerald-500/30">
       <Sidebar />
-      <div className="flex flex-col flex-1 w-0 overflow-hidden">
+      <div className="flex w-0 flex-1 flex-col overflow-hidden">
         <main
-          className="flex-1 relative z-0 overflow-y-auto overscroll-none focus:outline-none lg:pb-0 scroll-smooth"
+          className="relative z-0 flex-1 overflow-y-auto overscroll-none scroll-smooth focus:outline-none lg:pb-0"
           style={{
-            paddingBottom: "calc(5rem + env(safe-area-inset-bottom))",
+            paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))',
           }}
         >
           <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>

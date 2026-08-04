@@ -4,7 +4,7 @@ export const formatCompactValue = (value: number) => {
     style: 'currency',
     currency: 'CLP',
     notation: 'compact',
-    maximumFractionDigits: 1
+    maximumFractionDigits: 1,
   }).format(value);
 };
 
@@ -14,11 +14,11 @@ export function formatDateAbbreviated(dateStr: string) {
   if (!dateStr) return 'Select date';
   const d = parseISO(dateStr);
   if (!isValid(d)) return 'Select date';
-  
+
   return format(d, 'MMM d');
 }
 
 export const formatCurrency = (value: number | null | undefined): string => {
-  if (value === null || value === undefined || isNaN(value)) return "0";
-  return Math.round(value).toLocaleString("es-CL");
+  if (value === null || value === undefined || isNaN(value)) return '0';
+  return Math.round(value).toLocaleString('es-CL');
 };

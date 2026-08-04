@@ -48,7 +48,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         className="flex h-screen w-full items-center justify-center"
         style={{ background: 'var(--bg-base)' }}
       >
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
+        <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
       </div>
     );
   }
@@ -70,7 +70,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
           },
         },
-      })
+      }),
   );
 
   const [persister] = useState(() => {

@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
     "dev": "pnpm --filter api --filter web --parallel dev",
     "dev:all": "pnpm --filter api --filter web --parallel dev",
     "dev:api": "pnpm --filter api dev",
@@ -16,5 +20,12 @@
     "db:seed:local": "pnpm --filter api db:seed:local",
     "db:seed:more": "pnpm --filter api db:seed:more",
     "db:setup:local": "pnpm --filter api db:setup:local"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.39.5",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "typescript-eslint": "^8.65.0"
   }
 }

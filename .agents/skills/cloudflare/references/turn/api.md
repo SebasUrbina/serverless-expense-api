@@ -34,6 +34,7 @@ Content-Type: application/json
 ```
 
 **Response includes**:
+
 - `uid`: Key identifier
 - `key`: The actual secret key (only returned on creation—save immediately)
 - `name`: Human-readable name
@@ -71,9 +72,9 @@ Content-Type: application/json
 
 ### Credential Constraints
 
-| Parameter | Min | Max | Default | Notes |
-|-----------|-----|-----|---------|-------|
-| ttl | 1 | 172800 (48hrs) | varies | API rejects values >172800 |
+| Parameter | Min | Max            | Default | Notes                      |
+| --------- | --- | -------------- | ------- | -------------------------- |
+| ttl       | 1   | 172800 (48hrs) | varies  | API rejects values >172800 |
 
 **CRITICAL**: Maximum TTL is 48 hours (172800 seconds). API will reject requests exceeding this limit.
 
@@ -140,7 +141,7 @@ interface RTCIceServer {
   urls: string | string[];
   username?: string;
   credential?: string;
-  credentialType?: "password";
+  credentialType?: 'password';
 }
 
 interface TURNKeyResponse {
@@ -182,7 +183,7 @@ function validateRTCIceServer(obj: unknown): obj is RTCIceServer {
 
 ```typescript
 async function fetchTURNServers(
-  config: CloudflareTURNConfig
+  config: CloudflareTURNConfig,
 ): Promise<RTCIceServer[]> {
   // Validate TTL constraint
   const ttl = config.ttl ?? 3600;
@@ -195,11 +196,11 @@ async function fetchTURNServers(
     {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${config.keySecret}`,
-        'Content-Type': 'application/json'
+        Authorization: `Bearer ${config.keySecret}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ttl })
-    }
+      body: JSON.stringify({ ttl }),
+    },
   );
 
   if (!response.ok) {
@@ -207,10 +208,10 @@ async function fetchTURNServers(
   }
 
   const data = await response.json();
-  
+
   // Filter port 53 for browser clients
   const filteredUrls = data.iceServers.urls.filter(
-    (url: string) => !url.includes(':53')
+    (url: string) => !url.includes(':53'),
   );
 
   const iceServers = [
@@ -219,8 +220,8 @@ async function fetchTURNServers(
       urls: filteredUrls,
       username: data.iceServers.username,
       credential: data.iceServers.credential,
-      credentialType: 'password' as const
-    }
+      credentialType: 'password' as const,
+    },
   ];
 
   // Validate before returning

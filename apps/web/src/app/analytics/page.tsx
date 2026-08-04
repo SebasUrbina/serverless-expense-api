@@ -2,21 +2,56 @@
 
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar, Cell, ComposedChart, LabelList, Line } from 'recharts';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+  BarChart,
+  Bar,
+  Cell,
+  ComposedChart,
+  LabelList,
+  Line,
+} from 'recharts';
 import { format, parseISO, isValid, addMonths, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthSelector } from '@/components/MonthSelector';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, PiggyBank, Calendar, Target, Activity } from 'lucide-react';
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  TrendingUp,
+  PiggyBank,
+  Calendar,
+  Target,
+  Activity,
+} from 'lucide-react';
 import { formatCompactValue, formatCurrency } from '@/lib/utils';
-import type { MonthlySummary, CategorySummary, CategoryTrendResponse } from '@/types/api';
+import type {
+  MonthlySummary,
+  CategorySummary,
+  CategoryTrendResponse,
+} from '@/types/api';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 
 const TREND_COLORS = [
-  '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
-  '#0ea5e9', '#f43f5e', '#84cc16', '#14b8a6', '#a855f7',
+  '#6366f1',
+  '#8b5cf6',
+  '#ec4899',
+  '#f59e0b',
+  '#10b981',
+  '#0ea5e9',
+  '#f43f5e',
+  '#84cc16',
+  '#14b8a6',
+  '#a855f7',
 ];
 
 type ChartDatum = {
@@ -48,8 +83,8 @@ type TooltipProps = {
 const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-3 rounded-2xl shadow-xl min-w-[140px] bg-card border border-border">
-        <p className="text-sm font-medium mb-3 pb-2 text-muted border-b border-border">
+      <div className="bg-card border-border min-w-[140px] rounded-2xl border p-3 shadow-xl">
+        <p className="text-muted border-border mb-3 border-b pb-2 text-sm font-medium">
           {label}
         </p>
         <div className="space-y-2">
@@ -58,8 +93,13 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
             if (entry.name === 'Ingresos') color = '#10b981';
             if (entry.name === 'Gastos') color = '#f43f5e';
             return (
-              <div key={index} className="flex items-center justify-between gap-6">
-                <span className="text-sm font-medium" style={{ color }}>{entry.name}</span>
+              <div
+                key={index}
+                className="flex items-center justify-between gap-6"
+              >
+                <span className="text-sm font-medium" style={{ color }}>
+                  {entry.name}
+                </span>
                 <span className="text-sm font-bold" style={{ color }}>
                   ${formatCurrency(Number(entry.value))}
                 </span>
@@ -77,7 +117,9 @@ export default function AnalyticsPage() {
   const router = useRouter();
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
 
-  const { data: response, isLoading: isLoadingSummary } = useQuery<{ summary: MonthlySummary[] }>({
+  const { data: response, isLoading: isLoadingSummary } = useQuery<{
+    summary: MonthlySummary[];
+  }>({
     queryKey: ['transactions', 'analytics', 'monthly', filterMonth],
     queryFn: async () => {
       let url = '/transactions/summary/monthly?months=12';
@@ -87,26 +129,31 @@ export default function AnalyticsPage() {
       }
       const res = await api.get(url);
       return res.data;
-    }
+    },
   });
 
-  const { data: categoryResponse, isLoading: isLoadingCategory } = useQuery<{ summary: CategorySummary[] }>({
+  const { data: categoryResponse, isLoading: isLoadingCategory } = useQuery<{
+    summary: CategorySummary[];
+  }>({
     queryKey: ['transactions', 'analytics', 'category', filterMonth],
     queryFn: async () => {
       let url = '/transactions/summary/category?type=expense';
       if (filterMonth) url += `&month=${filterMonth}`;
       const res = await api.get(url);
       return res.data;
-    }
+    },
   });
 
-  const { data: trendResponse, isLoading: isLoadingTrend } = useQuery<CategoryTrendResponse>({
-    queryKey: ['transactions', 'analytics', 'category-trend'],
-    queryFn: async () => {
-      const res = await api.get('/transactions/summary/category-trend?months=12');
-      return res.data;
-    }
-  });
+  const { data: trendResponse, isLoading: isLoadingTrend } =
+    useQuery<CategoryTrendResponse>({
+      queryKey: ['transactions', 'analytics', 'category-trend'],
+      queryFn: async () => {
+        const res = await api.get(
+          '/transactions/summary/category-trend?months=12',
+        );
+        return res.data;
+      },
+    });
 
   const isLoading = isLoadingSummary || isLoadingCategory || isLoadingTrend;
   const monthlySummary = response?.summary || [];
@@ -125,7 +172,10 @@ export default function AnalyticsPage() {
     for (const cat of topCategories) {
       datum[cat.category ?? 'Sin categoría'] = cat.values[idx] || 0;
     }
-    const othersSum = othersCategories.reduce((s, c) => s + (c.values[idx] || 0), 0);
+    const othersSum = othersCategories.reduce(
+      (s, c) => s + (c.values[idx] || 0),
+      0,
+    );
     if (othersSum > 0) datum['Otros'] = othersSum;
     return datum;
   });
@@ -135,7 +185,9 @@ export default function AnalyticsPage() {
     .map((item) => {
       const parsedDate = parseISO(`${item.month}-01`);
       return {
-        name: isValid(parsedDate) ? format(parsedDate, 'MMM', { locale: es }) : item.month,
+        name: isValid(parsedDate)
+          ? format(parsedDate, 'MMM', { locale: es })
+          : item.month,
         originalMonth: item.month,
         Ingresos: item.total_income,
         Gastos: item.total_expense,
@@ -151,18 +203,27 @@ export default function AnalyticsPage() {
 
   if (!filterMonth && chartData.length > 0) {
     const recentMonths = chartData.slice(-3);
-    const avgSavings = recentMonths.reduce((sum, item) => sum + item.Balance, 0) / recentMonths.length;
-    const lastMonthRaw = monthlySummary.filter(m => m.month).pop()?.month;
+    const avgSavings =
+      recentMonths.reduce((sum, item) => sum + item.Balance, 0) /
+      recentMonths.length;
+    const lastMonthRaw = monthlySummary.filter((m) => m.month).pop()?.month;
     if (lastMonthRaw) {
       const lastDate = parseISO(`${lastMonthRaw}-01`);
       if (isValid(lastDate)) {
         const nextDate = addMonths(lastDate, 1);
-        savingsData.push({ name: format(nextDate, 'MMM', { locale: es }) + ' (est.)', Ahorro: avgSavings, isProjection: true });
+        savingsData.push({
+          name: format(nextDate, 'MMM', { locale: es }) + ' (est.)',
+          Ahorro: avgSavings,
+          isProjection: true,
+        });
       }
     }
   }
 
-  const totalExpense = categorySummary.reduce((acc, curr) => acc + curr.amount, 0);
+  const totalExpense = categorySummary.reduce(
+    (acc, curr) => acc + curr.amount,
+    0,
+  );
 
   const openTransactionsForMonth = (data: unknown) => {
     if (!data || typeof data !== 'object' || !('originalMonth' in data)) {
@@ -180,11 +241,16 @@ export default function AnalyticsPage() {
   const selectedIncome = selectedMonthData?.total_income ?? 0;
   const selectedExpense = selectedMonthData?.total_expense ?? 0;
   const selectedSavings = selectedIncome - selectedExpense;
-  const savingsRate = selectedIncome > 0 ? (selectedSavings / selectedIncome) * 100 : 0;
+  const savingsRate =
+    selectedIncome > 0 ? (selectedSavings / selectedIncome) * 100 : 0;
 
   // Calculate average daily spending
   const daysInMonth = filterMonth
-    ? new Date(Number(filterMonth.split("-")[0]), Number(filterMonth.split("-")[1]), 0).getDate()
+    ? new Date(
+        Number(filterMonth.split('-')[0]),
+        Number(filterMonth.split('-')[1]),
+        0,
+      ).getDate()
     : 30;
   const dailyAverage = selectedExpense / daysInMonth;
 
@@ -192,7 +258,7 @@ export default function AnalyticsPage() {
   const topCategory = categorySummary.length > 0 ? categorySummary[0] : null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* ── Header ── */}
       <PageHeader
         title="Tu dinero en perspectiva"
@@ -203,86 +269,101 @@ export default function AnalyticsPage() {
       />
 
       {/* ── Content ── */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-8">
-        <div className="max-w-7xl mx-auto space-y-6">
-
+      <div className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
+        <div className="mx-auto max-w-7xl space-y-6">
           {/* KPI Cards Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {/* Card 1: Ahorro Neto */}
-            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-emerald-500/20 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/20">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
                   Ahorro Neto
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-inner">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shadow-inner">
                   <PiggyBank size={16} />
                 </div>
               </div>
               <div>
-                <p className={`text-xl sm:text-2xl font-black tracking-tight ${selectedSavings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {selectedSavings >= 0 ? '+' : '−'}${formatCurrency(Math.abs(selectedSavings))}
+                <p
+                  className={`text-xl font-black tracking-tight sm:text-2xl ${selectedSavings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}
+                >
+                  {selectedSavings >= 0 ? '+' : '−'}$
+                  {formatCurrency(Math.abs(selectedSavings))}
                 </p>
-                <p className="text-[11px] text-muted mt-1 font-medium">
-                  Tasa de ahorro: <span className="font-bold text-emerald-500">{savingsRate.toFixed(0)}%</span>
+                <p className="text-muted mt-1 text-[11px] font-medium">
+                  Tasa de ahorro:{' '}
+                  <span className="font-bold text-emerald-500">
+                    {savingsRate.toFixed(0)}%
+                  </span>
                 </p>
               </div>
             </div>
 
             {/* Card 2: Gasto Diario */}
-            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-red-500/20 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-red-500/20">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
                   Gasto Diario
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center shadow-inner">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-500 shadow-inner">
                   <Calendar size={16} />
                 </div>
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-black tracking-tight text-primary">
+                <p className="text-primary text-xl font-black tracking-tight sm:text-2xl">
                   ${formatCurrency(dailyAverage)}
                 </p>
-                <p className="text-[11px] text-muted mt-1 font-medium">
+                <p className="text-muted mt-1 text-[11px] font-medium">
                   Promedio en {daysInMonth} días
                 </p>
               </div>
             </div>
 
             {/* Card 3: Categoría Principal */}
-            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-violet-500/20 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-violet-500/20">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
                   Mayor Categoría
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center shadow-inner">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500 shadow-inner">
                   <Target size={16} />
                 </div>
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-black tracking-tight text-primary truncate" title={topCategory ? topCategory.category : "Ninguna"}>
-                  {topCategory ? `${topCategory.category_icon || ''} ${topCategory.category}` : "Ninguna"}
+                <p
+                  className="text-primary truncate text-xl font-black tracking-tight sm:text-2xl"
+                  title={topCategory ? topCategory.category : 'Ninguna'}
+                >
+                  {topCategory
+                    ? `${topCategory.category_icon || ''} ${topCategory.category}`
+                    : 'Ninguna'}
                 </p>
-                <p className="text-[11px] text-muted mt-1 font-medium">
-                  {topCategory ? `Gasto: $${formatCurrency(topCategory.amount)}` : "Sin gastos"}
+                <p className="text-muted mt-1 text-[11px] font-medium">
+                  {topCategory
+                    ? `Gasto: $${formatCurrency(topCategory.amount)}`
+                    : 'Sin gastos'}
                 </p>
               </div>
             </div>
 
             {/* Card 4: Eficiencia */}
-            <div className="rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 bg-card border border-border hover:border-blue-500/20 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-blue-500/20">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
                   Eficiencia
                 </span>
-                <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shadow-inner">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 shadow-inner">
                   <Activity size={16} />
                 </div>
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-black tracking-tight text-primary">
-                  {selectedIncome > 0 ? ((selectedExpense / selectedIncome) * 100).toFixed(0) + "%" : "0%"}
+                <p className="text-primary text-xl font-black tracking-tight sm:text-2xl">
+                  {selectedIncome > 0
+                    ? ((selectedExpense / selectedIncome) * 100).toFixed(0) +
+                      '%'
+                    : '0%'}
                 </p>
-                <p className="text-[11px] text-muted mt-1 font-medium">
+                <p className="text-muted mt-1 text-[11px] font-medium">
                   De tus ingresos gastados
                 </p>
               </div>
@@ -290,137 +371,293 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Cashflow Chart */}
-          <div className="rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px] bg-card border border-border shadow-sm">
-            <p className="font-bold text-sm mb-1 text-primary">Flujo de dinero</p>
-            <p className="text-xs mb-4 text-muted">Ingresos, gastos y ahorro mes a mes</p>
+          <div className="bg-card border-border flex h-[320px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[400px]">
+            <p className="text-primary mb-1 text-sm font-bold">
+              Flujo de dinero
+            </p>
+            <p className="text-muted mb-4 text-xs">
+              Ingresos, gastos y ahorro mes a mes
+            </p>
             {isLoading ? (
               <LoadingState minHeight="h-full" />
             ) : chartData.length > 0 ? (
-              <div className="flex-1 min-h-0">
+              <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 24, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
-                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={50} domain={[0, 'auto']} />
-                    <Tooltip cursor={{ fill: 'var(--border)', opacity: 0.4 }} content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }} />
-                    <Bar dataKey="Ingresos" fill="#10b981" radius={[4, 4, 0, 0]}
+                  <ComposedChart
+                    data={chartData}
+                    margin={{ top: 24, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      stroke="var(--text-muted)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={8}
+                    />
+                    <YAxis
+                      stroke="var(--text-muted)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={formatCompactValue}
+                      width={50}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'var(--border)', opacity: 0.4 }}
+                      content={<CustomTooltip />}
+                    />
+                    <Legend
+                      wrapperStyle={{
+                        paddingTop: '16px',
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                      }}
+                    />
+                    <Bar
+                      dataKey="Ingresos"
+                      fill="#10b981"
+                      radius={[4, 4, 0, 0]}
                       onClick={openTransactionsForMonth}
                       cursor="pointer"
                     >
-                      <LabelList dataKey="Ingresos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val) => val ? formatCompactValue(Number(val)) : ''} />
+                      <LabelList
+                        dataKey="Ingresos"
+                        position="top"
+                        fill="var(--text-muted)"
+                        fontSize={9}
+                        className="hidden sm:block"
+                        formatter={(val) =>
+                          val ? formatCompactValue(Number(val)) : ''
+                        }
+                      />
                     </Bar>
-                    <Bar dataKey="Gastos" fill="#f43f5e" radius={[4, 4, 0, 0]}
+                    <Bar
+                      dataKey="Gastos"
+                      fill="#f43f5e"
+                      radius={[4, 4, 0, 0]}
                       onClick={openTransactionsForMonth}
                       cursor="pointer"
                     >
-                      <LabelList dataKey="Gastos" position="top" fill="var(--text-muted)" fontSize={9} className="hidden sm:block" formatter={(val) => val ? formatCompactValue(Number(val)) : ''} />
+                      <LabelList
+                        dataKey="Gastos"
+                        position="top"
+                        fill="var(--text-muted)"
+                        fontSize={9}
+                        className="hidden sm:block"
+                        formatter={(val) =>
+                          val ? formatCompactValue(Number(val)) : ''
+                        }
+                      />
                     </Bar>
-                    <Line type="monotone" dataKey="Balance" name="Ahorro" stroke="#a855f7" strokeWidth={2.5} dot={{ fill: '#a855f7', strokeWidth: 2, r: 3 }} activeDot={{ r: 5, fill: '#c084fc' }} />
+                    <Line
+                      type="monotone"
+                      dataKey="Balance"
+                      name="Ahorro"
+                      stroke="#a855f7"
+                      strokeWidth={2.5}
+                      dot={{ fill: '#a855f7', strokeWidth: 2, r: 3 }}
+                      activeDot={{ r: 5, fill: '#c084fc' }}
+                    />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-muted">
+              <div className="text-muted flex flex-1 items-center justify-center text-sm">
                 Aún no hay datos para mostrar.
               </div>
             )}
           </div>
 
-
           {/* Row 1: Area Chart + Category Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {/* Area Chart */}
-            <div className="lg:col-span-2 xl:col-span-3 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px] bg-card border border-border shadow-sm">
-              <p className="font-bold text-sm mb-1 text-primary">
+            <div className="bg-card border-border flex h-[320px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[400px] lg:col-span-2 xl:col-span-3">
+              <p className="text-primary mb-1 text-sm font-bold">
                 Flujo anual de dinero
               </p>
-              <p className="text-xs mb-4 text-muted">
+              <p className="text-muted mb-4 text-xs">
                 Ingresos y gastos de los últimos 12 meses
               </p>
               {isLoading ? (
                 <LoadingState minHeight="h-full" />
               ) : chartData.length > 0 ? (
-                <div className="flex-1 min-h-0">
+                <div className="min-h-0 flex-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <AreaChart
+                      data={chartData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
                       <defs>
-                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                        <linearGradient
+                          id="colorIncome"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#10b981"
+                            stopOpacity={0.25}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#10b981"
+                            stopOpacity={0}
+                          />
                         </linearGradient>
-                        <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                        <linearGradient
+                          id="colorExpense"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#f43f5e"
+                            stopOpacity={0.25}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#f43f5e"
+                            stopOpacity={0}
+                          />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
-                      <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={60} />
-                      <Tooltip cursor={{ fill: 'var(--border)', opacity: 0.4 }} content={<CustomTooltip />} />
-                      <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }} />
-                      <Area type="monotone" dataKey="Ingresos" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorIncome)" />
-                      <Area type="monotone" dataKey="Gastos" stroke="#f43f5e" strokeWidth={2.5} fillOpacity={1} fill="url(#colorExpense)" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="var(--text-muted)"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={8}
+                      />
+                      <YAxis
+                        stroke="var(--text-muted)"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={formatCompactValue}
+                        width={60}
+                      />
+                      <Tooltip
+                        cursor={{ fill: 'var(--border)', opacity: 0.4 }}
+                        content={<CustomTooltip />}
+                      />
+                      <Legend
+                        wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="Ingresos"
+                        stroke="#10b981"
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#colorIncome)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="Gastos"
+                        stroke="#f43f5e"
+                        strokeWidth={2.5}
+                        fillOpacity={1}
+                        fill="url(#colorExpense)"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-sm text-muted">
+                <div className="text-muted flex flex-1 items-center justify-center text-sm">
                   Aún no hay suficientes datos.
                 </div>
               )}
             </div>
 
             {/* Category Breakdown */}
-            <div className="lg:col-span-1 xl:col-span-1 rounded-3xl p-5 flex flex-col h-[320px] sm:h-[400px] bg-card border border-border shadow-sm">
-              <p className="font-bold text-sm mb-1 text-primary">
+            <div className="bg-card border-border flex h-[320px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[400px] lg:col-span-1 xl:col-span-1">
+              <p className="text-primary mb-1 text-sm font-bold">
                 ¿En qué se va el dinero?
               </p>
-              <p className="text-xs mb-4 text-muted">Por categoría este mes</p>
+              <p className="text-muted mb-4 text-xs">Por categoría este mes</p>
               {isLoading ? (
                 <LoadingState minHeight="h-full" />
               ) : categorySummary.length > 0 ? (
-                <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div className="flex-1 space-y-4 overflow-y-auto pr-1">
                   {categorySummary.map((cat, idx) => {
-                    const percentage = totalExpense > 0 ? ((cat.amount / totalExpense) * 100).toFixed(1) : '0.0';
-                    const delta = cat.previous_amount !== undefined ? cat.amount - cat.previous_amount! : 0;
+                    const percentage =
+                      totalExpense > 0
+                        ? ((cat.amount / totalExpense) * 100).toFixed(1)
+                        : '0.0';
+                    const delta =
+                      cat.previous_amount !== undefined
+                        ? cat.amount - cat.previous_amount!
+                        : 0;
                     const isIncrease = delta > 0;
 
                     return (
                       <div key={idx}>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-sm font-medium flex items-center gap-1.5 text-primary">
-                            {cat.category_icon && <span>{cat.category_icon}</span>}
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="text-primary flex items-center gap-1.5 text-sm font-medium">
+                            {cat.category_icon && (
+                              <span>{cat.category_icon}</span>
+                            )}
                             {cat.category}
                           </span>
                           <div className="flex items-center gap-2">
-                            {delta !== 0 && cat.previous_amount !== undefined && (
-                              <span className={`flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isIncrease ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
-                                {isIncrease ? <ArrowUpRight size={10} className="mr-0.5" /> : <ArrowDownRight size={10} className="mr-0.5" />}
-                                ${formatCurrency(Math.abs(delta))}
-                              </span>
-                            )}
-                            <span className="text-sm font-semibold text-primary">
+                            {delta !== 0 &&
+                              cat.previous_amount !== undefined && (
+                                <span
+                                  className={`flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold ${isIncrease ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}
+                                >
+                                  {isIncrease ? (
+                                    <ArrowUpRight
+                                      size={10}
+                                      className="mr-0.5"
+                                    />
+                                  ) : (
+                                    <ArrowDownRight
+                                      size={10}
+                                      className="mr-0.5"
+                                    />
+                                  )}
+                                  ${formatCurrency(Math.abs(delta))}
+                                </span>
+                              )}
+                            <span className="text-primary text-sm font-semibold">
                               ${formatCurrency(cat.amount)}
                             </span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 rounded-full h-1.5 bg-inset">
+                          <div className="bg-inset h-1.5 flex-1 rounded-full">
                             <div
-                              className="bg-emerald-500 h-1.5 rounded-full transition-all duration-700 ease-out"
+                              className="h-1.5 rounded-full bg-emerald-500 transition-all duration-700 ease-out"
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
-                          <span className="text-[11px] font-bold text-emerald-500 w-10 text-right">{percentage}%</span>
+                          <span className="w-10 text-right text-[11px] font-bold text-emerald-500">
+                            {percentage}%
+                          </span>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-sm text-muted">
+                <div className="text-muted flex flex-1 items-center justify-center text-sm">
                   Sin datos de categorías.
                 </div>
               )}
@@ -428,31 +665,53 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Row 2: Savings */}
-          <div className="rounded-3xl p-5 flex flex-col h-[260px] sm:h-[340px] bg-card border border-border shadow-sm">
-            <div className="flex items-center gap-2 mb-1">
+          <div className="bg-card border-border flex h-[260px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[340px]">
+            <div className="mb-1 flex items-center gap-2">
               <TrendingUp size={16} className="text-emerald-500" />
-              <p className="font-bold text-sm text-primary">
+              <p className="text-primary text-sm font-bold">
                 Tu ahorro mes a mes
               </p>
             </div>
-            <p className="text-xs mb-4 text-muted">
+            <p className="text-muted mb-4 text-xs">
               Lo que te sobra después de gastos
             </p>
             {isLoading ? (
               <LoadingState minHeight="h-full" />
             ) : savingsData.length > 0 ? (
-              <div className="flex-1 min-h-0">
+              <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={savingsData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
-                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={60} />
+                  <BarChart
+                    data={savingsData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      stroke="var(--text-muted)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={8}
+                    />
+                    <YAxis
+                      stroke="var(--text-muted)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={formatCompactValue}
+                      width={60}
+                    />
                     <Tooltip
                       formatter={(value, _name, item) => {
-                        const payload = item?.payload as SavingsDatum | undefined;
+                        const payload = item?.payload as
+                          SavingsDatum | undefined;
                         return [
                           `$${formatCurrency(Number(value ?? 0))}`,
-                          payload?.isProjection ? 'Ahorro estimado' : 'Ahorro'
+                          payload?.isProjection ? 'Ahorro estimado' : 'Ahorro',
                         ];
                       }}
                       contentStyle={{
@@ -460,7 +719,7 @@ export default function AnalyticsPage() {
                         borderColor: 'var(--border)',
                         borderRadius: '12px',
                         color: 'var(--text-primary)',
-                        fontSize: '13px'
+                        fontSize: '13px',
                       }}
                       itemStyle={{ color: 'var(--text-primary)' }}
                       cursor={{ fill: 'var(--border)', opacity: 0.4 }}
@@ -471,7 +730,13 @@ export default function AnalyticsPage() {
                           key={`cell-${index}`}
                           fill={entry.Ahorro >= 0 ? '#10b981' : '#f43f5e'}
                           fillOpacity={entry.isProjection ? 0.3 : 1}
-                          stroke={entry.isProjection ? (entry.Ahorro >= 0 ? '#10b981' : '#f43f5e') : 'none'}
+                          stroke={
+                            entry.isProjection
+                              ? entry.Ahorro >= 0
+                                ? '#10b981'
+                                : '#f43f5e'
+                              : 'none'
+                          }
                           strokeDasharray={entry.isProjection ? '4 4' : 'none'}
                           strokeWidth={entry.isProjection ? 2 : 0}
                         />
@@ -481,29 +746,50 @@ export default function AnalyticsPage() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-muted">
+              <div className="text-muted flex flex-1 items-center justify-center text-sm">
                 Aún no hay datos de ahorro.
               </div>
             )}
           </div>
 
           {/* Row 3: Category trend */}
-          <div className="rounded-3xl p-5 flex flex-col h-[360px] sm:h-[440px] bg-card border border-border shadow-sm">
-            <p className="font-bold text-sm mb-1 text-primary">
+          <div className="bg-card border-border flex h-[360px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[440px]">
+            <p className="text-primary mb-1 text-sm font-bold">
               Tendencia por categoría
             </p>
-            <p className="text-xs mb-4 text-muted">
+            <p className="text-muted mb-4 text-xs">
               Cómo cambia tu gasto por categoría en los últimos 12 meses
             </p>
             {isLoadingTrend ? (
               <LoadingState minHeight="h-full" />
             ) : trendData.length > 0 && topCategories.length > 0 ? (
-              <div className="flex-1 min-h-0">
+              <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} dy={8} />
-                    <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCompactValue} width={60} />
+                  <BarChart
+                    data={trendData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--border)"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="name"
+                      stroke="var(--text-muted)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={8}
+                    />
+                    <YAxis
+                      stroke="var(--text-muted)"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={formatCompactValue}
+                      width={60}
+                    />
                     <Tooltip
                       cursor={{ fill: 'var(--border)', opacity: 0.3 }}
                       contentStyle={{
@@ -511,32 +797,45 @@ export default function AnalyticsPage() {
                         borderColor: 'var(--border)',
                         borderRadius: '12px',
                         color: 'var(--text-primary)',
-                        fontSize: '13px'
+                        fontSize: '13px',
                       }}
                       itemStyle={{ color: 'var(--text-primary)' }}
                       formatter={(value, name) => [
                         `$${formatCurrency(Number(value ?? 0))}`,
-                        String(name)
+                        String(name),
                       ]}
                     />
-                    <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '12px', color: 'var(--text-secondary)' }} />
+                    <Legend
+                      wrapperStyle={{
+                        paddingTop: '16px',
+                        fontSize: '12px',
+                        color: 'var(--text-secondary)',
+                      }}
+                    />
                     {topCategories.map((cat, i) => (
                       <Bar
                         key={cat.category_id ?? i}
                         dataKey={cat.category ?? 'Sin categoría'}
                         stackId="trend"
                         fill={TREND_COLORS[i % TREND_COLORS.length]}
-                        radius={i === topCategories.length - 1 ? [4, 4, 0, 0] : 0}
+                        radius={
+                          i === topCategories.length - 1 ? [4, 4, 0, 0] : 0
+                        }
                       />
                     ))}
                     {othersCategories.length > 0 && (
-                      <Bar dataKey="Otros" stackId="trend" fill="#71717a" radius={[0, 0, 0, 0]} />
+                      <Bar
+                        dataKey="Otros"
+                        stackId="trend"
+                        fill="#71717a"
+                        radius={[0, 0, 0, 0]}
+                      />
                     )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-sm text-muted">
+              <div className="text-muted flex flex-1 items-center justify-center text-sm">
                 Aún no hay suficientes datos.
               </div>
             )}

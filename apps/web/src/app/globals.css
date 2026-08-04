@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-brand-500: #6366f1;
@@ -41,7 +41,7 @@
   --bg-card-hover: #f8f9fb;
   --bg-inset: #f1f2f5;
   --bg-button: #0b0f14;
-  --backdrop-rgb: 0,0,0;
+  --backdrop-rgb: 0, 0, 0;
   --backdrop-bg: rgba(var(--backdrop-rgb), 0.5);
   --border: #e6e8ec;
   --border-subtle: #eef0f3;
@@ -50,7 +50,8 @@
   --text-secondary: #4a5560;
   --text-muted: #8a929c;
 
-  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --shadow-card:
+    0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
   --shadow-elevated:
     0 4px 12px rgba(16, 24, 40, 0.06), 0 2px 4px rgba(16, 24, 40, 0.04);
 
@@ -61,7 +62,7 @@
 }
 
 /* ── Dark Theme (Clean · high contrast, true black) ────── */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --color-balance: #a78bfa;
   --color-expense: #f87171;
   --color-income: #34d399;
@@ -89,8 +90,7 @@
 
   /* Sombras mínimas, sin glow de color */
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-elevated:
-    0 6px 20px rgba(0, 0, 0, 0.6);
+  --shadow-elevated: 0 6px 20px rgba(0, 0, 0, 0.6);
 
   /* Accents */
   --emerald-soft: rgba(16, 185, 129, 0.15);
@@ -136,7 +136,7 @@
 }
 
 /* ── Range Input ─────────────────────────────────────── */
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 18px;
@@ -148,10 +148,10 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
   transition: transform 0.15s ease;
 }
-input[type="range"]::-webkit-slider-thumb:hover {
+input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
-input[type="range"]::-moz-range-thumb {
+input[type='range']::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;

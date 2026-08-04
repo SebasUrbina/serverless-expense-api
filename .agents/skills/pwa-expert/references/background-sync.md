@@ -41,7 +41,10 @@ async function saveCheckin(data: CheckinData) {
   await db.add('pending-checkins', { ...data, id: crypto.randomUUID() });
 
   // Request background sync
-  if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+  if (
+    'serviceWorker' in navigator &&
+    'sync' in window.ServiceWorkerRegistration.prototype
+  ) {
     const registration = await navigator.serviceWorker.ready;
     await registration.sync.register('sync-checkins');
   }
@@ -82,13 +85,16 @@ async function syncWithRetry(items, endpoint, storeName, maxRetries = 3) {
 
       // Success - remove from queue
       await db.delete(storeName, item.id);
-
     } catch (error) {
       attempts++;
 
       if (attempts >= maxRetries) {
         // Move to failed queue for manual review
-        await db.put('failed-syncs', { ...item, attempts, error: error.message });
+        await db.put('failed-syncs', {
+          ...item,
+          attempts,
+          error: error.message,
+        });
         await db.delete(storeName, item.id);
       } else {
         // Update attempt count

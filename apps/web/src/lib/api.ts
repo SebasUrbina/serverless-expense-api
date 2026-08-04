@@ -11,7 +11,9 @@ export const api = axios.create({
 
 // Inject Supabase session globally
 api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   }
@@ -30,14 +32,16 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
       // Retry the original request with refreshed token
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session?.access_token) {
         error.config.headers.Authorization = `Bearer ${session.access_token}`;
         return api.request(error.config);
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

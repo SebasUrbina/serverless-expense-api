@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   X,
   ChevronLeft,
@@ -12,8 +12,8 @@ import {
   RefreshCw,
   Sparkles,
   Clock,
-} from "lucide-react";
-import { useApiKey, useGenerateApiKey } from "@/hooks/usePreferences";
+} from 'lucide-react';
+import { useApiKey, useGenerateApiKey } from '@/hooks/usePreferences';
 
 type Props = {
   isOpen: boolean;
@@ -21,7 +21,7 @@ type Props = {
 };
 
 const TOTAL_STEPS = 6;
-const SHORTCUT_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_URL?.trim() || "";
+const SHORTCUT_URL = process.env.NEXT_PUBLIC_IOS_SHORTCUT_URL?.trim() || '';
 
 export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
   const [step, setStep] = useState(0);
@@ -30,7 +30,7 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
 
   const { data, isLoading } = useApiKey();
   const generateMutation = useGenerateApiKey();
-  const apiKey = data?.key || "";
+  const apiKey = data?.key || '';
 
   if (!isOpen) return null;
 
@@ -52,19 +52,19 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
   const isLastStep = step === TOTAL_STEPS - 1;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--backdrop-bg)] backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--backdrop-bg)] p-4 backdrop-blur-sm">
       <div
-        className="relative w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl shadow-2xl"
         style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          maxHeight: "90vh",
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
+          maxHeight: '90vh',
         }}
       >
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-xl text-muted hover:text-primary hover:bg-card-hover transition-colors"
+          className="text-muted hover:text-primary hover:bg-card-hover absolute top-4 right-4 z-10 rounded-xl p-2 transition-colors"
         >
           <X size={20} />
         </button>
@@ -74,12 +74,12 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
               key={i}
-              className="w-2 h-2 rounded-full transition-all duration-300"
+              className="h-2 w-2 rounded-full transition-all duration-300"
               style={{
                 background:
                   i <= step
-                    ? "var(--color-brand-500, #0d9488)"
-                    : "var(--border)",
+                    ? 'var(--color-brand-500, #0d9488)'
+                    : 'var(--border)',
                 width: i === step ? 10 : 8,
                 height: i === step ? 10 : 8,
               }}
@@ -88,7 +88,7 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Content area */}
-        <div className="flex-1 overflow-y-auto px-6 pb-4 pt-2">
+        <div className="flex-1 overflow-y-auto px-6 pt-2 pb-4">
           {step === 0 && <StepCreateShortcut shortcutUrl={SHORTCUT_URL} />}
           {step === 1 && <StepCreateAutomation />}
           {step === 2 && <StepSelectWallet />}
@@ -109,15 +109,15 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Footer buttons */}
-        <div className="px-6 pb-6 pt-2 flex gap-3">
+        <div className="flex gap-3 px-6 pt-2 pb-6">
           {canGoBack && (
             <button
               onClick={() => setStep(step - 1)}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm transition-colors"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-colors"
               style={{
-                background: "var(--bg-inset)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
+                background: 'var(--bg-inset)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border)',
               }}
             >
               <ChevronLeft size={16} />
@@ -126,10 +126,10 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
           )}
           <button
             onClick={isLastStep ? handleClose : () => setStep(step + 1)}
-            className="flex-[1.5] flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-sm text-primary transition-colors bg-teal-700 hover:bg-teal-600"
+            className="text-primary flex flex-[1.5] items-center justify-center gap-2 rounded-xl bg-teal-700 py-3.5 text-sm font-semibold transition-colors hover:bg-teal-600"
           >
             {isLastStep ? (
-              "Cerrar"
+              'Cerrar'
             ) : (
               <>
                 Siguiente
@@ -147,9 +147,9 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
 
 function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
   return (
-    <div className="flex flex-col items-center text-center py-4">
+    <div className="flex flex-col items-center py-4 text-center">
       {/* Shortcuts app icon */}
-      <div className="w-24 h-24 rounded-[1.5rem] bg-gradient-to-br from-pink-400 via-purple-400 to-blue-500 flex items-center justify-center mb-6 shadow-lg shadow-purple-500/20">
+      <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-pink-400 via-purple-400 to-blue-500 shadow-lg shadow-purple-500/20">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
           <rect
             x="4"
@@ -179,15 +179,15 @@ function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
       </div>
 
       <h2
-        className="text-2xl font-bold mb-3"
-        style={{ color: "var(--text-primary)" }}
+        className="mb-3 text-2xl font-bold"
+        style={{ color: 'var(--text-primary)' }}
       >
         Crear el atajo
       </h2>
 
       <p
-        className="text-sm leading-relaxed mb-6"
-        style={{ color: "var(--text-muted)" }}
+        className="mb-6 text-sm leading-relaxed"
+        style={{ color: 'var(--text-muted)' }}
       >
         Toca el botón de abajo para agregar la acción de Seva a Atajos, estando
         ahí presiona el botón &apos;Agregar atajo&apos; para que se cree
@@ -199,7 +199,7 @@ function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
           href={shortcutUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-[var(--bg-button)] text-primary font-semibold py-3 px-6 rounded-full text-sm hover:bg-[var(--bg-card-hover)] transition-colors shadow-lg"
+          className="text-primary inline-flex items-center gap-2 rounded-full bg-[var(--bg-button)] px-6 py-3 text-sm font-semibold shadow-lg transition-colors hover:bg-[var(--bg-card-hover)]"
         >
           <span className="text-lg">＋</span>
           Agregar atajo
@@ -209,14 +209,14 @@ function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
           <button
             type="button"
             disabled
-            className="inline-flex items-center gap-2 bg-zinc-800 text-zinc-400 font-semibold py-3 px-6 rounded-full text-sm cursor-not-allowed"
+            className="inline-flex cursor-not-allowed items-center gap-2 rounded-full bg-zinc-800 px-6 py-3 text-sm font-semibold text-zinc-400"
           >
             <span className="text-lg">＋</span>
             Atajo no encontrado
           </button>
           <p
-            className="text-xs max-w-xs"
-            style={{ color: "var(--text-muted)" }}
+            className="max-w-xs text-xs"
+            style={{ color: 'var(--text-muted)' }}
           >
             Falta configurar `NEXT_PUBLIC_IOS_SHORTCUT_URL` para poder abrir el
             atajo desde la app.
@@ -229,17 +229,17 @@ function StepCreateShortcut({ shortcutUrl }: { shortcutUrl: string }) {
 
 function StepCreateAutomation() {
   return (
-    <div className="flex flex-col items-center text-center py-4">
+    <div className="flex flex-col items-center py-4 text-center">
       <h2
-        className="text-2xl font-bold mb-3"
-        style={{ color: "var(--text-primary)" }}
+        className="mb-3 text-2xl font-bold"
+        style={{ color: 'var(--text-primary)' }}
       >
         Crear la automatización
       </h2>
 
       <p
-        className="text-sm leading-relaxed mb-8"
-        style={{ color: "var(--text-muted)" }}
+        className="mb-8 text-sm leading-relaxed"
+        style={{ color: 'var(--text-muted)' }}
       >
         Dentro de la misma app de Atajos, ve a la pestaña
         &apos;Automatizaciones&apos;, ahí toca el botón &apos;+&apos; de la
@@ -248,10 +248,10 @@ function StepCreateAutomation() {
 
       {/* Mock iOS tab bar */}
       <div
-        className="rounded-2xl px-2 py-3 flex items-center justify-center gap-1 w-64"
+        className="flex w-64 items-center justify-center gap-1 rounded-2xl px-2 py-3"
         style={{
-          background: "var(--bg-inset)",
-          border: "1px solid var(--border)",
+          background: 'var(--bg-inset)',
+          border: '1px solid var(--border)',
         }}
       >
         <TabItem icon="📚" label="Library" active={false} />
@@ -273,12 +273,12 @@ function TabItem({
 }) {
   return (
     <div
-      className={`flex flex-col items-center px-4 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-        active ? "bg-blue-500/15 text-blue-500" : ""
+      className={`flex flex-col items-center rounded-xl px-4 py-1.5 text-xs font-medium transition-colors ${
+        active ? 'bg-blue-500/15 text-blue-500' : ''
       }`}
-      style={active ? {} : { color: "var(--text-muted)" }}
+      style={active ? {} : { color: 'var(--text-muted)' }}
     >
-      <span className="text-base mb-0.5">{icon}</span>
+      <span className="mb-0.5 text-base">{icon}</span>
       {label}
     </div>
   );
@@ -286,17 +286,17 @@ function TabItem({
 
 function StepSelectWallet() {
   return (
-    <div className="flex flex-col items-center text-center py-4">
+    <div className="flex flex-col items-center py-4 text-center">
       <h2
-        className="text-2xl font-bold mb-3"
-        style={{ color: "var(--text-primary)" }}
+        className="mb-3 text-2xl font-bold"
+        style={{ color: 'var(--text-primary)' }}
       >
         Selecciona Wallet
       </h2>
 
       <p
-        className="text-sm leading-relaxed mb-8"
-        style={{ color: "var(--text-muted)" }}
+        className="mb-8 text-sm leading-relaxed"
+        style={{ color: 'var(--text-muted)' }}
       >
         Busca en el listado de acciones &apos;Al realizar un pago sin contacto
         con mi tarjeta o pase de Wallet&apos; o &apos;When I tap a Wallet Card
@@ -305,28 +305,28 @@ function StepSelectWallet() {
 
       {/* Mock list item */}
       <div
-        className="w-full rounded-2xl p-4 flex items-center gap-3"
+        className="flex w-full items-center gap-3 rounded-2xl p-4"
         style={{
-          background: "var(--bg-inset)",
-          border: "1px solid var(--border)",
+          background: 'var(--bg-inset)',
+          border: '1px solid var(--border)',
         }}
       >
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 via-green-400 to-blue-400 flex items-center justify-center shrink-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 via-green-400 to-blue-400">
           <span className="text-primary text-lg">💳</span>
         </div>
         <div className="flex-1 text-left">
           <p
             className="text-sm font-semibold"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: 'var(--text-primary)' }}
           >
             Wallet
           </p>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             &quot;Al realizar un pago sin contacto con mi tarjeta o pase de
             Wallet&quot;
           </p>
         </div>
-        <ChevronRight size={16} style={{ color: "var(--text-muted)" }} />
+        <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
       </div>
     </div>
   );
@@ -334,27 +334,27 @@ function StepSelectWallet() {
 
 function StepConfigureExecution() {
   return (
-    <div className="flex flex-col items-center text-center py-4">
+    <div className="flex flex-col items-center py-4 text-center">
       {/* Card icon */}
       <div
-        className="w-20 h-14 rounded-xl flex items-center justify-center mb-6"
-        style={{ background: "var(--color-brand-500, #0d9488)" }}
+        className="mb-6 flex h-14 w-20 items-center justify-center rounded-xl"
+        style={{ background: 'var(--color-brand-500, #0d9488)' }}
       >
-        <div className="w-12 h-8 rounded-md border-2 border-white/60 flex items-end pl-1.5 pb-1">
-          <div className="w-4 h-3 rounded-sm bg-[var(--text-primary)]/80" />
+        <div className="flex h-8 w-12 items-end rounded-md border-2 border-white/60 pb-1 pl-1.5">
+          <div className="h-3 w-4 rounded-sm bg-[var(--text-primary)]/80" />
         </div>
       </div>
 
       <h2
-        className="text-2xl font-bold mb-3"
-        style={{ color: "var(--text-primary)" }}
+        className="mb-3 text-2xl font-bold"
+        style={{ color: 'var(--text-primary)' }}
       >
         Configura la ejecución
       </h2>
 
       <p
         className="text-sm leading-relaxed"
-        style={{ color: "var(--text-muted)" }}
+        style={{ color: 'var(--text-muted)' }}
       >
         Selecciona las tarjetas que quieres usar y activa &apos;Ejecutar
         inmediatamente&apos; o &apos;Run Immediately&apos; para que se registren
@@ -384,17 +384,17 @@ function StepAddShortcut({
   isGenerating: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center text-center py-4">
+    <div className="flex flex-col items-center py-4 text-center">
       <h2
-        className="text-2xl font-bold mb-3"
-        style={{ color: "var(--text-primary)" }}
+        className="mb-3 text-2xl font-bold"
+        style={{ color: 'var(--text-primary)' }}
       >
         Agrega el atajo de Seva
       </h2>
 
       <p
-        className="text-sm leading-relaxed mb-4"
-        style={{ color: "var(--text-muted)" }}
+        className="mb-4 text-sm leading-relaxed"
+        style={{ color: 'var(--text-muted)' }}
       >
         En la lista de &apos;Mis atajos&apos; o &apos;My Shortcuts&apos;, busca
         &apos;Seva&apos; y selecciona &apos;Enviar gastos de Wallet a
@@ -403,86 +403,86 @@ function StepAddShortcut({
 
       {/* API Key section */}
       <div
-        className="w-full rounded-2xl p-4 mb-4"
+        className="mb-4 w-full rounded-2xl p-4"
         style={{
-          background: "var(--bg-inset)",
-          border: "1px solid var(--border)",
+          background: 'var(--bg-inset)',
+          border: '1px solid var(--border)',
         }}
       >
         <p
-          className="text-xs font-bold uppercase tracking-widest mb-3"
-          style={{ color: "var(--text-muted)" }}
+          className="mb-3 text-xs font-bold tracking-widest uppercase"
+          style={{ color: 'var(--text-muted)' }}
         >
           Tu API Key (la necesitarás al importar)
         </p>
 
         {isLoading ? (
-          <div className="h-10 bg-card animate-pulse rounded-xl" />
+          <div className="bg-card h-10 animate-pulse rounded-xl" />
         ) : apiKey ? (
           <div className="flex flex-col gap-2">
             <div
-              className="flex items-center rounded-xl px-3 py-2.5 min-h-[44px] overflow-hidden"
+              className="flex min-h-[44px] items-center overflow-hidden rounded-xl px-3 py-2.5"
               style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border)',
               }}
             >
-              <span className="font-mono text-emerald-400 truncate text-xs flex-1 text-left">
-                {showKey ? apiKey : "••••••••••••••••••••••••"}
+              <span className="flex-1 truncate text-left font-mono text-xs text-emerald-400">
+                {showKey ? apiKey : '••••••••••••••••••••••••'}
               </span>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={onToggleShow}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-colors"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-medium transition-colors"
                 style={{
-                  background: "var(--bg-card)",
-                  color: "var(--text-secondary)",
-                  border: "1px solid var(--border)",
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-secondary)',
+                  border: '1px solid var(--border)',
                 }}
               >
                 {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showKey ? "Ocultar" : "Mostrar"}
+                {showKey ? 'Ocultar' : 'Mostrar'}
               </button>
               <button
                 onClick={onCopy}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-primary transition-colors bg-emerald-500 hover:bg-emerald-400"
+                className="text-primary flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2 text-xs font-semibold transition-colors hover:bg-emerald-400"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? "¡Copiada!" : "Copiar Key"}
+                {copied ? '¡Copiada!' : 'Copiar Key'}
               </button>
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             <p
-              className="text-sm italic py-1"
-              style={{ color: "var(--text-muted)" }}
+              className="py-1 text-sm italic"
+              style={{ color: 'var(--text-muted)' }}
             >
               Aún no tienes API Key. Genera una para continuar.
             </p>
             <button
               onClick={onGenerate}
               disabled={isGenerating}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-primary bg-emerald-500 hover:bg-emerald-400 transition-colors"
+              className="text-primary flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold transition-colors hover:bg-emerald-400"
             >
               <RefreshCw
                 size={14}
-                className={isGenerating ? "animate-spin" : ""}
+                className={isGenerating ? 'animate-spin' : ''}
               />
-              {isGenerating ? "Generando…" : "Generar API Key"}
+              {isGenerating ? 'Generando…' : 'Generar API Key'}
             </button>
           </div>
         )}
       </div>
 
       {/* Mock shortcut cards */}
-      <div className="flex gap-3 w-full">
-        <div className="flex-1 rounded-xl p-3 text-center bg-cyan-500 text-primary">
-          <div className="w-8 h-8 rounded-lg bg-[var(--text-primary)]/20 flex items-center justify-center mx-auto mb-1.5">
+      <div className="flex w-full gap-3">
+        <div className="text-primary flex-1 rounded-xl bg-cyan-500 p-3 text-center">
+          <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-primary)]/20">
             <span className="text-xs font-bold">m</span>
           </div>
-          <p className="text-[10px] font-semibold leading-tight">
+          <p className="text-[10px] leading-tight font-semibold">
             Enviar gastos a Seva
           </p>
           <Check
@@ -493,24 +493,24 @@ function StepAddShortcut({
         <div
           className="flex-1 rounded-xl p-3 text-center"
           style={{
-            background: "var(--bg-inset)",
-            border: "1px solid var(--border)",
+            background: 'var(--bg-inset)',
+            border: '1px solid var(--border)',
           }}
         >
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1.5"
-            style={{ background: "var(--border)" }}
+            className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg"
+            style={{ background: 'var(--border)' }}
           >
             <span
               className="text-xs font-bold"
-              style={{ color: "var(--text-muted)" }}
+              style={{ color: 'var(--text-muted)' }}
             >
               m
             </span>
           </div>
           <p
-            className="text-[10px] font-semibold leading-tight"
-            style={{ color: "var(--text-muted)" }}
+            className="text-[10px] leading-tight font-semibold"
+            style={{ color: 'var(--text-muted)' }}
           >
             Enviar emails de gastos a Miga
           </p>
@@ -522,22 +522,22 @@ function StepAddShortcut({
 
 function StepDone() {
   return (
-    <div className="flex flex-col items-center text-center py-4">
+    <div className="flex flex-col items-center py-4 text-center">
       {/* Checkmark */}
-      <div className="w-20 h-20 rounded-full bg-teal-700 flex items-center justify-center mb-6 shadow-lg shadow-teal-700/30">
+      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-teal-700 shadow-lg shadow-teal-700/30">
         <Check size={40} className="text-primary" strokeWidth={3} />
       </div>
 
       <h2
-        className="text-2xl font-bold mb-3"
-        style={{ color: "var(--text-primary)" }}
+        className="mb-3 text-2xl font-bold"
+        style={{ color: 'var(--text-primary)' }}
       >
         ¡Listo!
       </h2>
 
       <p
-        className="text-sm leading-relaxed mb-8"
-        style={{ color: "var(--text-muted)" }}
+        className="mb-8 text-sm leading-relaxed"
+        style={{ color: 'var(--text-muted)' }}
       >
         Toca &apos;Listo&apos; para guardar. Ahora cada vez que pagues con Apple
         Pay, el gasto se agregará automáticamente a Miga. La primera vez que
@@ -550,39 +550,39 @@ function StepDone() {
       <div
         className="w-full rounded-2xl p-5"
         style={{
-          background: "var(--bg-inset)",
-          border: "1px solid var(--border)",
+          background: 'var(--bg-inset)',
+          border: '1px solid var(--border)',
         }}
       >
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-teal-500/15 flex items-center justify-center shrink-0 mt-0.5">
+        <div className="mb-4 flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-500/15">
             <Sparkles size={18} className="text-teal-500" />
           </div>
           <div className="text-left">
             <p
               className="text-sm font-bold"
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: 'var(--text-primary)' }}
             >
               Detección automatica de gastos
             </p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               El sistema detecta automáticamente las compras con tus tarjetas
               registradas en Wallet
             </p>
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 mt-0.5">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
             <Clock size={18} className="text-blue-500" />
           </div>
           <div className="text-left">
             <p
               className="text-sm font-bold"
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: 'var(--text-primary)' }}
             >
               Sin intervención manual
             </p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               Los gastos se registran automáticamente al pagar
             </p>
           </div>

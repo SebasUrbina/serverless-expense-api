@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef, ReactNode } from "react";
-import { Loader2, ArrowDown } from "lucide-react";
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import { Loader2, ArrowDown } from 'lucide-react';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -30,7 +30,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     let scrollParent: HTMLElement | null = targetElement;
     while (scrollParent && scrollParent !== document.body) {
       const overflowY = window.getComputedStyle(scrollParent).overflowY;
-      if (overflowY === "auto" || overflowY === "scroll") {
+      if (overflowY === 'auto' || overflowY === 'scroll') {
         break;
       }
       scrollParent = scrollParent.parentElement;
@@ -92,26 +92,26 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       }
     };
 
-    targetElement.addEventListener("touchstart", handleTouchStart, {
+    targetElement.addEventListener('touchstart', handleTouchStart, {
       passive: false,
     });
-    targetElement.addEventListener("touchmove", handleTouchMove, {
+    targetElement.addEventListener('touchmove', handleTouchMove, {
       passive: false,
     });
-    targetElement.addEventListener("touchend", handleTouchEnd);
+    targetElement.addEventListener('touchend', handleTouchEnd);
 
     return () => {
-      targetElement.removeEventListener("touchstart", handleTouchStart);
-      targetElement.removeEventListener("touchmove", handleTouchMove);
-      targetElement.removeEventListener("touchend", handleTouchEnd);
+      targetElement.removeEventListener('touchstart', handleTouchStart);
+      targetElement.removeEventListener('touchmove', handleTouchMove);
+      targetElement.removeEventListener('touchend', handleTouchEnd);
     };
   }, [startY, isPulling, currentY, onRefresh]);
 
   return (
-    <div ref={containerRef} className="w-full relative">
+    <div ref={containerRef} className="relative w-full">
       <div
-        className={`absolute top-0 left-0 w-full flex justify-center items-end pb-6 overflow-hidden z-10 ${
-          !isPulling ? "transition-all duration-300 ease-out" : ""
+        className={`absolute top-0 left-0 z-10 flex w-full items-end justify-center overflow-hidden pb-6 ${
+          !isPulling ? 'transition-all duration-300 ease-out' : ''
         }`}
         style={{
           height: `${currentY}px`,
@@ -119,19 +119,19 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         }}
       >
         <div
-          className={`bg-card shadow-sm border border-border/50 rounded-full p-2 flex items-center justify-center ${
-            !isPulling ? "transition-transform duration-300" : ""
+          className={`bg-card border-border/50 flex items-center justify-center rounded-full border p-2 shadow-sm ${
+            !isPulling ? 'transition-transform duration-300' : ''
           }`}
           style={{
             transform: `scale(${Math.min(currentY / REFRESH_THRESHOLD, 1)})`,
           }}
         >
           {isRefreshing ? (
-            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            <Loader2 className="text-primary h-5 w-5 animate-spin" />
           ) : (
             <ArrowDown
-              className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${
-                currentY >= REFRESH_THRESHOLD ? "rotate-180 text-primary" : ""
+              className={`text-muted-foreground h-5 w-5 transition-transform duration-200 ${
+                currentY >= REFRESH_THRESHOLD ? 'text-primary rotate-180' : ''
               }`}
             />
           )}
@@ -139,8 +139,8 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       </div>
       <div
         ref={childrenRef}
-        className={`w-full h-full touch-pan-y ${
-          !isPulling ? "transition-transform duration-300 ease-out" : ""
+        className={`h-full w-full touch-pan-y ${
+          !isPulling ? 'transition-transform duration-300 ease-out' : ''
         }`}
         style={{
           transform: `translateY(${currentY}px)`,

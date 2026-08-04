@@ -17,12 +17,25 @@ type Props = {
   isPending: boolean;
 };
 
-export function SettleConfirmModal({ isOpen, onClose, onConfirm, groupName, month, pairs, accounts, isPending }: Props) {
-  const [selectedAccountId, setSelectedAccountId] = useState<number>(accounts[0]?.id ?? 0);
-  const [selectedPairs, setSelectedPairs] = useState<Set<number>>(new Set(pairs.map((_, i) => i)));
+export function SettleConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  groupName,
+  month,
+  pairs,
+  accounts,
+  isPending,
+}: Props) {
+  const [selectedAccountId, setSelectedAccountId] = useState<number>(
+    accounts[0]?.id ?? 0,
+  );
+  const [selectedPairs, setSelectedPairs] = useState<Set<number>>(
+    new Set(pairs.map((_, i) => i)),
+  );
 
   const togglePair = (index: number) => {
-    setSelectedPairs(prev => {
+    setSelectedPairs((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);
       else next.add(index);
@@ -41,27 +54,46 @@ export function SettleConfirmModal({ isOpen, onClose, onConfirm, groupName, mont
   };
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} maxWidth="max-w-md" zIndex="z-[150]">
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-md"
+      zIndex="z-[150]"
+    >
       <div className="p-6">
         {/* Header */}
-        <div className="flex justify-between items-start mb-5">
+        <div className="mb-5 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/10 rounded-xl">
+            <div className="rounded-xl bg-emerald-500/10 p-2.5">
               <CheckCircle2 size={22} className="text-emerald-500" />
             </div>
             <div>
-              <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Saldar deudas</h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{groupName} · {month}</p>
+              <h2
+                className="text-lg font-bold"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Saldar deudas
+              </h2>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {groupName} · {month}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 -mr-2 -mt-2 rounded-full transition-colors" style={{ color: 'var(--text-muted)' }}>
+          <button
+            onClick={onClose}
+            className="-mt-2 -mr-2 rounded-full p-2 transition-colors"
+            style={{ color: 'var(--text-muted)' }}
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Settlement pairs selection */}
         <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+          <p
+            className="mb-3 text-xs font-semibold tracking-wider uppercase"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Deudas a saldar
           </p>
           <div className="space-y-2">
@@ -69,27 +101,49 @@ export function SettleConfirmModal({ isOpen, onClose, onConfirm, groupName, mont
               <button
                 key={i}
                 onClick={() => togglePair(i)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left"
+                className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all"
                 style={{
-                  background: selectedPairs.has(i) ? 'rgba(16,185,129,0.06)' : 'var(--bg-inset)',
-                  borderColor: selectedPairs.has(i) ? 'rgba(16,185,129,0.3)' : 'var(--border-subtle)',
+                  background: selectedPairs.has(i)
+                    ? 'rgba(16,185,129,0.06)'
+                    : 'var(--bg-inset)',
+                  borderColor: selectedPairs.has(i)
+                    ? 'rgba(16,185,129,0.3)'
+                    : 'var(--border-subtle)',
                 }}
               >
                 <div
-                  className="w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all"
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all"
                   style={{
-                    borderColor: selectedPairs.has(i) ? '#10b981' : 'var(--border)',
-                    background: selectedPairs.has(i) ? '#10b981' : 'transparent',
+                    borderColor: selectedPairs.has(i)
+                      ? '#10b981'
+                      : 'var(--border)',
+                    background: selectedPairs.has(i)
+                      ? '#10b981'
+                      : 'transparent',
                   }}
                 >
-                  {selectedPairs.has(i) && <CheckCircle2 size={12} className="text-white" />}
+                  {selectedPairs.has(i) && (
+                    <CheckCircle2 size={12} className="text-white" />
+                  )}
                 </div>
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>{pair.debtor}</span>
-                  <ArrowRight size={12} className="text-emerald-500 shrink-0" />
-                  <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>{pair.creditor}</span>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span
+                    className="truncate text-sm font-semibold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {pair.debtor}
+                  </span>
+                  <ArrowRight size={12} className="shrink-0 text-emerald-500" />
+                  <span
+                    className="truncate text-sm font-semibold"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {pair.creditor}
+                  </span>
                 </div>
-                <span className="text-emerald-500 text-sm font-bold shrink-0">${formatCurrency(pair.amount)}</span>
+                <span className="shrink-0 text-sm font-bold text-emerald-500">
+                  ${formatCurrency(pair.amount)}
+                </span>
               </button>
             ))}
           </div>
@@ -97,22 +151,49 @@ export function SettleConfirmModal({ isOpen, onClose, onConfirm, groupName, mont
 
         {/* Account selector */}
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+          <p
+            className="mb-3 text-xs font-semibold tracking-wider uppercase"
+            style={{ color: 'var(--text-muted)' }}
+          >
             Cuenta para registrar
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {accounts.map(acc => (
+            {accounts.map((acc) => (
               <button
                 key={acc.id}
                 onClick={() => setSelectedAccountId(acc.id)}
-                className="flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all text-left"
+                className="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition-all"
                 style={{
-                  background: selectedAccountId === acc.id ? 'rgba(16,185,129,0.06)' : 'var(--bg-inset)',
-                  borderColor: selectedAccountId === acc.id ? 'rgba(16,185,129,0.3)' : 'var(--border-subtle)',
+                  background:
+                    selectedAccountId === acc.id
+                      ? 'rgba(16,185,129,0.06)'
+                      : 'var(--bg-inset)',
+                  borderColor:
+                    selectedAccountId === acc.id
+                      ? 'rgba(16,185,129,0.3)'
+                      : 'var(--border-subtle)',
                 }}
               >
-                <Wallet size={14} className={selectedAccountId === acc.id ? 'text-emerald-500' : ''} style={selectedAccountId !== acc.id ? { color: 'var(--text-muted)' } : {}} />
-                <span className="text-sm font-medium truncate" style={{ color: selectedAccountId === acc.id ? '#10b981' : 'var(--text-secondary)' }}>
+                <Wallet
+                  size={14}
+                  className={
+                    selectedAccountId === acc.id ? 'text-emerald-500' : ''
+                  }
+                  style={
+                    selectedAccountId !== acc.id
+                      ? { color: 'var(--text-muted)' }
+                      : {}
+                  }
+                />
+                <span
+                  className="truncate text-sm font-medium"
+                  style={{
+                    color:
+                      selectedAccountId === acc.id
+                        ? '#10b981'
+                        : 'var(--text-secondary)',
+                  }}
+                >
                   {acc.name}
                 </span>
               </button>
@@ -122,22 +203,34 @@ export function SettleConfirmModal({ isOpen, onClose, onConfirm, groupName, mont
 
         {/* Summary + Actions */}
         <div className="pt-4" style={{ borderTop: '1px solid var(--border)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Total a saldar</span>
-            <span className="text-xl font-bold text-emerald-500">${formatCurrency(totalToSettle)}</span>
+          <div className="mb-4 flex items-center justify-between">
+            <span
+              className="text-sm font-medium"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Total a saldar
+            </span>
+            <span className="text-xl font-bold text-emerald-500">
+              ${formatCurrency(totalToSettle)}
+            </span>
           </div>
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-xl font-semibold text-sm transition-colors"
-              style={{ background: 'var(--bg-inset)', color: 'var(--text-primary)' }}
+              className="flex-1 rounded-xl px-4 py-3 text-sm font-semibold transition-colors"
+              style={{
+                background: 'var(--bg-inset)',
+                color: 'var(--text-primary)',
+              }}
             >
               Cancelar
             </button>
             <button
               onClick={handleConfirm}
-              disabled={isPending || selectedPairs.size === 0 || !selectedAccountId}
-              className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-not-allowed text-white px-4 py-3 rounded-xl font-semibold text-sm transition-all shadow-lg shadow-emerald-500/20"
+              disabled={
+                isPending || selectedPairs.size === 0 || !selectedAccountId
+              }
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/50"
             >
               {isPending ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -147,8 +240,12 @@ export function SettleConfirmModal({ isOpen, onClose, onConfirm, groupName, mont
               Confirmar
             </button>
           </div>
-          <p className="text-[11px] text-center mt-3" style={{ color: 'var(--text-muted)' }}>
-            Se registrará un gasto al deudor y un ingreso al acreedor por cada deuda saldada.
+          <p
+            className="mt-3 text-center text-[11px]"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Se registrará un gasto al deudor y un ingreso al acreedor por cada
+            deuda saldada.
           </p>
         </div>
       </div>

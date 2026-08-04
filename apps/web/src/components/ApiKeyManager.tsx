@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Key, Eye, EyeOff, Copy, RefreshCw, Check, Zap } from "lucide-react";
-import { useApiKey, useGenerateApiKey } from "@/hooks/usePreferences";
-import { ShortcutsSetupModal } from "@/components/ShortcutsSetupModal";
+import { useState } from 'react';
+import { Key, Eye, EyeOff, Copy, RefreshCw, Check, Zap } from 'lucide-react';
+import { useApiKey, useGenerateApiKey } from '@/hooks/usePreferences';
+import { ShortcutsSetupModal } from '@/components/ShortcutsSetupModal';
 
 export function ApiKeyManager() {
   const { data, isLoading } = useApiKey();
@@ -14,7 +14,7 @@ export function ApiKeyManager() {
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
 
-  const apiKey = data?.key || "";
+  const apiKey = data?.key || '';
 
   const handleCopy = () => {
     if (!apiKey) return;
@@ -33,51 +33,51 @@ export function ApiKeyManager() {
 
   return (
     <div className="space-y-5 pt-2">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-sky-500/10">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-500/10">
           <Key className="text-sky-500" size={20} />
         </div>
         <div>
-          <h3 className="text-xl font-bold tracking-tight text-primary">
+          <h3 className="text-primary text-xl font-bold tracking-tight">
             Atajos de Apple
           </h3>
-          <p className="text-xs text-muted">
+          <p className="text-muted text-xs">
             Automatiza tus movimientos de forma simple y segura
           </p>
         </div>
       </div>
 
-      <p className="text-sm mb-6 text-secondary">
+      <p className="text-secondary mb-6 text-sm">
         Crea una clave privada para registrar movimientos desde tus atajos de
         iPhone. Usa esta clave solo en tus automatizaciones personales y no la
         compartas con nadie.
       </p>
 
-      <div className="rounded-2xl p-4 mb-6 bg-card border border-border">
-        <p className="text-xs font-semibold uppercase mb-2 text-secondary">
+      <div className="bg-card border-border mb-6 rounded-2xl border p-4">
+        <p className="text-secondary mb-2 text-xs font-semibold uppercase">
           Tu clave privada
         </p>
 
         {isLoading ? (
-          <div className="h-10 animate-pulse rounded-xl bg-inset" />
+          <div className="bg-inset h-10 animate-pulse rounded-xl" />
         ) : apiKey ? (
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-1 flex items-center rounded-xl px-4 py-2.5 min-h-[44px] overflow-hidden bg-inset border border-border-subtle">
-              <span className="font-mono truncate text-sm text-emerald-400">
-                {showKey ? apiKey : "••••••••••••••••••••••••"}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="bg-inset border-border-subtle flex min-h-[44px] flex-1 items-center overflow-hidden rounded-xl border px-4 py-2.5">
+              <span className="truncate font-mono text-sm text-emerald-400">
+                {showKey ? apiKey : '••••••••••••••••••••••••'}
               </span>
             </div>
-            <div className="flex gap-2 shrink-0">
+            <div className="flex shrink-0 gap-2">
               <button
                 onClick={() => setShowKey(!showKey)}
-                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors bg-inset text-muted border border-border-subtle hover:text-primary"
-                title={showKey ? "Ocultar clave" : "Mostrar clave"}
+                className="bg-inset text-muted border-border-subtle hover:text-primary flex h-11 w-11 items-center justify-center rounded-xl border transition-colors"
+                title={showKey ? 'Ocultar clave' : 'Mostrar clave'}
               >
                 {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
               <button
                 onClick={handleCopy}
-                className="flex items-center justify-center w-11 h-11 rounded-xl transition-colors bg-inset text-muted border border-border-subtle hover:text-primary"
+                className="bg-inset text-muted border-border-subtle hover:text-primary flex h-11 w-11 items-center justify-center rounded-xl border transition-colors"
                 title="Copiar clave"
               >
                 {copied ? (
@@ -89,36 +89,36 @@ export function ApiKeyManager() {
             </div>
           </div>
         ) : (
-          <div className="text-sm italic py-2 text-secondary">
+          <div className="text-secondary py-2 text-sm italic">
             Todavía no tienes una clave creada.
           </div>
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         {!confirmRegenerate ? (
           <button
             onClick={() => setConfirmRegenerate(true)}
             disabled={generateMutation.isPending || isLoading}
-            className="flex-1 bg-card-hover hover:bg-border text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 border border-border-subtle"
+            className="bg-card-hover hover:bg-border text-primary border-border-subtle flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-colors"
           >
             <RefreshCw
               size={16}
-              className={generateMutation.isPending ? "animate-spin" : ""}
+              className={generateMutation.isPending ? 'animate-spin' : ''}
             />
-            {apiKey ? "Generar una nueva clave" : "Crear clave"}
+            {apiKey ? 'Generar una nueva clave' : 'Crear clave'}
           </button>
         ) : (
-          <div className="flex-1 flex gap-2">
+          <div className="flex flex-1 gap-2">
             <button
               onClick={handleRegenerate}
-              className="flex-1 bg-red-500 hover:bg-red-400 text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center"
+              className="text-primary flex flex-1 items-center justify-center rounded-xl bg-red-500 px-4 py-3 text-sm font-medium transition-colors hover:bg-red-400"
             >
               Confirmar
             </button>
             <button
               onClick={() => setConfirmRegenerate(false)}
-              className="flex-1 bg-card-hover hover:bg-border text-primary font-medium py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center"
+              className="bg-card-hover hover:bg-border text-primary flex flex-1 items-center justify-center rounded-xl px-4 py-3 text-sm font-medium transition-colors"
             >
               Cancelar
             </button>
@@ -127,7 +127,7 @@ export function ApiKeyManager() {
 
         <button
           onClick={() => setShowSetupModal(true)}
-          className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-primary font-bold py-3 px-4 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+          className="text-primary flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold shadow-lg shadow-emerald-500/20 transition-colors hover:bg-emerald-400"
         >
           <Zap size={16} className="fill-emerald-100" />
           Configurar atajo en iPhone

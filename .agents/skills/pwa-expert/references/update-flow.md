@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
 
 export function usePWAUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [registration, setRegistration] =
+    useState<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -20,7 +21,10 @@ export function usePWAUpdate() {
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
           newWorker?.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (
+              newWorker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
               setUpdateAvailable(true);
             }
           });
@@ -54,16 +58,14 @@ export function UpdateBanner() {
   if (!updateAvailable) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80
-                    bg-ember-600 text-white rounded-lg p-4 shadow-lg z-50">
-      <p className="font-medium mb-2">Update Available</p>
-      <p className="text-sm opacity-90 mb-3">
+    <div className="bg-ember-600 fixed right-4 bottom-4 left-4 z-50 rounded-lg p-4 text-white shadow-lg md:right-4 md:left-auto md:w-80">
+      <p className="mb-2 font-medium">Update Available</p>
+      <p className="mb-3 text-sm opacity-90">
         A new version is ready. Reload to get the latest features.
       </p>
       <button
         onClick={applyUpdate}
-        className="w-full py-2 bg-white text-ember-600 rounded font-medium
-                   hover:bg-gray-100 transition-colors"
+        className="text-ember-600 w-full rounded bg-white py-2 font-medium transition-colors hover:bg-gray-100"
       >
         Reload Now
       </button>
@@ -104,6 +106,7 @@ useEffect(() => {
 ## Update Strategies
 
 ### 1. Immediate Update (Aggressive)
+
 ```javascript
 // In sw.js - takes control immediately
 self.addEventListener('install', (event) => {
@@ -116,9 +119,11 @@ self.addEventListener('activate', (event) => {
 ```
 
 ### 2. User-Prompted Update (Recommended)
+
 Wait for user to click "Update" before reloading. Less disruptive.
 
 ### 3. Background Update
+
 Update on next visit. User gets new version automatically.
 
 ```javascript

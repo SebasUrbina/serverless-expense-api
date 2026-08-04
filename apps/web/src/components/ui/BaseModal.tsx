@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useEffect,
@@ -6,7 +6,7 @@ import {
   useCallback,
   useRef,
   type ReactNode,
-} from "react";
+} from 'react';
 
 type BaseModalProps = {
   isOpen: boolean;
@@ -30,9 +30,9 @@ export function BaseModal({
   isOpen,
   onClose,
   children,
-  maxWidth = "max-w-lg",
+  maxWidth = 'max-w-lg',
   draggable = false,
-  zIndex = "z-100",
+  zIndex = 'z-100',
   lockScroll = false,
   outerContent,
 }: BaseModalProps) {
@@ -41,10 +41,10 @@ export function BaseModal({
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({ startY: 0, isDragging: false, offset: 0 });
   const sheetRef = useRef<HTMLDivElement>(null);
-  const backdropPaddingTop = "max(0.75rem, env(safe-area-inset-top))";
-  const backdropPaddingBottom = "max(0.75rem, env(safe-area-inset-bottom))";
+  const backdropPaddingTop = 'max(0.75rem, env(safe-area-inset-top))';
+  const backdropPaddingBottom = 'max(0.75rem, env(safe-area-inset-bottom))';
   const sheetMaxHeight =
-    "calc(100dvh - max(0.75rem, env(safe-area-inset-top)) - max(0.75rem, env(safe-area-inset-bottom)))";
+    'calc(100dvh - max(0.75rem, env(safe-area-inset-top)) - max(0.75rem, env(safe-area-inset-bottom)))';
 
   // Animate in with double rAF
   useEffect(() => {
@@ -63,17 +63,17 @@ export function BaseModal({
   useEffect(() => {
     if (!isOpen || !lockScroll) return;
     const scrollY = window.scrollY;
-    document.body.style.position = "fixed";
+    document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.overflow = "hidden";
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.overflow = "";
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
       window.scrollTo(0, scrollY);
     };
   }, [isOpen, lockScroll]);
@@ -117,8 +117,8 @@ export function BaseModal({
       }
     };
 
-    sheet.addEventListener("touchmove", handleTouchMove, { passive: false });
-    return () => sheet.removeEventListener("touchmove", handleTouchMove);
+    sheet.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => sheet.removeEventListener('touchmove', handleTouchMove);
   }, [isOpen, draggable]);
 
   // Drag-to-dismiss: touch end
@@ -143,7 +143,7 @@ export function BaseModal({
 
   return (
     <div
-      className={`fixed inset-0 ${zIndex} flex items-end sm:items-center justify-center bg-[var(--backdrop-bg)] backdrop-blur-2xl p-0 sm:p-4 modal-backdrop ${isVisible ? "modal-open" : ""}`}
+      className={`fixed inset-0 ${zIndex} modal-backdrop flex items-end justify-center bg-[var(--backdrop-bg)] p-0 backdrop-blur-2xl sm:items-center sm:p-4 ${isVisible ? 'modal-open' : ''}`}
       style={{
         backgroundColor: `rgba(var(--backdrop-rgb),${dragOffset > 0 ? Math.max(0.2, 0.8 - dragOffset / 600) : 0.8})`,
         paddingTop: backdropPaddingTop,
@@ -156,15 +156,15 @@ export function BaseModal({
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onClick={(e) => e.stopPropagation()}
-        className={`bg-card border-t sm:border border-border rounded-t-[2.5rem] sm:rounded-3xl w-full ${maxWidth} overflow-y-auto max-h-[95vh] sm:max-h-[90vh] shadow-elevated modal-sheet pb-safe sm:pb-0 ${isVisible ? "modal-open" : ""}`}
+        className={`bg-card border-border w-full rounded-t-[2.5rem] border-t sm:rounded-3xl sm:border ${maxWidth} shadow-elevated modal-sheet pb-safe max-h-[95vh] overflow-y-auto sm:max-h-[90vh] sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
         style={{
           maxHeight: sheetMaxHeight,
           ...(dragOffset > 0
             ? {
                 transform: `translateY(${dragOffset}px)`,
                 transition: isDragging
-                  ? "none"
-                  : "transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)",
+                  ? 'none'
+                  : 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)',
               }
             : {}),
         }}
@@ -172,7 +172,7 @@ export function BaseModal({
         {/* Drag handle — mobile only */}
         {draggable && (
           <div className="flex justify-center pt-3 pb-1 sm:hidden">
-            <div className="w-12 h-1.5 rounded-full bg-border" />
+            <div className="bg-border h-1.5 w-12 rounded-full" />
           </div>
         )}
         {children}
