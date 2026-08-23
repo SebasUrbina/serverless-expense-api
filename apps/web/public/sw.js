@@ -1,12 +1,8 @@
-const CACHE_NAME = 'seva-static-v1';
+const CACHE_PREFIX = 'seva-';
+const CACHE_NAME = `${CACHE_PREFIX}runtime-v2`;
+const MAX_RUNTIME_ENTRIES = 80;
 const OFFLINE_URL = '/offline';
 const APP_SHELL = [
-  '/',
-  '/login',
-  '/transactions',
-  '/analytics',
-  '/recurring',
-  '/settings',
   OFFLINE_URL,
   '/manifest.json',
   '/android-chrome-192x192.png',
@@ -30,8 +26,7 @@ self.addEventListener('install', (event) => {
             }
           }),
         );
-      })
-      .then(() => self.skipWaiting()),
+      }),
   );
 });
 
@@ -42,7 +37,7 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME)
+            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
             .map((key) => caches.delete(key)),
         ),
       )
@@ -67,6 +62,9 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) {
     return;
   }
+  if (url.pathname === '/sw.js') {
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigationRequest(request));
@@ -81,13 +79,15 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function handleNavigationRequest(request) {
+  const cacheKey = getNavigationCacheKey(request);
   try {
     const networkResponse = await fetch(request);
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(request, networkResponse.clone());
+    if (networkResponse.ok) {
+      await putInRuntimeCache(cacheKey, networkResponse);
+    }
     return networkResponse;
   } catch {
-    const cachedResponse = await caches.match(request);
+    const cachedResponse = await caches.match(cacheKey);
     if (cachedResponse) {
       return cachedResponse;
     }
@@ -108,22 +108,50 @@ async function handleNavigationRequest(request) {
 async function handleStaticRequest(request) {
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
-    void refreshCache(request);
+    const url = new URL(request.url);
+    const isImmutableNextAsset = url.pathname.startsWith('/_next/static/');
+    if (!isImmutableNextAsset) {
+      void refreshCache(request);
+    }
     return cachedResponse;
   }
 
   const networkResponse = await fetch(request);
-  const cache = await caches.open(CACHE_NAME);
-  cache.put(request, networkResponse.clone());
+  if (networkResponse.ok && networkResponse.type === 'basic') {
+    await putInRuntimeCache(request, networkResponse);
+  }
   return networkResponse;
+}
+
+function getNavigationCacheKey(request) {
+  const url = new URL(request.url);
+  // Static exports serve the same document regardless of client-side filters.
+  url.search = '';
+  url.hash = '';
+  return new Request(url.href, { method: 'GET' });
 }
 
 async function refreshCache(request) {
   try {
     const response = await fetch(request);
-    const cache = await caches.open(CACHE_NAME);
-    await cache.put(request, response.clone());
+    if (response.ok && response.type === 'basic') {
+      await putInRuntimeCache(request, response);
+    }
   } catch {
     // Ignore background refresh failures.
+  }
+}
+
+async function putInRuntimeCache(request, response) {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response.clone());
+
+  const keys = await cache.keys();
+  if (keys.length > MAX_RUNTIME_ENTRIES) {
+    await Promise.all(
+      keys.slice(0, keys.length - MAX_RUNTIME_ENTRIES).map((key) =>
+        cache.delete(key),
+      ),
+    );
   }
 }

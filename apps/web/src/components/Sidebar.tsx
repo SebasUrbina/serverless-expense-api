@@ -94,6 +94,10 @@ export function Sidebar() {
               <img
                 src={user.user_metadata.avatar_url}
                 alt="Avatar"
+                width={36}
+                height={36}
+                loading="lazy"
+                referrerPolicy="no-referrer"
                 className="ring-border h-9 w-9 shrink-0 rounded-full object-cover ring-2"
               />
             ) : (

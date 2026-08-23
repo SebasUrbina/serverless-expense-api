@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/* Date groups are independent rendering regions in potentially long lists. */
+.transaction-date-group {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+@supports not (content-visibility: auto) {
+  .transaction-date-group {
+    contain: layout style paint;
+  }
+}
+
 @theme {
   --color-brand-500: #6366f1;
   --color-success-500: #30d158;

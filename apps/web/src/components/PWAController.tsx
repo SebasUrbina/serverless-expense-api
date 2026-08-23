@@ -128,8 +128,19 @@ export function PWAController() {
   };
 
   const handleApplyUpdate = () => {
-    updateReady?.waiting?.postMessage({ type: 'SKIP_WAITING' });
-    window.location.reload();
+    if (!updateReady?.waiting) return;
+
+    let reloading = false;
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      () => {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      },
+      { once: true },
+    );
+    updateReady.waiting.postMessage({ type: 'SKIP_WAITING' });
   };
 
   return (
