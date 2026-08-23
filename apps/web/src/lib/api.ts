@@ -1,5 +1,11 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { supabase } from './supabase';
+
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean;
+};
+
+let refreshPromise: ReturnType<typeof supabase.auth.refreshSession> | null = null;
 
 // Connect to Cloudflare Worker backend
 export const api = axios.create({
@@ -24,20 +30,26 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      const { error: refreshError } = await supabase.auth.refreshSession();
+    const config = error.config as RetryableRequestConfig | undefined;
+
+    if (error.response?.status === 401 && config && !config._retry) {
+      config._retry = true;
+      refreshPromise ??= supabase.auth.refreshSession().finally(() => {
+        refreshPromise = null;
+      });
+
+      const { data, error: refreshError } = await refreshPromise;
       if (refreshError) {
         await supabase.auth.signOut();
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          window.location.assign('/login');
+        }
         return Promise.reject(error);
       }
-      // Retry the original request with refreshed token
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        error.config.headers.Authorization = `Bearer ${session.access_token}`;
-        return api.request(error.config);
+
+      if (data.session?.access_token) {
+        config.headers.Authorization = `Bearer ${data.session.access_token}`;
+        return api.request(config);
       }
     }
     return Promise.reject(error);

@@ -4,12 +4,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/lib/AuthProvider';
 import { usePathname, useRouter } from 'next/navigation';
 import { applyTheme, useTheme } from '@/store/useTheme';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
+const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev';
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
@@ -36,9 +37,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !session && pathname !== '/login') {
-      router.push('/login');
+      router.replace('/login');
     } else if (!loading && session && pathname === '/login') {
-      router.push('/');
+      router.replace('/');
     }
   }, [session, loading, pathname, router]);
 
@@ -60,7 +61,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+function QueryProvider({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuth();
+  const previousUserId = useRef<string | null | undefined>(undefined);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -68,6 +71,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 60 * 1000, // 1 minuto por defecto para transacciones
             gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
+            retry: 1,
+            refetchOnWindowFocus: false,
           },
         },
       }),
@@ -80,31 +85,61 @@ export function Providers({ children }: { children: React.ReactNode }) {
       key: 'SEVA_QUERY_CACHE',
     });
   });
+  const cacheBuster = `${appVersion}:${session?.user.id ?? 'anonymous'}`;
+
+  useEffect(() => {
+    if (loading) return;
+
+    const userId = session?.user.id ?? null;
+    if (
+      previousUserId.current !== undefined &&
+      previousUserId.current !== userId
+    ) {
+      queryClient.clear();
+    }
+    previousUserId.current = userId;
+  }, [loading, queryClient, session?.user.id]);
+
+  const content = (
+    <ThemeProvider>
+      <AuthGuard>{children}</AuthGuard>
+    </ThemeProvider>
+  );
 
   return (
-    <AuthProvider>
-      {persister ? (
+    <>
+      {persister && !loading ? (
         <PersistQueryClientProvider
+          key={cacheBuster}
           client={queryClient}
           persistOptions={{
             persister,
             maxAge: 1000 * 60 * 60 * 24, // 24 horas
-            buster: 'v1',
+            buster: cacheBuster,
+            dehydrateOptions: {
+              shouldDehydrateQuery: (query) =>
+                query.state.status === 'success' &&
+                query.queryKey[0] !== 'api_key',
+            },
           }}
         >
-          <ThemeProvider>
-            <AuthGuard>{children}</AuthGuard>
-          </ThemeProvider>
+          {content}
           {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
         </PersistQueryClientProvider>
       ) : (
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <AuthGuard>{children}</AuthGuard>
-          </ThemeProvider>
+          {content}
           {isDevelopment ? <ReactQueryDevtools initialIsOpen={false} /> : null}
         </QueryClientProvider>
       )}
+    </>
+  );
+}
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <QueryProvider>{children}</QueryProvider>
     </AuthProvider>
   );
 }
