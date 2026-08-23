@@ -14,7 +14,7 @@ import {
   useCategories,
   useAccounts,
   useTags,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import { CustomSelect } from '@/components/CustomSelect';
 import { BaseModal } from '@/components/ui/BaseModal';
 import { SubmitButton } from '@/components/ui/SubmitButton';

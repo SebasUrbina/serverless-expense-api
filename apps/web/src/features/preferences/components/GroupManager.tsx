@@ -7,7 +7,7 @@ import {
   useJoinGroup,
   useDeleteGroup,
   useUpdateGroup,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import { Plus, Trash2, Copy, Check, LogIn, Pencil } from 'lucide-react';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';

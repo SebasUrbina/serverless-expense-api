@@ -23,7 +23,7 @@ import {
   useTags,
   useCategories,
   useGroups,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';

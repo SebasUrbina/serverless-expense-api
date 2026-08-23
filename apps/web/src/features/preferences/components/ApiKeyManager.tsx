@@ -5,7 +5,7 @@ import { Key, Eye, EyeOff, Copy, RefreshCw, Check, Zap } from 'lucide-react';
 import {
   useApiKey,
   useGenerateApiKey,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import { ShortcutsSetupModal } from './ShortcutsSetupModal';
 
 export function ApiKeyManager() {

@@ -5,7 +5,7 @@ import {
   useTags,
   useCreateTag,
   useDeleteTag,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import { Plus, Trash2, Hash } from 'lucide-react';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';

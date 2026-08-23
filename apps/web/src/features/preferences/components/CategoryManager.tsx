@@ -6,7 +6,7 @@ import {
   useCreateCategory,
   useDeleteCategory,
   useUpdateCategory,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import {
   Plus,
   Trash2,

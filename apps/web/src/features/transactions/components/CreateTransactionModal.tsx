@@ -18,7 +18,7 @@ import {
   useAccounts,
   useTags,
   useGroups,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
 import { CustomSelect } from '@/components/CustomSelect';

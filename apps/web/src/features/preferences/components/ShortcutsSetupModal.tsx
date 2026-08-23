@@ -16,7 +16,7 @@ import {
 import {
   useApiKey,
   useGenerateApiKey,
-} from '@/features/preferences/hooks/usePreferences';
+} from '@/features/preferences/hooks';
 
 type Props = {
   isOpen: boolean;

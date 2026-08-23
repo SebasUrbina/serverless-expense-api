@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { Sidebar } from './Sidebar';
 import { MobileNavigation } from './MobileNavigation';
 import { useEffect, useRef, useCallback } from 'react';
-import { useUserSetup } from '@/features/preferences/hooks/usePreferences';
+import { useUserSetup } from '@/features/preferences/hooks';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { useRecurringModal } from '@/store/useRecurringModal';
 import { PullToRefresh } from './PullToRefresh';
