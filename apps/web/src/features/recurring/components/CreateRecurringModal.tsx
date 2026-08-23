@@ -22,6 +22,7 @@ import { DeleteButton } from '@/components/ui/DeleteButton';
 import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import type { RecurringRule } from '@/types/api';
 import { queryKeys } from '@/lib/query-keys';
+import { TransactionTypeToggle } from '@/components/forms/TransactionTypeToggle';
 
 type Props = {
   isOpen: boolean;
@@ -45,7 +46,6 @@ type RecurringPayload = {
 
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } =
@@ -108,7 +108,6 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     },
     onError: (err: Error) => {
       setError(err.message || 'Error al guardar la regla. Intenta de nuevo.');
-      setLoading(false);
     },
   });
 
@@ -123,25 +122,26 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     },
     onError: (err: Error) => {
       setError(err.message || 'Error al eliminar la regla.');
-      setLoading(false);
     },
   });
 
   const handleDelete = () => {
-    setLoading(true);
-    deleteMutation.mutate(undefined, {
-      onSettled: () => setLoading(false),
-    });
+    deleteMutation.mutate();
   };
+
+  const loading = mutation.isPending || deleteMutation.isPending;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    mutation.mutate(
-      {
+    const parsedAmount = parseCurrencyInput(amount);
+    if (!parsedAmount) {
+      setError('Ingresa un monto válido mayor que cero.');
+      return;
+    }
+    mutation.mutate({
         title,
-        amount: parseCurrencyInput(amount),
+        amount: parsedAmount,
         category_id: categoryId !== '' ? categoryId : undefined,
         type,
         account_id: accountId !== '' ? accountId : undefined,
@@ -152,11 +152,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
         next_run: nextRun,
         end_date: endDate ? endDate : undefined,
         is_active: initialData ? initialData.is_active : 1,
-      },
-      {
-        onSettled: () => setLoading(false),
-      },
-    );
+      });
   };
 
   const resetAndClose = () => {
@@ -180,6 +176,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     <BaseModal
       isOpen={isOpen}
       onClose={resetAndClose}
+      ariaLabel={initialData ? 'Editar regla recurrente' : 'Crear regla recurrente'}
       outerContent={
         <ConfirmDeleteModal
           isOpen={isDeleteModalOpen}
@@ -213,7 +210,9 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
         </button>
 
         <button
+          type="button"
           onClick={resetAndClose}
+          aria-label="Cerrar regla recurrente"
           className="bg-inset text-muted hover:bg-card-hover hidden rounded-full p-2 transition-colors hover:text-white sm:block"
         >
           <X size={20} />
@@ -221,20 +220,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       </div>
 
       <div className="p-6">
-        <div className="bg-inset mb-6 flex rounded-xl p-1">
-          <button
-            onClick={() => setType('expense')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-zinc-300'}`}
-          >
-            Gasto
-          </button>
-          <button
-            onClick={() => setType('income')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-zinc-300'}`}
-          >
-            Ingreso
-          </button>
-        </div>
+        <TransactionTypeToggle value={type} onChange={setType} />
 
         <form id="recurring-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Amount - Ultra minimalist top */}

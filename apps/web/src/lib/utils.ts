@@ -1,23 +1,25 @@
 import { format, parseISO, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const integerFormatter = new Intl.NumberFormat('es-CL');
+const compactCurrencyFormatter = new Intl.NumberFormat('es-CL', {
+  style: 'currency',
+  currency: 'CLP',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
 
 export const formatCompactValue = (value: number) => {
   if (value === 0) return '';
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
+  return compactCurrencyFormatter.format(value);
 };
 
 export function formatDateAbbreviated(dateStr: string) {
-  if (!dateStr) return 'Select date';
+  if (!dateStr) return 'Selecciona una fecha';
   const d = parseISO(dateStr);
-  if (!isValid(d)) return 'Select date';
+  if (!isValid(d)) return 'Selecciona una fecha';
 
-  return format(d, 'MMM d');
+  return format(d, 'd MMM', { locale: es });
 }
 
 export const formatCurrency = (value: number | null | undefined): string => {

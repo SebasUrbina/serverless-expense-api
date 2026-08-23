@@ -27,6 +27,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { DeleteButton } from '@/components/ui/DeleteButton';
 import type { Transaction } from '@/types/api';
 import { queryKeys } from '@/lib/query-keys';
+import { TransactionTypeToggle } from '@/components/forms/TransactionTypeToggle';
 
 type Props = {
   isOpen: boolean;
@@ -95,7 +96,6 @@ export function CreateTransactionModal({
   initialData,
 }: Props) {
   const queryClient = useQueryClient();
-  const [loading, setLoading] = useState(false);
   // Fetch dynamic categories
   const { data: categoriesData, isLoading: isLoadingCategories } =
     useCategories();
@@ -201,14 +201,14 @@ export function CreateTransactionModal({
       const msg = isAxiosError<ApiErrorResponse>(err)
         ? err.response?.data?.error ||
           err.message ||
-          'Failed to save transaction. Try again.'
-        : err.message || 'Failed to save transaction. Try again.';
+          'No se pudo guardar el movimiento. Intenta nuevamente.'
+        : err.message || 'No se pudo guardar el movimiento. Intenta nuevamente.';
       setError(msg);
-      setLoading(false);
     },
   });
 
   const deleteMutation = useDeleteTransaction();
+  const loading = mutation.isPending || deleteMutation.isPending;
 
   const handleDelete = () => {
     if (initialData?.id) {
@@ -223,10 +223,9 @@ export function CreateTransactionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
     const parsedAmount = parseCurrencyInput(amount);
     if (!parsedAmount || isNaN(parsedAmount)) {
-      setLoading(false);
+      setError('Ingresa un monto válido mayor que cero.');
       return;
     }
     const payload: TransactionPayload = {
@@ -256,9 +255,7 @@ export function CreateTransactionModal({
       payload.group_id = undefined;
     }
 
-    mutation.mutate(payload, {
-      onSettled: () => setLoading(false),
-    });
+    mutation.mutate(payload);
   };
 
   const resetAndClose = () => {
@@ -281,6 +278,7 @@ export function CreateTransactionModal({
     <BaseModal
       isOpen={isOpen}
       onClose={resetAndClose}
+      ariaLabel={initialData ? 'Editar movimiento' : 'Crear movimiento'}
       draggable
       lockScroll
       outerContent={
@@ -331,7 +329,9 @@ export function CreateTransactionModal({
         </button>
 
         <button
+          type="button"
           onClick={resetAndClose}
+          aria-label="Cerrar movimiento"
           className="bg-inset text-muted hover:bg-card-hover hidden rounded-full p-2 transition-colors hover:text-white sm:block"
         >
           <X size={20} />
@@ -340,20 +340,7 @@ export function CreateTransactionModal({
 
       <div className="p-6">
         {/* Type Toggle */}
-        <div className="bg-inset mb-6 flex rounded-xl p-1">
-          <button
-            onClick={() => setType('expense')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-          >
-            Gasto
-          </button>
-          <button
-            onClick={() => setType('income')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-          >
-            Ingreso
-          </button>
-        </div>
+        <TransactionTypeToggle value={type} onChange={setType} />
 
         <form
           id="transaction-form"
