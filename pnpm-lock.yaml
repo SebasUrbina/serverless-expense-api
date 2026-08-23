@@ -83,9 +83,6 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
-      emoji-picker-react:
-        specifier: ^4.18.0
-        version: 4.19.1(react@19.2.3)
       lucide-react:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.3)
@@ -2755,15 +2752,6 @@ packages:
         integrity: sha512-lEcqhErbHjXRvd41rnWLpzbyU/IXfIYo7QwaFWmxGeLiLyY2TBCdHnWY88vB+p3ubnihRypDm66panXl7TylLA==,
       }
 
-  emoji-picker-react@4.19.1:
-    resolution:
-      {
-        integrity: sha512-BmDdqInKFVYJpv7qS9WI6L9656cDAC+FkDvUjJds56nKHbaVTBNeDmLwKBytRnzu37zWHs9Isg7gt5PT43y6xA==,
-      }
-    engines: { node: '>=10' }
-    peerDependencies:
-      react: '>=16'
-
   emoji-regex@9.2.2:
     resolution:
       {
@@ -3125,12 +3113,6 @@ packages:
         integrity: sha512-78/PXT1wlLLDgTzDs7sjq9hzz0vXD+zn+7wypEe4fXQxCmdmqfGsEPQxmiCSQI3ajFV91bVSsvNtrJRiW6nGng==,
       }
     engines: { node: '>=10' }
-
-  flairup@1.0.0:
-    resolution:
-      {
-        integrity: sha512-IKlE+pNvL2R+kVL1kEhUYqRxVqeFnjiIvHWDMLFXNaqyUdFXQM2wte44EfMYJNHkW16X991t2Zg8apKkhv7OBA==,
-      }
 
   flat-cache@4.0.1:
     resolution:
@@ -6325,11 +6307,6 @@ snapshots:
 
   electron-to-chromium@1.5.399: {}
 
-  emoji-picker-react@4.19.1(react@19.2.3):
-    dependencies:
-      flairup: 1.0.0
-      react: 19.2.3
-
   emoji-regex@9.2.2: {}
 
   enhanced-resolve@5.24.5:
@@ -6755,8 +6732,6 @@ snapshots:
     dependencies:
       locate-path: 6.0.0
       path-exists: 4.0.0
-
-  flairup@1.0.0: {}
 
   flat-cache@4.0.1:
     dependencies:
