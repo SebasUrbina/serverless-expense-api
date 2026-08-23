@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Seva Web
 
-## Getting Started
+PWA de finanzas personales construida con Next.js 16, React 19, TanStack
+Query, Supabase Auth y Tailwind CSS. Se exporta como sitio estático y consume
+la API de Cloudflare Workers del monorepo.
 
-First, run the development server:
+## Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Variables requeridas (ver `.env.example`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_API_URL`: URL base de la API, incluyendo `/api`.
+- `NEXT_PUBLIC_SUPABASE_URL`: URL pública del proyecto Supabase.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: clave pública/anon de Supabase.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Arquitectura
 
-## Learn More
+```text
+src/
+├── app/          # rutas y composición de páginas
+├── components/   # componentes compartidos y shell de la aplicación
+├── hooks/        # acceso a server state mediante TanStack Query
+├── lib/          # clientes externos, providers y utilidades sin UI
+├── store/        # estado exclusivamente visual (Zustand)
+└── types/        # contratos de la API compartidos por las features
+```
 
-To learn more about Next.js, take a look at the following resources:
+La migración hacia módulos por dominio es incremental. Una feature nueva que
+crezca más allá de una página debe vivir en `src/features/<feature>/`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+features/transactions/
+├── api/          # funciones HTTP y query options
+├── components/   # UI específica del dominio
+├── hooks/        # orquestación de React/TanStack Query
+└── model/        # tipos, esquemas y transformaciones puras
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+No mover componentes compartidos a una feature sólo para conseguir una
+estructura simétrica. La estructura debe reflejar dependencias reales.
 
-## Deploy on Vercel
+## Estado y caché
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- TanStack Query es la única fuente de estado remoto.
+- Zustand se reserva para estado de UI, como abrir/cerrar modales.
+- Las query keys se declaran en `src/lib/query-keys.ts`; no se escriben strings
+  ad hoc al invalidar caché.
+- El caché offline dura hasta 24 horas y se invalida por versión y usuario.
+- Datos sensibles como claves de API no se persisten en `localStorage`.
+- El service worker usa network-first para documentos y
+  stale-while-revalidate para assets same-origin. Nunca intercepta mutaciones.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Criterios para componentes
+
+- Una página compone secciones; la lógica HTTP vive en hooks o módulos `api`.
+- Dependencias pesadas se cargan dinámicamente cuando la UI que las usa está
+  cerrada durante la carga inicial.
+- Extraer componentes por responsabilidad, no por cantidad arbitraria de
+  líneas. Un bloque merece extracción cuando tiene estado, reglas de negocio,
+  reutilización o una interfaz verificable propia.
+- Mantener los límites `'use client'` lo más abajo posible. Esta aplicación es
+  mayormente interactiva, pero layout, metadata y páginas legales siguen siendo
+  Server Components.
+
+## PWA
+
+Pruebas manuales recomendadas después de cambiar `public/sw.js`:
+
+1. Build de producción y servir `out/` sobre HTTPS o localhost.
+2. DevTools → Application: validar manifest, worker y Cache Storage.
+3. Simular Offline y abrir una ruta visitada y `/offline`.
+4. Publicar una nueva versión y comprobar el aviso antes de `SKIP_WAITING`.
