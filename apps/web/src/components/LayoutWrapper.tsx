@@ -1,16 +1,26 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Sidebar } from './Sidebar';
 import { MobileNavigation } from './MobileNavigation';
 import { useEffect, useRef, useCallback } from 'react';
-import { useUserSetup } from '@/hooks/usePreferences';
-import { CreateTransactionModal } from './CreateTransactionModal';
+import { useUserSetup } from '@/features/preferences/hooks/usePreferences';
 import { useTransactionModal } from '@/store/useTransactionModal';
-import { CreateRecurringModal } from './CreateRecurringModal';
 import { useRecurringModal } from '@/store/useRecurringModal';
 import { PullToRefresh } from './PullToRefresh';
 import { useQueryClient } from '@tanstack/react-query';
+
+const CreateTransactionModal = dynamic(() =>
+  import('@/features/transactions/components/CreateTransactionModal').then(
+    (module) => module.CreateTransactionModal,
+  ),
+);
+const CreateRecurringModal = dynamic(() =>
+  import('@/features/recurring/components/CreateRecurringModal').then(
+    (module) => module.CreateRecurringModal,
+  ),
+);
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

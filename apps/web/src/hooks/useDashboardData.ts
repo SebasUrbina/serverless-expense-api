@@ -9,11 +9,12 @@ import type {
   CategorySummaryResponse,
   KpiSummaryResponse,
 } from '@/types/api';
+import { queryKeys } from '@/lib/query-keys';
 
 export function useDashboardData(filterMonth?: string) {
   const { data: recentTransactions, isLoading: isLoadingRecent } =
     useQuery<TransactionsResponse>({
-      queryKey: ['transactions', 'recent', filterMonth],
+      queryKey: queryKeys.transactions.recent(filterMonth),
       queryFn: async () => {
         let url = '/transactions?limit=15'; // fetch a bit more for a specific month
 
@@ -33,7 +34,7 @@ export function useDashboardData(filterMonth?: string) {
 
   const { data: monthlySummaryResp, isLoading: isLoadingSummary } =
     useQuery<MonthlySummaryResponse>({
-      queryKey: ['transactions', 'monthlySummary'],
+      queryKey: queryKeys.transactions.monthlySummary,
       queryFn: async () => {
         const res = await api.get('/transactions/summary/monthly?months=6');
         return res.data;
@@ -42,7 +43,7 @@ export function useDashboardData(filterMonth?: string) {
 
   const { data: categorySummaryResp, isLoading: isLoadingCategory } =
     useQuery<CategorySummaryResponse>({
-      queryKey: ['transactions', 'categorySummary', filterMonth],
+      queryKey: queryKeys.transactions.categorySummary(filterMonth),
       queryFn: async () => {
         let url = '/transactions/summary/category?type=expense';
         if (filterMonth) url += `&month=${filterMonth}`;
@@ -53,7 +54,7 @@ export function useDashboardData(filterMonth?: string) {
 
   const { data: kpiSummaryResp, isLoading: isLoadingKpi } =
     useQuery<KpiSummaryResponse>({
-      queryKey: ['transactions', 'kpiSummary', filterMonth],
+      queryKey: queryKeys.transactions.kpiSummary(filterMonth),
       queryFn: async () => {
         let url = '/transactions/summary/kpi';
         if (filterMonth) url += `?month=${filterMonth}`;
@@ -107,14 +108,14 @@ export function useDeleteTransaction() {
       return res.data;
     },
     onMutate: async (deletedId: number) => {
-      await queryClient.cancelQueries({ queryKey: ['transactions'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.transactions.all });
 
       const previousData = queryClient.getQueriesData<TransactionsResponse>({
-        queryKey: ['transactions'],
+        queryKey: queryKeys.transactions.all,
       });
 
       queryClient.setQueriesData<TransactionsResponse>(
-        { queryKey: ['transactions'] },
+        { queryKey: queryKeys.transactions.all },
         (old) => {
           if (!old || !old.transactions) return old;
           return {
@@ -134,7 +135,7 @@ export function useDeleteTransaction() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
     },
   });
 }

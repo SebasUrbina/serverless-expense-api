@@ -13,7 +13,10 @@ import {
   Sparkles,
   Clock,
 } from 'lucide-react';
-import { useApiKey, useGenerateApiKey } from '@/hooks/usePreferences';
+import {
+  useApiKey,
+  useGenerateApiKey,
+} from '@/features/preferences/hooks/usePreferences';
 
 type Props = {
   isOpen: boolean;

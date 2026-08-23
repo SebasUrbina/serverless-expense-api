@@ -15,15 +15,37 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useState } from 'react';
-import { CategoryManager } from '@/components/CategoryManager';
-import { TagManager } from '@/components/TagManager';
-import { AccountManager } from '@/components/AccountManager';
-import { GroupManager } from '@/components/GroupManager';
-import { ApiKeyManager } from '@/components/ApiKeyManager';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SettingsAccordionSection } from '@/components/settings/SettingsAccordionSection';
+
+const AccountManager = dynamic(() =>
+  import('@/features/preferences/components/AccountManager').then(
+    (module) => module.AccountManager,
+  ),
+);
+const CategoryManager = dynamic(() =>
+  import('@/features/preferences/components/CategoryManager').then(
+    (module) => module.CategoryManager,
+  ),
+);
+const TagManager = dynamic(() =>
+  import('@/features/preferences/components/TagManager').then(
+    (module) => module.TagManager,
+  ),
+);
+const GroupManager = dynamic(() =>
+  import('@/features/preferences/components/GroupManager').then(
+    (module) => module.GroupManager,
+  ),
+);
+const ApiKeyManager = dynamic(() =>
+  import('@/features/preferences/components/ApiKeyManager').then(
+    (module) => module.ApiKeyManager,
+  ),
+);
 
 type SectionId = 'accounts' | 'categories' | 'tags' | 'groups' | 'integration';
 
@@ -35,7 +57,7 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.replace('/login');
   };
 
   const toggleSection = (id: SectionId) => {
@@ -139,6 +161,9 @@ export default function SettingsPage() {
               <img
                 src={avatarUrl}
                 alt="Avatar"
+                width={80}
+                height={80}
+                referrerPolicy="no-referrer"
                 className="ring-border mb-3 h-20 w-20 rounded-full object-cover shadow-sm ring-2"
               />
             ) : (

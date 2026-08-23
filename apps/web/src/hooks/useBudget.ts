@@ -2,13 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
 import type { BudgetsResponse } from '@/types/api';
 
 export function useBudget(month: string) {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<BudgetsResponse>({
-    queryKey: ['budgets', month],
+    queryKey: queryKeys.budgets.byMonth(month),
     queryFn: async () => {
       const res = await api.get(`/budgets?month=${month}`);
       return res.data;
@@ -29,7 +30,9 @@ export function useBudget(month: string) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets', month] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.budgets.byMonth(month),
+      });
     },
   });
 

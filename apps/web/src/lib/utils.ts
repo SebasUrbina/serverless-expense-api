@@ -1,3 +1,7 @@
+import { format, parseISO, isValid } from 'date-fns';
+
+const integerFormatter = new Intl.NumberFormat('es-CL');
+
 export const formatCompactValue = (value: number) => {
   if (value === 0) return '';
   return new Intl.NumberFormat('es-CL', {
@@ -7,8 +11,6 @@ export const formatCompactValue = (value: number) => {
     maximumFractionDigits: 1,
   }).format(value);
 };
-
-import { format, parseISO, isValid } from 'date-fns';
 
 export function formatDateAbbreviated(dateStr: string) {
   if (!dateStr) return 'Select date';
@@ -20,5 +22,16 @@ export function formatDateAbbreviated(dateStr: string) {
 
 export const formatCurrency = (value: number | null | undefined): string => {
   if (value === null || value === undefined || isNaN(value)) return '0';
-  return Math.round(value).toLocaleString('es-CL');
+  return integerFormatter.format(Math.round(value));
 };
+
+export function parseCurrencyInput(value: string): number {
+  const digits = value.replace(/\D/g, '');
+  return digits ? Number.parseInt(digits, 10) : 0;
+}
+
+export function formatCurrencyInput(value: string | number): string {
+  const amount =
+    typeof value === 'number' ? value : parseCurrencyInput(value);
+  return amount > 0 ? integerFormatter.format(amount) : '';
+}

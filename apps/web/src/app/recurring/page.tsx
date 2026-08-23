@@ -23,6 +23,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { formatCurrency } from '@/lib/utils';
+import { queryKeys } from '@/lib/query-keys';
 
 const frequencyLabel: Record<string, string> = {
   daily: 'Diario',
@@ -49,7 +50,7 @@ export default function RecurringPage() {
   }, []);
 
   const { data: response, isLoading } = useQuery<RecurringRulesResponse>({
-    queryKey: ['recurring', 'list'],
+    queryKey: queryKeys.recurring.list,
     queryFn: async () => {
       const res = await api.get('/recurring');
       return res.data;
@@ -68,7 +69,7 @@ export default function RecurringPage() {
       return res.data;
     },
     onMutate: async ({ id, is_active }) => {
-      await queryClient.cancelQueries({ queryKey: ['recurring', 'list'] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.recurring.list });
 
       const previousData = queryClient.getQueryData<RecurringRulesResponse>([
         'recurring',
@@ -95,7 +96,7 @@ export default function RecurringPage() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring', 'list'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recurring.list });
     },
   });
 

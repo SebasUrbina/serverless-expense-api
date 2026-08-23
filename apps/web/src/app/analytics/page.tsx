@@ -1,7 +1,5 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
 import {
   AreaChart,
   Area,
@@ -18,7 +16,7 @@ import {
   LabelList,
   Line,
 } from 'recharts';
-import { format, parseISO, isValid, addMonths, endOfMonth } from 'date-fns';
+import { format, parseISO, isValid, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -33,13 +31,9 @@ import {
   Activity,
 } from 'lucide-react';
 import { formatCompactValue, formatCurrency } from '@/lib/utils';
-import type {
-  MonthlySummary,
-  CategorySummary,
-  CategoryTrendResponse,
-} from '@/types/api';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
+import { useAnalyticsData } from '@/features/analytics/hooks/useAnalyticsData';
 
 const TREND_COLORS = [
   '#6366f1',
@@ -117,47 +111,13 @@ export default function AnalyticsPage() {
   const router = useRouter();
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
 
-  const { data: response, isLoading: isLoadingSummary } = useQuery<{
-    summary: MonthlySummary[];
-  }>({
-    queryKey: ['transactions', 'analytics', 'monthly', filterMonth],
-    queryFn: async () => {
-      let url = '/transactions/summary/monthly?months=12';
-      if (filterMonth) {
-        const selectedMonth = parseISO(`${filterMonth}-01`);
-        url += `&endDate=${format(endOfMonth(selectedMonth), 'yyyy-MM-dd')}`;
-      }
-      const res = await api.get(url);
-      return res.data;
-    },
-  });
-
-  const { data: categoryResponse, isLoading: isLoadingCategory } = useQuery<{
-    summary: CategorySummary[];
-  }>({
-    queryKey: ['transactions', 'analytics', 'category', filterMonth],
-    queryFn: async () => {
-      let url = '/transactions/summary/category?type=expense';
-      if (filterMonth) url += `&month=${filterMonth}`;
-      const res = await api.get(url);
-      return res.data;
-    },
-  });
-
-  const { data: trendResponse, isLoading: isLoadingTrend } =
-    useQuery<CategoryTrendResponse>({
-      queryKey: ['transactions', 'analytics', 'category-trend'],
-      queryFn: async () => {
-        const res = await api.get(
-          '/transactions/summary/category-trend?months=12',
-        );
-        return res.data;
-      },
-    });
-
-  const isLoading = isLoadingSummary || isLoadingCategory || isLoadingTrend;
-  const monthlySummary = response?.summary || [];
-  const categorySummary = categoryResponse?.summary || [];
+  const {
+    monthlySummary,
+    categorySummary,
+    trend: trendResponse,
+    isLoadingTrend,
+    isLoading,
+  } = useAnalyticsData(filterMonth);
 
   // Build stacked-bar trend data: months × (top categories + Otros)
   const trendMonths = trendResponse?.months || [];

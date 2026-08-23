@@ -1,12 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
 import {
   format,
   parseISO,
-  endOfMonth,
-  isValid,
   isToday,
   isYesterday,
 } from 'date-fns';
@@ -23,7 +19,11 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { MonthSelector } from '@/components/MonthSelector';
-import { useTags, useCategories, useGroups } from '@/hooks/usePreferences';
+import {
+  useTags,
+  useCategories,
+  useGroups,
+} from '@/features/preferences/hooks/usePreferences';
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';
@@ -34,6 +34,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
+import { useTransactions } from '@/features/transactions/hooks/useTransactions';
 
 export default function TransactionsPage() {
   return (
@@ -108,38 +109,13 @@ function TransactionsContent() {
   const { data: groupsData } = useGroups();
   const groupsList = groupsData?.groups || [];
 
-  const { data: response, isLoading } = useQuery<{
-    transactions: Transaction[];
-  }>({
-    queryKey: [
-      'transactions',
-      'list',
-      debouncedSearch,
-      filterMonth,
-      filterCategory,
-      filterTag,
-      filterShared,
-      filterGroupId,
-    ],
-    queryFn: async () => {
-      let url = debouncedSearch
-        ? `/transactions?limit=50&search=${encodeURIComponent(debouncedSearch)}`
-        : '/transactions?limit=50';
-      if (filterCategory !== '') url += `&category_id=${filterCategory}`;
-      if (filterTag !== '') url += `&tag_id=${filterTag}`;
-      if (filterShared) url += `&is_shared=1`;
-      if (filterGroupId !== '') url += `&group_id=${filterGroupId}`;
-      if (filterMonth) {
-        const start = `${filterMonth}-01`;
-        const dateObj = parseISO(start);
-        if (isValid(dateObj)) {
-          const end = format(endOfMonth(dateObj), 'yyyy-MM-dd');
-          url += `&startDate=${start}&endDate=${end}`;
-        }
-      }
-      const res = await api.get(url);
-      return res.data;
-    },
+  const { data: response, isLoading } = useTransactions({
+    search: debouncedSearch,
+    month: filterMonth,
+    categoryId: filterCategory,
+    tagId: filterTag,
+    shared: filterShared,
+    groupId: filterGroupId,
   });
 
   const transactions = useMemo(
@@ -387,7 +363,7 @@ function TransactionsContent() {
           ) : grouped.length > 0 ? (
             <div className="space-y-6">
               {grouped.map(({ date, label, items }) => (
-                <div key={date}>
+                <section key={date} className="transaction-date-group">
                   {/* Date Group Header */}
                   <div className="mb-2 flex items-center gap-3">
                     <span className="text-secondary text-xs font-semibold capitalize">
@@ -496,7 +472,7 @@ function TransactionsContent() {
                       );
                     })}
                   </div>
-                </div>
+                </section>
               ))}
             </div>
           ) : (

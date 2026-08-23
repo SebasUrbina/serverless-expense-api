@@ -7,21 +7,26 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format } from 'date-fns';
 import { X, ChevronDown, Users, Calendar } from 'lucide-react';
-import { formatDateAbbreviated } from '@/lib/utils';
+import {
+  formatCurrencyInput,
+  formatDateAbbreviated,
+  parseCurrencyInput,
+} from '@/lib/utils';
 import { useDeleteTransaction } from '@/hooks/useDashboardData';
 import {
   useCategories,
   useAccounts,
   useTags,
   useGroups,
-} from '@/hooks/usePreferences';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+} from '@/features/preferences/hooks/usePreferences';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
-import { CustomSelect } from './CustomSelect';
-import { BaseModal } from './ui/BaseModal';
-import { SubmitButton } from './ui/SubmitButton';
-import { DeleteButton } from './ui/DeleteButton';
+import { CustomSelect } from '@/components/CustomSelect';
+import { BaseModal } from '@/components/ui/BaseModal';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { DeleteButton } from '@/components/ui/DeleteButton';
 import type { Transaction } from '@/types/api';
+import { queryKeys } from '@/lib/query-keys';
 
 type Props = {
   isOpen: boolean;
@@ -117,7 +122,7 @@ export function CreateTransactionModal({
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [amount, setAmount] = useState(
     initialData
-      ? new Intl.NumberFormat('es-CL').format(initialData.amount)
+      ? formatCurrencyInput(initialData.amount)
       : '',
   );
   const [categoryId, setCategoryId] = useState<number | ''>(
@@ -183,7 +188,7 @@ export function CreateTransactionModal({
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
       setSuccessSnapshot({ amount, type });
       setShowSuccess(true);
       setTimeout(() => {
@@ -219,7 +224,7 @@ export function CreateTransactionModal({
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const parsedAmount = parseInt(amount.replace(/\./g, ''), 10);
+    const parsedAmount = parseCurrencyInput(amount);
     if (!parsedAmount || isNaN(parsedAmount)) {
       setLoading(false);
       return;
@@ -375,16 +380,7 @@ export function CreateTransactionModal({
                 required
                 value={amount}
                 onChange={(e) => {
-                  const rawValue = e.target.value.replace(/\D/g, '');
-                  if (!rawValue) {
-                    setAmount('');
-                    return;
-                  }
-                  setAmount(
-                    new Intl.NumberFormat('es-CL').format(
-                      parseInt(rawValue, 10),
-                    ),
-                  );
+                  setAmount(formatCurrencyInput(e.target.value));
                 }}
                 className="placeholder:text-muted max-w-62.5 min-w-25 bg-transparent p-0 text-center text-2xl font-extrabold focus:outline-none"
                 style={{
@@ -642,7 +638,7 @@ export function CreateTransactionModal({
                   </div>
                   {(() => {
                     const parsedAmt = amount
-                      ? parseInt(amount.replace(/\./g, ''), 10)
+                      ? parseCurrencyInput(amount)
                       : 0;
                     if (parsedAmt > 0 && installments >= 2) {
                       const baseAmt = Math.floor(parsedAmt / installments);
@@ -730,7 +726,7 @@ export function CreateTransactionModal({
                       const members = selectedGroup.members;
                       const is2Members = members.length === 2;
                       const parsedAmt = amount
-                        ? parseInt(amount.replace(/\./g, ''), 10)
+                        ? parseCurrencyInput(amount)
                         : 0;
                       const firstPct =
                         splitPercentages[members[0]?.user_id] || 0;

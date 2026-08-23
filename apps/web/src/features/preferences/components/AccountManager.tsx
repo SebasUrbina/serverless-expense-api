@@ -6,7 +6,7 @@ import {
   useCreateAccount,
   useDeleteAccount,
   useUpdateAccount,
-} from '@/hooks/usePreferences';
+} from '@/features/preferences/hooks/usePreferences';
 import {
   Plus,
   Trash2,
@@ -18,7 +18,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import type { Account } from '@/types/api';
 import { formatCurrency } from '@/lib/utils';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';

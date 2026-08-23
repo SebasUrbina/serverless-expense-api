@@ -11,7 +11,7 @@ import {
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useAccounts } from '@/hooks/usePreferences';
+import { useAccounts } from '@/features/preferences/hooks/usePreferences';
 import { useAuth } from '@/lib/AuthProvider';
 import { formatCurrency } from '@/lib/utils';
 import { useState } from 'react';
@@ -22,10 +22,11 @@ import type {
   SettlementPair,
   GroupBalancesResponse,
 } from '@/types/api';
+import { queryKeys } from '@/lib/query-keys';
 
 function useGroupBalances(month: string) {
   return useQuery<GroupBalancesResponse>({
-    queryKey: ['group-balances', month],
+    queryKey: queryKeys.groupBalances.byMonth(month),
     queryFn: async () => {
       const res = await api.get(`/groups/balances?month=${month}`);
       return res.data;
@@ -69,9 +70,8 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupBalances.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.transactions.all });
       setSettleTarget(null);
     },
   });

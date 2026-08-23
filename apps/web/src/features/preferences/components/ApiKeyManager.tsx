@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { Key, Eye, EyeOff, Copy, RefreshCw, Check, Zap } from 'lucide-react';
-import { useApiKey, useGenerateApiKey } from '@/hooks/usePreferences';
-import { ShortcutsSetupModal } from '@/components/ShortcutsSetupModal';
+import {
+  useApiKey,
+  useGenerateApiKey,
+} from '@/features/preferences/hooks/usePreferences';
+import { ShortcutsSetupModal } from './ShortcutsSetupModal';
 
 export function ApiKeyManager() {
   const { data, isLoading } = useApiKey();

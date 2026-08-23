@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   useCategories,
   useCreateCategory,
   useDeleteCategory,
   useUpdateCategory,
-} from '@/hooks/usePreferences';
+} from '@/features/preferences/hooks/usePreferences';
 import {
   Plus,
   Trash2,
@@ -16,11 +17,14 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
-import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
+import { Theme } from 'emoji-picker-react';
+import type { EmojiClickData } from 'emoji-picker-react';
 import { useTheme } from '@/store/useTheme';
 import type { Category } from '@/types/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 export function CategoryManager() {
   const { data, isLoading } = useCategories();

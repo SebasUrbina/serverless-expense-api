@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { queryKeys } from '@/lib/query-keys';
 import type {
   Category,
   Account,
@@ -13,7 +14,7 @@ import type {
 
 export function useCategories() {
   return useQuery<CategoriesResponse>({
-    queryKey: ['categories'],
+    queryKey: queryKeys.preferences.categories,
     staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/categories');
@@ -24,7 +25,7 @@ export function useCategories() {
 
 export function useTags() {
   return useQuery<TagsResponse>({
-    queryKey: ['tags'],
+    queryKey: queryKeys.preferences.tags,
     staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/tags');
@@ -41,7 +42,7 @@ export function useCreateCategory() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.categories });
     },
   });
 }
@@ -62,7 +63,7 @@ export function useUpdateCategory() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.categories });
     },
   });
 }
@@ -75,7 +76,7 @@ export function useDeleteCategory() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.categories });
     },
   });
 }
@@ -88,7 +89,7 @@ export function useCreateTag() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.tags });
     },
   });
 }
@@ -101,14 +102,14 @@ export function useDeleteTag() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.tags });
     },
   });
 }
 
 export function useAccounts() {
   return useQuery<AccountsResponse>({
-    queryKey: ['accounts'],
+    queryKey: queryKeys.preferences.accounts,
     staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/accounts');
@@ -125,7 +126,7 @@ export function useCreateAccount() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.accounts });
     },
   });
 }
@@ -146,7 +147,7 @@ export function useUpdateAccount() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.accounts });
     },
   });
 }
@@ -159,7 +160,7 @@ export function useDeleteAccount() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.accounts });
     },
   });
 }
@@ -173,9 +174,9 @@ export function useUserSetup() {
     },
     onSuccess: (data) => {
       if (data?.setup) {
-        queryClient.invalidateQueries({ queryKey: ['accounts'] });
-        queryClient.invalidateQueries({ queryKey: ['categories'] });
-        queryClient.invalidateQueries({ queryKey: ['tags'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.preferences.accounts });
+        queryClient.invalidateQueries({ queryKey: queryKeys.preferences.categories });
+        queryClient.invalidateQueries({ queryKey: queryKeys.preferences.tags });
       }
     },
   });
@@ -183,7 +184,7 @@ export function useUserSetup() {
 
 export function useGroups() {
   return useQuery<GroupsResponse>({
-    queryKey: ['groups'],
+    queryKey: queryKeys.preferences.groups,
     staleTime: 5 * 60 * 1000, // 5 minutos
     queryFn: async () => {
       const res = await api.get('/groups');
@@ -200,7 +201,7 @@ export function useCreateGroup() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.groups });
     },
   });
 }
@@ -213,7 +214,7 @@ export function useJoinGroup() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.groups });
     },
   });
 }
@@ -226,7 +227,7 @@ export function useDeleteGroup() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.groups });
     },
   });
 }
@@ -239,8 +240,8 @@ export function useUpdateGroup() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
-      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.groups });
+      queryClient.invalidateQueries({ queryKey: queryKeys.groupBalances.all });
     },
   });
 }
@@ -249,7 +250,7 @@ export function useUpdateGroup() {
 
 export function useApiKey() {
   return useQuery<ApiKeyResponse>({
-    queryKey: ['api_key'],
+    queryKey: queryKeys.preferences.apiKey,
     staleTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await api.get('/keys');
@@ -266,7 +267,7 @@ export function useGenerateApiKey() {
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['api_key'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.preferences.apiKey });
     },
   });
 }

@@ -1,9 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useTags, useCreateTag, useDeleteTag } from '@/hooks/usePreferences';
+import {
+  useTags,
+  useCreateTag,
+  useDeleteTag,
+} from '@/features/preferences/hooks/usePreferences';
 import { Plus, Trash2, Hash } from 'lucide-react';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export function TagManager() {

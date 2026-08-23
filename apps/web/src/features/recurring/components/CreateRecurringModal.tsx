@@ -5,14 +5,23 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, addMonths } from 'date-fns';
 import { X, ChevronDown, Calendar } from 'lucide-react';
-import { formatDateAbbreviated } from '@/lib/utils';
-import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
-import { CustomSelect } from './CustomSelect';
-import { BaseModal } from './ui/BaseModal';
-import { SubmitButton } from './ui/SubmitButton';
-import { DeleteButton } from './ui/DeleteButton';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import {
+  formatCurrencyInput,
+  formatDateAbbreviated,
+  parseCurrencyInput,
+} from '@/lib/utils';
+import {
+  useCategories,
+  useAccounts,
+  useTags,
+} from '@/features/preferences/hooks/usePreferences';
+import { CustomSelect } from '@/components/CustomSelect';
+import { BaseModal } from '@/components/ui/BaseModal';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { DeleteButton } from '@/components/ui/DeleteButton';
+import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import type { RecurringRule } from '@/types/api';
+import { queryKeys } from '@/lib/query-keys';
 
 type Props = {
   isOpen: boolean;
@@ -56,7 +65,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [amount, setAmount] = useState(
     initialData
-      ? new Intl.NumberFormat('es-CL').format(initialData.amount)
+      ? formatCurrencyInput(initialData.amount)
       : '',
   );
   const [categoryId, setCategoryId] = useState<number | ''>(
@@ -94,7 +103,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recurring.all });
       resetAndClose();
     },
     onError: (err: Error) => {
@@ -109,7 +118,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       await api.delete(`/recurring/${initialData.id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.recurring.all });
       resetAndClose();
     },
     onError: (err: Error) => {
@@ -132,7 +141,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     mutation.mutate(
       {
         title,
-        amount: parseInt(amount.replace(/\./g, ''), 10),
+        amount: parseCurrencyInput(amount),
         category_id: categoryId !== '' ? categoryId : undefined,
         type,
         account_id: accountId !== '' ? accountId : undefined,
@@ -238,16 +247,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                 required
                 value={amount}
                 onChange={(e) => {
-                  const rawValue = e.target.value.replace(/\D/g, '');
-                  if (!rawValue) {
-                    setAmount('');
-                    return;
-                  }
-                  setAmount(
-                    new Intl.NumberFormat('es-CL').format(
-                      parseInt(rawValue, 10),
-                    ),
-                  );
+                  setAmount(formatCurrencyInput(e.target.value));
                 }}
                 className="text-primary max-w-[250px] min-w-[100px] bg-transparent p-0 text-center text-5xl font-extrabold focus:outline-none"
                 style={{ width: `${Math.max(amount.length, 1) * 1.1}ch` }}
