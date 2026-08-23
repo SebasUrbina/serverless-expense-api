@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { endOfMonth, format, parseISO } from 'date-fns';
+import { endOfMonth, format, isValid, parseISO } from 'date-fns';
 import api from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
 import type {
@@ -16,10 +16,16 @@ export function useAnalyticsData(month: string) {
   const monthly = useQuery<SummaryResponse<MonthlySummary>>({
     queryKey: queryKeys.transactions.analytics.monthly(month),
     queryFn: async () => {
+      const params = new URLSearchParams({ months: '12' });
       const selectedMonth = parseISO(`${month}-01`);
-      const endDate = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
+      if (month && isValid(selectedMonth)) {
+        params.set(
+          'endDate',
+          format(endOfMonth(selectedMonth), 'yyyy-MM-dd'),
+        );
+      }
       const response = await api.get(
-        `/transactions/summary/monthly?months=12&endDate=${endDate}`,
+        `/transactions/summary/monthly?${params.toString()}`,
       );
       return response.data;
     },
@@ -28,8 +34,10 @@ export function useAnalyticsData(month: string) {
   const categories = useQuery<SummaryResponse<CategorySummary>>({
     queryKey: queryKeys.transactions.analytics.category(month),
     queryFn: async () => {
+      const params = new URLSearchParams({ type: 'expense' });
+      if (month) params.set('month', month);
       const response = await api.get(
-        `/transactions/summary/category?type=expense&month=${month}`,
+        `/transactions/summary/category?${params.toString()}`,
       );
       return response.data;
     },

@@ -16,10 +16,9 @@ import {
   LabelList,
   Line,
 } from 'recharts';
-import { format, parseISO, isValid, addMonths } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { format } from 'date-fns';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MonthSelector } from '@/components/MonthSelector';
 import {
   ArrowUpRight,
@@ -34,6 +33,13 @@ import { formatCompactValue, formatCurrency } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { useAnalyticsData } from '@/features/analytics/hooks/useAnalyticsData';
+import {
+  buildCategoryTrendData,
+  buildMonthlyChartData,
+  buildSavingsData,
+  deriveAnalyticsMetrics,
+} from '@/features/analytics/model/analytics-transformers';
+import type { SavingsDatum } from '@/features/analytics/model/analytics-transformers';
 
 const TREND_COLORS = [
   '#6366f1',
@@ -47,20 +53,6 @@ const TREND_COLORS = [
   '#14b8a6',
   '#a855f7',
 ];
-
-type ChartDatum = {
-  name: string;
-  originalMonth: string;
-  Ingresos: number;
-  Gastos: number;
-  Balance: number;
-};
-
-type SavingsDatum = {
-  name: string;
-  Ahorro: number;
-  isProjection: boolean;
-};
 
 type TooltipEntry = {
   color?: string;
@@ -108,8 +100,22 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 };
 
 export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<LoadingState minHeight="h-dvh" />}>
+      <AnalyticsContent />
+    </Suspense>
+  );
+}
+
+function AnalyticsContent() {
   const router = useRouter();
-  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const searchParams = useSearchParams();
+  const requestedMonth = searchParams.get('month');
+  const [filterMonth, setFilterMonth] = useState(() =>
+    requestedMonth && /^\d{4}-\d{2}$/.test(requestedMonth)
+      ? requestedMonth
+      : format(new Date(), 'yyyy-MM'),
+  );
 
   const {
     monthlySummary,
@@ -119,71 +125,10 @@ export default function AnalyticsPage() {
     isLoading,
   } = useAnalyticsData(filterMonth);
 
-  // Build stacked-bar trend data: months × (top categories + Otros)
-  const trendMonths = trendResponse?.months || [];
-  const trendCategories = trendResponse?.categories || [];
-  const topCategories = trendCategories.slice(0, 6);
-  const othersCategories = trendCategories.slice(6);
-  const trendData = trendMonths.map((month, idx) => {
-    const parsed = parseISO(`${month}-01`);
-    const datum: Record<string, number | string> = {
-      name: isValid(parsed) ? format(parsed, 'MMM', { locale: es }) : month,
-    };
-    for (const cat of topCategories) {
-      datum[cat.category ?? 'Sin categoría'] = cat.values[idx] || 0;
-    }
-    const othersSum = othersCategories.reduce(
-      (s, c) => s + (c.values[idx] || 0),
-      0,
-    );
-    if (othersSum > 0) datum['Otros'] = othersSum;
-    return datum;
-  });
-
-  const chartData: ChartDatum[] = monthlySummary
-    .filter((item) => item.month)
-    .map((item) => {
-      const parsedDate = parseISO(`${item.month}-01`);
-      return {
-        name: isValid(parsedDate)
-          ? format(parsedDate, 'MMM', { locale: es })
-          : item.month,
-        originalMonth: item.month,
-        Ingresos: item.total_income,
-        Gastos: item.total_expense,
-        Balance: Math.max(0, item.total_income - item.total_expense),
-      };
-    });
-
-  const savingsData: SavingsDatum[] = chartData.map((d) => ({
-    name: d.name,
-    Ahorro: d.Balance,
-    isProjection: false,
-  }));
-
-  if (!filterMonth && chartData.length > 0) {
-    const recentMonths = chartData.slice(-3);
-    const avgSavings =
-      recentMonths.reduce((sum, item) => sum + item.Balance, 0) /
-      recentMonths.length;
-    const lastMonthRaw = monthlySummary.filter((m) => m.month).pop()?.month;
-    if (lastMonthRaw) {
-      const lastDate = parseISO(`${lastMonthRaw}-01`);
-      if (isValid(lastDate)) {
-        const nextDate = addMonths(lastDate, 1);
-        savingsData.push({
-          name: format(nextDate, 'MMM', { locale: es }) + ' (est.)',
-          Ahorro: avgSavings,
-          isProjection: true,
-        });
-      }
-    }
-  }
-
-  const totalExpense = categorySummary.reduce(
-    (acc, curr) => acc + curr.amount,
-    0,
-  );
+  const { data: trendData, topCategories, hasOthers } =
+    buildCategoryTrendData(trendResponse);
+  const chartData = buildMonthlyChartData(monthlySummary);
+  const savingsData = buildSavingsData(chartData, !filterMonth);
 
   const openTransactionsForMonth = (data: unknown) => {
     if (!data || typeof data !== 'object' || !('originalMonth' in data)) {
@@ -196,26 +141,16 @@ export default function AnalyticsPage() {
     }
   };
 
-  // Calculate KPIs for the selected month
-  const selectedMonthData = monthlySummary.find((m) => m.month === filterMonth);
-  const selectedIncome = selectedMonthData?.total_income ?? 0;
-  const selectedExpense = selectedMonthData?.total_expense ?? 0;
-  const selectedSavings = selectedIncome - selectedExpense;
-  const savingsRate =
-    selectedIncome > 0 ? (selectedSavings / selectedIncome) * 100 : 0;
-
-  // Calculate average daily spending
-  const daysInMonth = filterMonth
-    ? new Date(
-        Number(filterMonth.split('-')[0]),
-        Number(filterMonth.split('-')[1]),
-        0,
-      ).getDate()
-    : 30;
-  const dailyAverage = selectedExpense / daysInMonth;
-
-  // Top category
-  const topCategory = categorySummary.length > 0 ? categorySummary[0] : null;
+  const {
+    selectedIncome,
+    selectedExpense,
+    selectedSavings,
+    savingsRate,
+    daysInMonth,
+    dailyAverage,
+    totalExpense,
+    topCategory,
+  } = deriveAnalyticsMetrics(monthlySummary, categorySummary, filterMonth);
 
   return (
     <div className="flex h-full flex-col">
@@ -783,7 +718,7 @@ export default function AnalyticsPage() {
                         }
                       />
                     ))}
-                    {othersCategories.length > 0 && (
+                    {hasOthers && (
                       <Bar
                         dataKey="Otros"
                         stackId="trend"

@@ -78,9 +78,8 @@ export function useDashboardData(filterMonth?: string) {
       ? monthlySummary[0]
       : null;
 
-  // Calculate total balance approximately from the summary
-  // (In a real app, this should probably come from a separate /balances endpoint)
-  const totalBalance =
+  // Net income for the selected period. This is not the accounts' total balance.
+  const netResult =
     filterMonth && selectedMonthSummary
       ? selectedMonthSummary.total_income - selectedMonthSummary.total_expense
       : monthlySummary.reduce(
@@ -94,7 +93,7 @@ export function useDashboardData(filterMonth?: string) {
     categorySummary,
     kpiSummary,
     selectedMonthSummary,
-    totalBalance,
+    netResult,
     isLoading:
       isLoadingRecent || isLoadingSummary || isLoadingCategory || isLoadingKpi,
   };

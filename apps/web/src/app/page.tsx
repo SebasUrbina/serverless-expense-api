@@ -1,7 +1,7 @@
 'use client';
 
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { format, parseISO, isValid, subMonths } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { useAuth } from '@/lib/AuthProvider';
+import { deriveDashboardMetrics } from '@/features/dashboard/model/dashboard-metrics';
 
 const DONUT_COLORS = [
   '#6366f1',
@@ -67,7 +68,7 @@ export default function Home() {
     categorySummary,
     kpiSummary,
     selectedMonthSummary,
-    totalBalance,
+    netResult,
     isLoading,
   } = useDashboardData(filterMonth);
   const { openModal } = useTransactionModal();
@@ -78,35 +79,21 @@ export default function Home() {
   const firstName =
     typeof displayName === 'string' ? displayName.split(' ')[0] : null;
 
-  const expense = filterMonth
-    ? (selectedMonthSummary?.total_expense ?? 0)
-    : monthlySummary.reduce((acc, curr) => acc + curr.total_expense, 0);
-  const income = filterMonth
-    ? (selectedMonthSummary?.total_income ?? 0)
-    : monthlySummary.reduce((acc, curr) => acc + curr.total_income, 0);
-  const previousMonthDate = subMonths(parseISO(`${filterMonth}-01`), 1);
-  const previousMonthStr = isValid(previousMonthDate)
-    ? format(previousMonthDate, 'yyyy-MM')
-    : null;
-  const previousMonthSummary = monthlySummary.find(
-    (s) => s.month === previousMonthStr,
-  );
-  const prevExpense = previousMonthSummary?.total_expense ?? 0;
-
-  let expenseDeltaRaw = 0;
-  if (prevExpense > 0) {
-    expenseDeltaRaw = ((expense - prevExpense) / prevExpense) * 100;
-  } else if (expense > 0) {
-    expenseDeltaRaw = 100;
-  }
+  const {
+    expense,
+    income,
+    previousExpense,
+    expenseDelta: expenseDeltaRaw,
+    totalExpense,
+  } = deriveDashboardMetrics({
+      month: filterMonth,
+      monthlySummary,
+      categorySummary,
+      selectedMonth: selectedMonthSummary,
+    });
   const isExpenseIncrease = expenseDeltaRaw > 0;
   const isExpenseDecrease = expenseDeltaRaw < 0;
   const absExpenseDelta = Math.abs(expenseDeltaRaw).toFixed(0);
-
-  const totalExpense = categorySummary.reduce(
-    (acc, curr) => acc + curr.amount,
-    0,
-  );
 
   const goToCategory = (categoryId: number) => {
     let url = `/transactions?category_id=${categoryId}`;
@@ -195,7 +182,7 @@ export default function Home() {
                     </div>
 
                     {/* vs previous month */}
-                    {filterMonth && prevExpense > 0 && (
+                    {filterMonth && previousExpense > 0 && (
                       <div className="bg-inset border-border flex items-center gap-2 rounded-full border px-4 py-1.5">
                         <span className="text-muted text-[10px] font-bold tracking-[0.15em] uppercase">
                           vs mes pasado
@@ -226,16 +213,16 @@ export default function Home() {
                             size={12}
                             className="text-violet-500 dark:text-violet-400"
                           />{' '}
-                          Balance
+                          Resultado
                         </p>
                         <p
                           className={`text-sm font-bold tabular-nums sm:text-base ${
-                            totalBalance < 0
+                            netResult < 0
                               ? 'text-red-600 dark:text-red-400'
                               : 'text-violet-600 dark:text-violet-400'
                           }`}
                         >
-                          ${formatCurrency(totalBalance)}
+                          ${formatCurrency(netResult)}
                         </p>
                       </div>
                       <div className="flex flex-col items-center py-4">
