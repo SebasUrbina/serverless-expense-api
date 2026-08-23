@@ -57,6 +57,7 @@ export function SettleConfirmModal({
     <BaseModal
       isOpen={isOpen}
       onClose={onClose}
+      ariaLabel="Confirmar liquidación de gastos"
       maxWidth="max-w-md"
       zIndex="z-[150]"
     >

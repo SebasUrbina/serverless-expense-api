@@ -1,23 +1,10 @@
 'use client';
 
 import { Sun, Moon } from 'lucide-react';
-import { useTheme, applyTheme } from '@/store/useTheme';
-import { useEffect } from 'react';
+import { useTheme } from '@/store/useTheme';
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme, resolvedTheme } = useTheme();
-
-  // Apply theme on mount and react to system changes
-  useEffect(() => {
-    applyTheme(theme);
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      if (theme === 'system') applyTheme('system');
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme]);
 
   const isDark = resolvedTheme() === 'dark';
 
@@ -29,6 +16,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <button
+        type="button"
         onClick={() => setTheme(isDark ? 'light' : 'dark')}
         className="bg-inset text-secondary border-border flex h-9 w-9 items-center justify-center rounded-xl border transition-all hover:scale-110 active:scale-95"
         aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
@@ -44,6 +32,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         const isActive = theme === value;
         return (
           <button
+            type="button"
             key={value}
             onClick={() => setTheme(value)}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${

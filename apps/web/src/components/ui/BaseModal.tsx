@@ -22,6 +22,8 @@ type BaseModalProps = {
   lockScroll?: boolean;
   /** Content rendered outside the sheet but inside the backdrop (e.g. nested modals) */
   outerContent?: ReactNode;
+  /** Accessible name used when the content does not provide aria-labelledby. */
+  ariaLabel?: string;
 };
 
 const DISMISS_THRESHOLD = 120;
@@ -35,27 +37,35 @@ export function BaseModal({
   zIndex = 'z-100',
   lockScroll = false,
   outerContent,
+  ariaLabel = 'Ventana modal',
 }: BaseModalProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({ startY: 0, isDragging: false, offset: 0 });
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const backdropPaddingTop = 'max(0.75rem, env(safe-area-inset-top))';
   const backdropPaddingBottom = 'max(0.75rem, env(safe-area-inset-bottom))';
   const sheetMaxHeight =
     'calc(100dvh - max(0.75rem, env(safe-area-inset-top)) - max(0.75rem, env(safe-area-inset-bottom)))';
 
-  // Animate in with double rAF
+  // Open in the top layer so the browser manages focus and outside inertness.
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+
+    let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setIsVisible(true));
+      raf2 = requestAnimationFrame(() => setIsVisible(true));
     });
     return () => {
       cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, [isOpen]);
 
@@ -80,7 +90,11 @@ export function BaseModal({
 
   const animateClose = useCallback(() => {
     setIsVisible(false);
-    setTimeout(() => onClose(), 400);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      dialogRef.current?.close();
+      onClose();
+    }, 400);
   }, [onClose]);
 
   // Drag-to-dismiss: touch start
@@ -142,14 +156,22 @@ export function BaseModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className={`fixed inset-0 ${zIndex} modal-backdrop flex items-end justify-center bg-[var(--backdrop-bg)] p-0 backdrop-blur-2xl sm:items-center sm:p-4 ${isVisible ? 'modal-open' : ''}`}
+    <dialog
+      ref={dialogRef}
+      aria-label={ariaLabel}
+      onCancel={(event) => {
+        event.preventDefault();
+        animateClose();
+      }}
+      className={`fixed inset-0 ${zIndex} modal-backdrop m-0 h-full max-h-none w-full max-w-none items-end justify-center border-0 bg-[var(--backdrop-bg)] p-0 backdrop-blur-2xl open:flex sm:items-center sm:p-4 ${isVisible ? 'modal-open' : ''}`}
       style={{
         backgroundColor: `rgba(var(--backdrop-rgb),${dragOffset > 0 ? Math.max(0.2, 0.8 - dragOffset / 600) : 0.8})`,
         paddingTop: backdropPaddingTop,
         paddingBottom: backdropPaddingBottom,
       }}
-      onClick={animateClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) animateClose();
+      }}
     >
       <div
         ref={sheetRef}
@@ -178,6 +200,6 @@ export function BaseModal({
         {children}
       </div>
       {outerContent}
-    </div>
+    </dialog>
   );
 }

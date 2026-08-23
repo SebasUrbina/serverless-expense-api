@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode, ElementType } from 'react';
+import { useId, type ReactNode, type ElementType } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 type SettingsAccordionSectionProps = {
@@ -28,6 +28,8 @@ export function SettingsAccordionSection({
   onToggle,
   children,
 }: SettingsAccordionSectionProps) {
+  const contentId = useId();
+
   return (
     <div
       className="overflow-hidden rounded-3xl transition-all duration-200"
@@ -38,7 +40,10 @@ export function SettingsAccordionSection({
       }}
     >
       <button
+        type="button"
         onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={contentId}
         className="flex w-full items-center gap-3.5 px-4 py-4 text-left transition-all duration-200"
       >
         <div
@@ -68,7 +73,10 @@ export function SettingsAccordionSection({
       </button>
 
       {isOpen && (
-        <div className="animate-in fade-in slide-in-from-top-2 px-3 pt-0 pb-3 duration-200">
+        <div
+          id={contentId}
+          className="animate-in fade-in slide-in-from-top-2 px-3 pt-0 pb-3 duration-200"
+        >
           <div
             className="rounded-[1.35rem] px-4 pt-4 pb-5"
             style={{

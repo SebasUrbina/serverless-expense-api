@@ -1,6 +1,7 @@
 'use client';
 
 import { X, AlertTriangle } from 'lucide-react';
+import { BaseModal } from '@/components/ui/BaseModal';
 
 type Props = {
   isOpen: boolean;
@@ -20,8 +21,14 @@ export function ConfirmDeleteModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-[var(--backdrop-bg)] p-4 backdrop-blur-sm">
-      <div className="bg-card border-border relative w-full max-w-sm rounded-3xl border p-6 shadow-2xl transition-all">
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      ariaLabel={title}
+      maxWidth="max-w-sm"
+      zIndex="z-[150]"
+    >
+      <div className="bg-card border-border relative w-full rounded-3xl border p-6 shadow-2xl transition-all">
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-3 text-red-500">
             <div className="rounded-full bg-red-500/10 p-2">
@@ -30,7 +37,9 @@ export function ConfirmDeleteModal({
             <h2 className="text-xl font-bold">{title}</h2>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Cerrar confirmación"
             className="text-muted hover:text-primary -mt-2 -mr-2 rounded-full bg-transparent p-2 transition-colors"
           >
             <X size={20} />
@@ -41,12 +50,14 @@ export function ConfirmDeleteModal({
 
         <div className="flex gap-3">
           <button
+            type="button"
             onClick={onClose}
             className="bg-inset hover:bg-card-hover text-primary flex-1 rounded-xl px-4 py-3 font-semibold transition-colors"
           >
             Cancelar
           </button>
           <button
+            type="button"
             onClick={() => {
               onConfirm();
               onClose();
@@ -57,6 +68,6 @@ export function ConfirmDeleteModal({
           </button>
         </div>
       </div>
-    </div>
+    </BaseModal>
   );
 }

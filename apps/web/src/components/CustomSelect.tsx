@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 export type Option = {
   value: string | number;
@@ -15,117 +14,56 @@ type Props = {
   placeholder?: string;
   disabled?: boolean;
   size?: 'default' | 'small';
+  id?: string;
+  name?: string;
+  ariaLabel?: string;
 };
 
 export function CustomSelect({
   value,
   onChange,
   options,
-  placeholder = 'Select an option',
+  placeholder = 'Selecciona una opción',
   disabled = false,
   size = 'default',
+  id,
+  name,
+  ariaLabel,
 }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const selectedOption = options.find((opt) => opt.value === value);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  const selectedValue = String(value);
 
   return (
-    <div className="relative w-full" ref={dropdownRef}>
-      <button
-        type="button"
+    <div className="relative w-full">
+      <select
+        id={id}
+        name={name}
+        value={selectedValue}
         disabled={disabled}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`flex w-full items-center justify-between rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
-          size === 'small' ? 'h-[42px] px-3' : 'px-4 py-3'
-        } ${isOpen ? '' : 'hover:bg-(--bg-inset)'}`}
-        style={{
-          background: 'var(--bg-card)',
-          border: `1px solid ${isOpen ? 'var(--text-secondary)' : 'var(--border)'}`,
-          boxShadow: isOpen ? '0 0 0 1px var(--text-secondary)' : 'none',
+        aria-label={ariaLabel ?? (id ? undefined : placeholder)}
+        onChange={(event) => {
+          const selected = options.find(
+            (option) => String(option.value) === event.target.value,
+          );
+          if (selected) onChange(selected.value);
         }}
+        className={`bg-card border-border text-primary focus:border-secondary focus:ring-secondary/25 w-full appearance-none rounded-xl border pr-10 text-sm font-medium transition-all focus:ring-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+          size === 'small' ? 'h-[42px] px-3' : 'px-4 py-3'
+        } ${selectedValue === '' ? 'text-secondary' : ''}`}
       >
-        <span
-          className="min-w-0 flex-1 truncate pr-2 text-left text-sm font-medium transition-colors"
-          style={{
-            color: selectedOption
-              ? 'var(--text-primary)'
-              : 'var(--text-secondary)',
-          }}
-        >
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <ChevronDown
-          size={16}
-          className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          style={{ color: 'var(--text-secondary)' }}
-        />
-      </button>
-
-      {isOpen && !disabled && (
-        <div
-          className="animate-in fade-in zoom-in-95 absolute left-0 z-50 mt-2 max-h-60 w-full min-w-[140px] overflow-hidden overflow-y-auto rounded-2xl p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] duration-200 sm:right-auto"
-          style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-          }}
-        >
-          {options.length === 0 ? (
-            <div
-              className="px-3 py-2 text-sm font-medium"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Sin opciones
-            </div>
-          ) : (
-            <div className="relative flex flex-col gap-0.5">
-              {options.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(option.value);
-                      setIsOpen(false);
-                    }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                      isSelected
-                        ? 'bg-emerald-500/10 font-medium text-emerald-500'
-                        : 'font-medium hover:bg-(--bg-inset)'
-                    }`}
-                    style={{ color: isSelected ? '' : 'var(--text-primary)' }}
-                  >
-                    <span className="flex-1 truncate pr-2 text-left">
-                      {option.label}
-                    </span>
-                    {isSelected && (
-                      <Check size={16} className="shrink-0 text-emerald-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+        <option value="" disabled>
+          {options.length === 0 ? 'Sin opciones' : placeholder}
+        </option>
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDown
+        aria-hidden="true"
+        size={16}
+        className="text-secondary pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+      />
     </div>
   );
 }

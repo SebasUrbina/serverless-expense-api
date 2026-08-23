@@ -1,115 +1,107 @@
 'use client';
 
-import React, { useState, useEffect, useRef, ReactNode } from 'react';
-import { Loader2, ArrowDown } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ArrowDown, Loader2 } from 'lucide-react';
 
-interface PullToRefreshProps {
+type PullToRefreshProps = {
   onRefresh: () => Promise<void>;
   children: ReactNode;
+};
+
+const MAX_PULL = 120;
+const REFRESH_THRESHOLD = 80;
+
+function findScrollContainer(element: HTMLElement): HTMLElement | Window {
+  let parent = element.parentElement;
+  while (parent && parent !== document.body) {
+    const overflowY = window.getComputedStyle(parent).overflowY;
+    if (overflowY === 'auto' || overflowY === 'scroll') return parent;
+    parent = parent.parentElement;
+  }
+  return window;
+}
+
+function getScrollTop(container: HTMLElement | Window) {
+  return container === window
+    ? window.scrollY
+    : (container as HTMLElement).scrollTop;
 }
 
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
-  const [startY, setStartY] = useState(0);
   const [currentY, setCurrentY] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const containerRef = useRef<HTMLDivElement>(null);
   const childrenRef = useRef<HTMLDivElement>(null);
-
-  const MAX_PULL = 120;
-  const REFRESH_THRESHOLD = 80;
+  const gestureRef = useRef({ startY: 0, currentY: 0, active: false });
+  const refreshingRef = useRef(false);
 
   useEffect(() => {
-    // The scrollable container is the parent element (main in LayoutWrapper)
-    // We attach touch events to the childrenRef so we can measure scroll position of its offsetParent/scrollParent
-    const targetElement = childrenRef.current;
-    if (!targetElement) return;
+    const target = childrenRef.current;
+    if (!target) return;
+    const scrollContainer = findScrollContainer(target);
 
-    // Find the nearest scrollable ancestor
-    let scrollParent: HTMLElement | null = targetElement;
-    while (scrollParent && scrollParent !== document.body) {
-      const overflowY = window.getComputedStyle(scrollParent).overflowY;
-      if (overflowY === 'auto' || overflowY === 'scroll') {
-        break;
-      }
-      scrollParent = scrollParent.parentElement;
-    }
-
-    if (!scrollParent || scrollParent === document.body) {
-      scrollParent = window as unknown as HTMLElement; // Fallback
-    }
-
-    const handleTouchStart = (e: TouchEvent) => {
-      const scrollTop =
-        scrollParent === (window as unknown as HTMLElement)
-          ? window.scrollY
-          : (scrollParent as HTMLElement).scrollTop;
-
-      // Only allow pull-to-refresh if we are at the very top
-      if (scrollTop <= 0) {
-        setStartY(e.touches[0].clientY);
-        setIsPulling(true);
-      }
+    const handleTouchStart = (event: TouchEvent) => {
+      if (refreshingRef.current || getScrollTop(scrollContainer) > 0) return;
+      gestureRef.current = {
+        startY: event.touches[0].clientY,
+        currentY: 0,
+        active: true,
+      };
+      setIsPulling(true);
     };
 
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling) return;
+    const handleTouchMove = (event: TouchEvent) => {
+      const gesture = gestureRef.current;
+      if (!gesture.active) return;
 
-      const y = e.touches[0].clientY;
-      const dy = y - startY;
+      const delta = event.touches[0].clientY - gesture.startY;
+      const distance = delta > 0 ? Math.min(delta * 0.5, MAX_PULL) : 0;
+      if (distance > 0 && event.cancelable) event.preventDefault();
 
-      if (dy > 0) {
-        // Prevent default scrolling when pulling down
-        if (e.cancelable) {
-          e.preventDefault();
-        }
-        // Add resistance factor
-        const pullDistance = Math.min(dy * 0.5, MAX_PULL);
-        setCurrentY(pullDistance);
-      } else {
+      gesture.currentY = distance;
+      setCurrentY(distance);
+    };
+
+    const handleTouchEnd = () => {
+      const gesture = gestureRef.current;
+      if (!gesture.active) return;
+      gesture.active = false;
+      setIsPulling(false);
+
+      if (gesture.currentY < REFRESH_THRESHOLD) {
+        gesture.currentY = 0;
         setCurrentY(0);
+        return;
       }
-    };
 
-    const handleTouchEnd = async () => {
-      if (!isPulling) return;
-
-      if (currentY >= REFRESH_THRESHOLD) {
-        setIsRefreshing(true);
-        setCurrentY(REFRESH_THRESHOLD); // Keep it open while refreshing
-
-        try {
-          await onRefresh();
-        } finally {
-          setIsRefreshing(false);
-          setCurrentY(0);
-          setIsPulling(false);
-        }
-      } else {
+      refreshingRef.current = true;
+      setIsRefreshing(true);
+      setCurrentY(REFRESH_THRESHOLD);
+      void onRefresh().finally(() => {
+        refreshingRef.current = false;
+        gesture.currentY = 0;
+        setIsRefreshing(false);
         setCurrentY(0);
-        setIsPulling(false);
-      }
+      });
     };
 
-    targetElement.addEventListener('touchstart', handleTouchStart, {
-      passive: false,
-    });
-    targetElement.addEventListener('touchmove', handleTouchMove, {
-      passive: false,
-    });
-    targetElement.addEventListener('touchend', handleTouchEnd);
+    target.addEventListener('touchstart', handleTouchStart, { passive: true });
+    target.addEventListener('touchmove', handleTouchMove, { passive: false });
+    target.addEventListener('touchend', handleTouchEnd);
+    target.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
-      targetElement.removeEventListener('touchstart', handleTouchStart);
-      targetElement.removeEventListener('touchmove', handleTouchMove);
-      targetElement.removeEventListener('touchend', handleTouchEnd);
+      target.removeEventListener('touchstart', handleTouchStart);
+      target.removeEventListener('touchmove', handleTouchMove);
+      target.removeEventListener('touchend', handleTouchEnd);
+      target.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [startY, isPulling, currentY, onRefresh]);
+  }, [onRefresh]);
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div className="relative w-full">
       <div
+        aria-live="polite"
         className={`absolute top-0 left-0 z-10 flex w-full items-end justify-center overflow-hidden pb-6 ${
           !isPulling ? 'transition-all duration-300 ease-out' : ''
         }`}
@@ -127,9 +119,10 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
           }}
         >
           {isRefreshing ? (
-            <Loader2 className="text-primary h-5 w-5 animate-spin" />
+            <Loader2 aria-label="Actualizando" className="text-primary h-5 w-5 animate-spin" />
           ) : (
             <ArrowDown
+              aria-hidden="true"
               className={`text-muted-foreground h-5 w-5 transition-transform duration-200 ${
                 currentY >= REFRESH_THRESHOLD ? 'text-primary rotate-180' : ''
               }`}
@@ -142,9 +135,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         className={`h-full w-full touch-pan-y ${
           !isPulling ? 'transition-transform duration-300 ease-out' : ''
         }`}
-        style={{
-          transform: `translateY(${currentY}px)`,
-        }}
+        style={{ transform: `translateY(${currentY}px)` }}
       >
         {children}
       </div>
