@@ -72,14 +72,14 @@ export default function RecurringPage() {
     onMutate: async ({ id, is_active }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.recurring.list });
 
-      const previousData = queryClient.getQueryData<RecurringRulesResponse>([
-        'recurring',
-        'list',
-      ]);
+      const previousData =
+        queryClient.getQueryData<RecurringRulesResponse>(
+          queryKeys.recurring.list,
+        );
 
       if (previousData) {
         queryClient.setQueryData<RecurringRulesResponse>(
-          ['recurring', 'list'],
+          queryKeys.recurring.list,
           {
             ...previousData,
             rules: previousData.rules.map((rule) =>
@@ -93,7 +93,10 @@ export default function RecurringPage() {
     },
     onError: (_err, _newRule, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(['recurring', 'list'], context.previousData);
+        queryClient.setQueryData(
+          queryKeys.recurring.list,
+          context.previousData,
+        );
       }
     },
     onSettled: () => {
