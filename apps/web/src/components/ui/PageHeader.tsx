@@ -68,6 +68,7 @@ export function PageHeader({
 
             {primaryAction && (
               <button
+                type="button"
                 onClick={primaryAction.onClick}
                 className="bg-accent hidden items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition-all hover:scale-[1.02] hover:bg-emerald-600 active:scale-[0.98] active:bg-emerald-700 sm:flex"
               >

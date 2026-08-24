@@ -49,7 +49,11 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (isLoginPage) {
     return (
-      <main className="theme-bg theme-text min-h-dvh overflow-y-auto">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="theme-bg theme-text min-h-dvh overflow-y-auto"
+      >
         {children}
       </main>
     );
@@ -57,9 +61,17 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="theme-bg theme-text flex h-dvh min-h-dvh overflow-hidden selection:bg-emerald-500/30">
+      <a
+        href="#main-content"
+        className="bg-card text-primary focus:ring-accent sr-only fixed top-3 left-3 z-[200] rounded-xl px-4 py-2 font-semibold focus:not-sr-only focus:ring-2 focus:outline-none"
+      >
+        Saltar al contenido
+      </a>
       <Sidebar />
       <div className="flex w-0 flex-1 flex-col overflow-hidden">
         <main
+          id="main-content"
+          tabIndex={-1}
           className="relative z-0 flex-1 overflow-y-auto overscroll-none scroll-smooth focus:outline-none lg:pb-0"
           style={{
             paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))',

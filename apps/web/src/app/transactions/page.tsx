@@ -346,13 +346,25 @@ function TransactionsContent() {
                       return (
                         <div
                           key={tx.id}
+                          role={canEdit ? 'button' : undefined}
+                          tabIndex={canEdit ? 0 : undefined}
+                          aria-label={
+                            canEdit ? `Editar movimiento ${tx.title}` : undefined
+                          }
                           onClick={() => {
                             if (!canEdit) return;
                             openModal(tx);
                           }}
+                          onKeyDown={(event) => {
+                            if (!canEdit) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              openModal(tx);
+                            }
+                          }}
                           className={`bg-card border-border flex min-h-[68px] items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all duration-150 ${
                             canEdit
-                              ? 'hover:bg-card-hover cursor-pointer'
+                              ? 'hover:bg-card-hover focus:ring-accent/40 cursor-pointer focus:ring-2 focus:outline-none'
                               : 'cursor-default'
                           }`}
                         >

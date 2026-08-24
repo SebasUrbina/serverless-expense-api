@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Repeat,
+  Pencil,
   Plus,
   Calendar,
   Zap,
@@ -265,10 +266,7 @@ function RuleCard({
   const { openModal } = useRecurringModal();
 
   return (
-    <div
-      onClick={() => openModal(rule)}
-      className="bg-card border-border hover:bg-card-hover flex cursor-pointer flex-col gap-4 rounded-2xl border p-4 transition-all duration-150"
-    >
+    <article className="bg-card border-border flex flex-col gap-4 rounded-2xl border p-4 transition-all duration-150">
       {/* Top Row */}
       <div className="flex items-start gap-3">
         <div
@@ -300,13 +298,23 @@ function RuleCard({
           )}
         </div>
 
+        <button
+          type="button"
+          onClick={() => openModal(rule)}
+          className="bg-inset border-border text-secondary hover:text-primary inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors"
+          aria-label={`Editar regla ${rule.title}`}
+        >
+          <Pencil size={13} />
+        </button>
+
         {/* Toggle */}
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggle();
-          }}
+          type="button"
+          onClick={onToggle}
           title={rule.is_active === 1 ? 'Pausar' : 'Activar'}
+          role="switch"
+          aria-checked={rule.is_active === 1}
+          aria-label={`${rule.is_active === 1 ? 'Pausar' : 'Activar'} regla ${rule.title}`}
           className={`flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors duration-300 ease-out ${
             rule.is_active === 1 ? 'bg-emerald-500' : 'bg-zinc-600'
           }`}
@@ -352,6 +360,6 @@ function RuleCard({
           {format(parseISO(rule.next_run), "d 'de' MMM yyyy", { locale: es })}
         </span>
       </div>
-    </div>
+    </article>
   );
 }
