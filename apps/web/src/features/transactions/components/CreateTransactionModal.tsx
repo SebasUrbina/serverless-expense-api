@@ -28,6 +28,12 @@ import { DeleteButton } from '@/components/ui/DeleteButton';
 import type { Transaction } from '@/types/api';
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionTypeToggle } from '@/components/forms/TransactionTypeToggle';
+import {
+  buildTransactionPayload,
+  getEqualSplitPercentages,
+  getInitialSplitPercentages,
+  type TransactionPayload,
+} from '@/features/transactions/model/transaction-form';
 
 type Props = {
   isOpen: boolean;
@@ -35,60 +41,9 @@ type Props = {
   initialData?: Transaction | null;
 };
 
-type TransactionPayload = {
-  title: string;
-  amount: number;
-  category_id?: number;
-  type: 'expense' | 'income';
-  account_id?: number;
-  tag_ids: number[];
-  date: string;
-  is_shared: 0 | 1;
-  group_id?: number;
-  installments?: number;
-  splits?: Array<{
-    user_id: string;
-    percentage: number;
-  }>;
-};
-
 type ApiErrorResponse = {
   error?: string;
 };
-
-function getInitialSplitPercentages(
-  transaction?: Transaction | null,
-): Record<string, number> {
-  if (!transaction?.splits?.length) {
-    return {};
-  }
-
-  return transaction.splits.reduce<Record<string, number>>(
-    (accumulator, split) => {
-      accumulator[split.user_id] = split.percentage;
-      return accumulator;
-    },
-    {},
-  );
-}
-
-function getEqualSplitPercentages(
-  members: Array<{ user_id: string }>,
-): Record<string, number> {
-  if (members.length === 0) {
-    return {};
-  }
-
-  const equalPct = Math.floor(100 / members.length);
-  return members.reduce<Record<string, number>>(
-    (accumulator, member, index) => {
-      accumulator[member.user_id] =
-        index === 0 ? 100 - equalPct * (members.length - 1) : equalPct;
-      return accumulator;
-    },
-    {},
-  );
-}
 
 export function CreateTransactionModal({
   isOpen,
@@ -224,38 +179,25 @@ export function CreateTransactionModal({
     e.preventDefault();
     setError(null);
     const parsedAmount = parseCurrencyInput(amount);
-    if (!parsedAmount || isNaN(parsedAmount)) {
-      setError('Ingresa un monto válido mayor que cero.');
-      return;
-    }
-    const payload: TransactionPayload = {
+    const result = buildTransactionPayload({
       title,
       amount: parsedAmount,
-      category_id: categoryId !== '' ? categoryId : undefined,
+      categoryId,
       type,
-      account_id: accountId !== '' ? accountId : undefined,
-      tag_ids: tagIds,
+      accountId,
+      tagIds,
       date,
-      is_shared: 0,
-    };
-
-    if (type === 'expense' && isInstallments && installments > 1) {
-      payload.installments = installments;
+      isShared,
+      selectedGroup,
+      splitPercentages,
+      isInstallments,
+      installments,
+    });
+    if (!result.ok) {
+      setError(result.error);
+      return;
     }
-
-    if (isShared && groupId && selectedGroup) {
-      payload.is_shared = 1;
-      payload.group_id = groupId;
-      payload.splits = selectedGroup.members.map((m) => ({
-        user_id: m.user_id,
-        percentage: splitPercentages[m.user_id] || 0,
-      }));
-    } else {
-      payload.is_shared = 0;
-      payload.group_id = undefined;
-    }
-
-    mutation.mutate(payload);
+    mutation.mutate(result.payload);
   };
 
   const resetAndClose = () => {
@@ -311,18 +253,7 @@ export function CreateTransactionModal({
         <button
           type="submit"
           form="transaction-form"
-          disabled={
-            loading ||
-            !title ||
-            !amount ||
-            categoryId === '' ||
-            accountId === '' ||
-            (isShared &&
-              groupId !== '' &&
-              selectedGroup != null &&
-              Object.values(splitPercentages).reduce((a, b) => a + b, 0) !==
-                100)
-          }
+          disabled={loading}
           className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-600 transition-colors disabled:opacity-50 sm:hidden dark:text-emerald-400"
         >
           Guardar
@@ -554,13 +485,13 @@ export function CreateTransactionModal({
           {type === 'expense' && !initialData && (
             <div className="border-border mt-2 border-t pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <label className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
+                <span className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
                   <Calendar
                     size={14}
                     className={isInstallments ? 'text-orange-400' : ''}
                   />
                   Pagar en cuotas
-                </label>
+                </span>
                 <button
                   type="button"
                   onClick={() => {
@@ -575,6 +506,9 @@ export function CreateTransactionModal({
                   className={`relative h-6 w-11 rounded-full transition-colors ${
                     isInstallments ? 'bg-orange-500' : 'bg-border'
                   }`}
+                  role="switch"
+                  aria-checked={isInstallments}
+                  aria-label="Pagar en cuotas"
                 >
                   <span
                     className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -657,19 +591,22 @@ export function CreateTransactionModal({
           {groups.length > 0 && (
             <div className="border-border mt-2 border-t pt-4">
               <div className="mb-3 flex items-center justify-between">
-                <label className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
+                <span className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
                   <Users
                     size={14}
                     className={isShared ? 'text-violet-400' : ''}
                   />
                   Gasto Compartido
-                </label>
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsShared(!isShared)}
                   className={`relative h-6 w-11 rounded-full transition-colors ${
                     isShared ? 'bg-violet-500' : 'bg-border'
                   }`}
+                  role="switch"
+                  aria-checked={isShared}
+                  aria-label="Gasto compartido"
                 >
                   <span
                     className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -879,27 +816,17 @@ export function CreateTransactionModal({
           )}
 
           {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div
+              role="alert"
+              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+            >
               ⚠️ {error}
             </div>
           )}
 
           <SubmitButton
             loading={loading}
-            disabled={
-              loading ||
-              !title ||
-              !amount ||
-              categoryId === '' ||
-              accountId === '' ||
-              !!(
-                isShared &&
-                groupId &&
-                selectedGroup &&
-                Object.values(splitPercentages).reduce((a, b) => a + b, 0) !==
-                  100
-              )
-            }
+            disabled={loading}
             variant={type}
             text={
               initialData
