@@ -1,22 +1,17 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { endOfMonth, format, isValid, parseISO } from 'date-fns';
 import api from '@/lib/api';
 import { queryKeys } from '@/lib/query-keys';
-import type { Transaction } from '@/types/api';
+import type { TransactionsResponse } from '@/types/api';
+import type { TransactionFilters } from '@/features/transactions/model/transaction-filters';
 
-export type TransactionFilters = {
-  search: string;
-  month: string;
-  categoryId: number | '';
-  tagId: number | '';
-  shared: boolean;
-  groupId: number | '';
-};
-
-function buildTransactionSearchParams(filters: TransactionFilters) {
-  const params = new URLSearchParams({ limit: '50' });
+function buildTransactionSearchParams(
+  filters: TransactionFilters,
+  page: number,
+) {
+  const params = new URLSearchParams({ limit: '30', page: String(page) });
 
   if (filters.search) params.set('search', filters.search);
   if (filters.categoryId !== '') {
@@ -39,7 +34,7 @@ function buildTransactionSearchParams(filters: TransactionFilters) {
 }
 
 export function useTransactions(filters: TransactionFilters) {
-  return useQuery<{ transactions: Transaction[] }>({
+  return useInfiniteQuery<TransactionsResponse>({
     queryKey: queryKeys.transactions.list([
       filters.search,
       filters.month,
@@ -48,10 +43,12 @@ export function useTransactions(filters: TransactionFilters) {
       filters.shared,
       filters.groupId,
     ]),
-    queryFn: async () => {
-      const params = buildTransactionSearchParams(filters);
+    queryFn: async ({ pageParam }) => {
+      const params = buildTransactionSearchParams(filters, Number(pageParam));
       const response = await api.get(`/transactions?${params.toString()}`);
       return response.data;
     },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage ?? undefined,
   });
 }

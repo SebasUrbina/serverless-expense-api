@@ -155,6 +155,8 @@ export type KPISummary = {
 
 export type TransactionsResponse = {
   transactions: Transaction[];
+  hasMore: boolean;
+  nextPage: number | null;
 };
 
 export type RecurringRulesResponse = {
