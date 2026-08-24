@@ -228,8 +228,10 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
             <div className="relative inline-flex items-baseline">
               <span className="text-muted mr-1 text-2xl font-bold">$</span>
               <input
+                id="recurring-amount"
                 type="text"
                 inputMode="numeric"
+                aria-label="Monto"
                 required
                 value={amount}
                 onChange={(e) => {
@@ -244,10 +246,14 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
 
           {/* Rule Name - Detail */}
           <div>
-            <label className="text-secondary mb-2 block text-sm font-semibold">
+            <label
+              htmlFor="recurring-title"
+              className="text-secondary mb-2 block text-sm font-semibold"
+            >
               Nombre de la regla
             </label>
             <input
+              id="recurring-title"
               type="text"
               required
               value={title}
@@ -260,7 +266,10 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
           <div className="flex flex-col gap-4 sm:flex-row">
             {/* First Date Pill */}
             <div className="min-w-0 flex-1">
-              <label className="text-secondary mb-2 block text-sm font-semibold">
+              <label
+                htmlFor="recurring-next-run"
+                className="text-secondary mb-2 block text-sm font-semibold"
+              >
                 Próximo cobro
               </label>
               <div className="relative inline-block">
@@ -270,6 +279,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                   <ChevronDown size={14} />
                 </div>
                 <input
+                  id="recurring-next-run"
                   type="date"
                   required
                   value={nextRun}
@@ -281,11 +291,15 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
 
             {/* Frequency Sub-Select */}
             <div className="z-30 min-w-0 flex-1">
-              <label className="text-secondary mb-2 block text-sm font-semibold">
+              <label
+                htmlFor="recurring-frequency"
+                className="text-secondary mb-2 block text-sm font-semibold"
+              >
                 Frecuencia
               </label>
               <div className="relative">
                 <CustomSelect
+                  id="recurring-frequency"
                   value={frequency}
                   onChange={(value) =>
                     setFrequency(
@@ -306,7 +320,10 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
 
           {/* Optional End Date */}
           <div>
-            <label className="text-secondary mb-2 block text-sm font-semibold">
+            <label
+              htmlFor="recurring-end-date"
+              className="text-secondary mb-2 block text-sm font-semibold"
+            >
               Fecha de término (Opcional)
             </label>
             <div className="relative inline-block">
@@ -325,12 +342,14 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
                       setEndDate('');
                     }}
                     className="text-muted ml-2 hover:text-red-500"
+                    aria-label="Quitar fecha de término"
                   >
                     <X size={14} />
                   </button>
                 )}
               </div>
               <input
+                id="recurring-end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
@@ -342,7 +361,10 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
           {frequency === 'monthly' && (
             <div>
               <div className="mb-2 flex items-center justify-between px-1">
-                <label className="text-secondary block text-sm font-semibold">
+                <label
+                  htmlFor="recurring-day-of-month"
+                  className="text-secondary block text-sm font-semibold"
+                >
                   Día del mes
                 </label>
                 <span className="text-sm font-bold text-emerald-400">
@@ -352,6 +374,7 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
               <div className="bg-inset border-border flex items-center gap-4 rounded-xl border px-4 py-3">
                 <span className="text-secondary text-xs font-medium">1</span>
                 <input
+                  id="recurring-day-of-month"
                   type="range"
                   min="1"
                   max="30"

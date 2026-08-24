@@ -293,8 +293,10 @@ export function CreateTransactionModal({
                 $
               </span>
               <input
+                id="transaction-amount"
                 type="text"
                 inputMode="numeric"
+                aria-label="Monto"
                 required
                 value={amount}
                 onChange={(e) => {
@@ -320,7 +322,9 @@ export function CreateTransactionModal({
                 <ChevronDown size={14} />
               </div>
               <input
+                id="transaction-date"
                 type="date"
+                aria-label="Fecha del movimiento"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
@@ -331,12 +335,16 @@ export function CreateTransactionModal({
 
           {/* Detail */}
           <div>
-            <label className="text-secondary mb-2 block text-sm font-semibold">
+            <label
+              htmlFor="transaction-title"
+              className="text-secondary mb-2 block text-sm font-semibold"
+            >
               Detalle de la compra
             </label>
             <input
+              id="transaction-title"
               type="text"
-              required={false}
+              required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="bg-inset text-primary placeholder:text-muted focus:ring-border w-full rounded-full px-5 py-3.5 text-base font-medium transition-colors duration-200 focus:ring-1 focus:outline-none"
@@ -346,10 +354,17 @@ export function CreateTransactionModal({
 
           {/* Category Bento Grid */}
           <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
+            <p
+              id="transaction-category-label"
+              className="text-secondary mb-3 block text-sm font-semibold"
+            >
               Categoría
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            </p>
+            <div
+              role="group"
+              aria-labelledby="transaction-category-label"
+              className="grid grid-cols-3 gap-2 sm:grid-cols-4"
+            >
               {isLoadingCategories
                 ? Array(6)
                     .fill(0)
@@ -392,10 +407,17 @@ export function CreateTransactionModal({
 
           {/* Accounts Bento Grid */}
           <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
+            <p
+              id="transaction-account-label"
+              className="text-secondary mb-3 block text-sm font-semibold"
+            >
               Cuenta
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            </p>
+            <div
+              role="group"
+              aria-labelledby="transaction-account-label"
+              className="grid grid-cols-3 gap-2 sm:grid-cols-4"
+            >
               {isLoadingAccounts
                 ? Array(3)
                     .fill(0)
@@ -447,10 +469,17 @@ export function CreateTransactionModal({
           </div>
 
           <div>
-            <label className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase">
+            <p
+              id="transaction-tags-label"
+              className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase"
+            >
               Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
+            </p>
+            <div
+              role="group"
+              aria-labelledby="transaction-tags-label"
+              className="flex flex-wrap gap-2"
+            >
               {isLoadingTags ? (
                 <div className="bg-inset h-8 w-full animate-pulse rounded-lg"></div>
               ) : (
@@ -521,11 +550,15 @@ export function CreateTransactionModal({
               {isInstallments && (
                 <div className="animate-in fade-in space-y-3 duration-200">
                   <div>
-                    <label className="text-secondary mb-2 block text-xs font-semibold uppercase">
+                    <label
+                      htmlFor="transaction-installments"
+                      className="text-secondary mb-2 block text-xs font-semibold uppercase"
+                    >
                       Cantidad de cuotas
                     </label>
                     <div className="flex items-center gap-3">
                       <input
+                        id="transaction-installments"
                         type="number"
                         min={2}
                         max={36}
@@ -619,10 +652,14 @@ export function CreateTransactionModal({
               {isShared && (
                 <div className="animate-in fade-in space-y-3 duration-200">
                   <div>
-                    <label className="text-secondary mb-1 block text-xs font-semibold uppercase">
+                    <label
+                      htmlFor="transaction-shared-group"
+                      className="text-secondary mb-1 block text-xs font-semibold uppercase"
+                    >
                       Grupo
                     </label>
                     <CustomSelect
+                      id="transaction-shared-group"
                       value={groupId}
                       onChange={(val) => {
                         const nextGroupId =
