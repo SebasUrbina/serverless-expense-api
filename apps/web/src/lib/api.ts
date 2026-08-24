@@ -39,7 +39,7 @@ api.interceptors.response.use(
       });
 
       const { data, error: refreshError } = await refreshPromise;
-      if (refreshError) {
+      if (refreshError || !data.session) {
         await supabase.auth.signOut();
         if (typeof window !== 'undefined') {
           window.location.assign('/login');
@@ -47,10 +47,8 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      if (data.session?.access_token) {
-        config.headers.Authorization = `Bearer ${data.session.access_token}`;
-        return api.request(config);
-      }
+      config.headers.Authorization = `Bearer ${data.session.access_token}`;
+      return api.request(config);
     }
     return Promise.reject(error);
   },
