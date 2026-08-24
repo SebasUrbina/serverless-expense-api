@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { format, addMonths } from 'date-fns';
 import { X, ChevronDown, Calendar } from 'lucide-react';
 import {
   formatCurrencyInput,
@@ -23,6 +22,11 @@ import { ConfirmDeleteModal } from '@/components/ConfirmDeleteModal';
 import type { RecurringRule } from '@/types/api';
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionTypeToggle } from '@/components/forms/TransactionTypeToggle';
+import {
+  buildRecurringPayload,
+  getInitialRecurringValues,
+  type RecurringPayload,
+} from '@/features/recurring/model/recurring';
 
 type Props = {
   isOpen: boolean;
@@ -30,22 +34,9 @@ type Props = {
   onClose: () => void;
 };
 
-type RecurringPayload = {
-  title: string;
-  amount: number;
-  category_id?: number;
-  type: 'expense' | 'income';
-  account_id?: number;
-  tag_ids: number[];
-  frequency: string;
-  day_of_month: number | null | undefined;
-  next_run: string;
-  end_date?: string | null;
-  is_active: number;
-};
-
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
+  const initialValues = getInitialRecurringValues(initialData);
   const [error, setError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } =
@@ -59,38 +50,24 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const tags = tagsData?.tags || [];
 
   // Form State
-  const [type, setType] = useState<'expense' | 'income'>(
-    initialData?.type ?? 'expense',
-  );
-  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [type, setType] = useState(initialValues.type);
+  const [title, setTitle] = useState(initialValues.title);
   const [amount, setAmount] = useState(
-    initialData
-      ? formatCurrencyInput(initialData.amount)
-      : '',
+    initialValues.amount ? formatCurrencyInput(initialValues.amount) : '',
   );
   const [categoryId, setCategoryId] = useState<number | ''>(
-    initialData?.category_id || '',
+    initialValues.categoryId,
   );
   const [accountId, setAccountId] = useState<number | ''>(
-    initialData?.account_id || '',
+    initialValues.accountId,
   );
-  const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
-  const [frequency, setFrequency] = useState(
-    initialData?.frequency ?? 'monthly',
-  );
+  const [tagIds, setTagIds] = useState<number[]>(initialValues.tagIds);
+  const [frequency, setFrequency] = useState(initialValues.frequency);
   const [dayOfMonth, setDayOfMonth] = useState(
-    initialData?.day_of_month ? initialData.day_of_month.toString() : '1',
+    String(initialValues.dayOfMonth),
   );
-  const [nextRun, setNextRun] = useState(
-    initialData?.next_run
-      ? format(new Date(initialData.next_run), 'yyyy-MM-dd')
-      : format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
-  );
-  const [endDate, setEndDate] = useState(
-    initialData?.end_date
-      ? format(new Date(initialData.end_date), 'yyyy-MM-dd')
-      : '',
-  );
+  const [nextRun, setNextRun] = useState(initialValues.nextRun);
+  const [endDate, setEndDate] = useState(initialValues.endDate);
 
   const mutation = useMutation({
     mutationFn: async (ruleData: RecurringPayload) => {
@@ -134,38 +111,40 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const parsedAmount = parseCurrencyInput(amount);
-    if (!parsedAmount) {
-      setError('Ingresa un monto válido mayor que cero.');
+    const result = buildRecurringPayload(
+      {
+        title,
+        amount: parseCurrencyInput(amount),
+        categoryId,
+        accountId,
+        tagIds,
+        type,
+        frequency,
+        dayOfMonth: Number(dayOfMonth),
+        nextRun,
+        endDate,
+      },
+      initialData?.is_active ?? 1,
+    );
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
-    mutation.mutate({
-        title,
-        amount: parsedAmount,
-        category_id: categoryId !== '' ? categoryId : undefined,
-        type,
-        account_id: accountId !== '' ? accountId : undefined,
-        tag_ids: tagIds,
-        frequency,
-        day_of_month:
-          frequency === 'monthly' ? parseInt(dayOfMonth, 10) : undefined,
-        next_run: nextRun,
-        end_date: endDate ? endDate : undefined,
-        is_active: initialData ? initialData.is_active : 1,
-      });
+    mutation.mutate(result.payload);
   };
 
   const resetAndClose = () => {
-    setType('expense');
-    setTitle('');
+    const defaults = getInitialRecurringValues();
+    setType(defaults.type);
+    setTitle(defaults.title);
     setAmount('');
-    setCategoryId('');
-    setAccountId('');
-    setTagIds([]);
-    setFrequency('monthly');
-    setDayOfMonth('1');
-    setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
-    setEndDate('');
+    setCategoryId(defaults.categoryId);
+    setAccountId(defaults.accountId);
+    setTagIds(defaults.tagIds);
+    setFrequency(defaults.frequency);
+    setDayOfMonth(String(defaults.dayOfMonth));
+    setNextRun(defaults.nextRun);
+    setEndDate(defaults.endDate);
     setError(null);
     onClose();
   };
@@ -176,7 +155,9 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     <BaseModal
       isOpen={isOpen}
       onClose={resetAndClose}
-      ariaLabel={initialData ? 'Editar regla recurrente' : 'Crear regla recurrente'}
+      ariaLabel={
+        initialData ? 'Editar regla recurrente' : 'Crear regla recurrente'
+      }
       outerContent={
         <ConfirmDeleteModal
           isOpen={isDeleteModalOpen}
@@ -524,7 +505,10 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
           </div>
 
           {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            <div
+              role="alert"
+              className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400"
+            >
               {error}
             </div>
           )}

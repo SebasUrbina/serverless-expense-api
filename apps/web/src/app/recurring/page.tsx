@@ -1,7 +1,5 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -17,23 +15,23 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useRecurringModal } from '@/store/useRecurringModal';
-import { useState, useEffect } from 'react';
-import type { RecurringRule, RecurringRulesResponse } from '@/types/api';
+import type { RecurringRule } from '@/types/api';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { formatCurrency } from '@/lib/utils';
-import { queryKeys } from '@/lib/query-keys';
+import { useRecurringRules } from '@/features/recurring/hooks/useRecurringRules';
+import { summarizeRecurringRules } from '@/features/recurring/model/recurring';
 
-const frequencyLabel: Record<string, string> = {
+const frequencyLabel: Record<RecurringRule['frequency'], string> = {
   daily: 'Diario',
   weekly: 'Semanal',
   monthly: 'Mensual',
   yearly: 'Anual',
 };
 
-const frequencyColors: Record<string, string> = {
+const frequencyColors: Record<RecurringRule['frequency'], string> = {
   daily: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   weekly: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   monthly: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
@@ -42,79 +40,10 @@ const frequencyColors: Record<string, string> = {
 
 export default function RecurringPage() {
   const { openModal } = useRecurringModal();
-  const queryClient = useQueryClient();
-  const [fabMounted, setFabMounted] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setFabMounted(true), 300);
-    return () => clearTimeout(t);
-  }, []);
-
-  const { data: response, isLoading } = useQuery<RecurringRulesResponse>({
-    queryKey: queryKeys.recurring.list,
-    queryFn: async () => {
-      const res = await api.get('/recurring');
-      return res.data;
-    },
-  });
-
-  const toggleMutation = useMutation({
-    mutationFn: async ({
-      id,
-      is_active,
-    }: {
-      id: number;
-      is_active: number;
-    }) => {
-      const res = await api.put(`/recurring/${id}`, { is_active });
-      return res.data;
-    },
-    onMutate: async ({ id, is_active }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.recurring.list });
-
-      const previousData =
-        queryClient.getQueryData<RecurringRulesResponse>(
-          queryKeys.recurring.list,
-        );
-
-      if (previousData) {
-        queryClient.setQueryData<RecurringRulesResponse>(
-          queryKeys.recurring.list,
-          {
-            ...previousData,
-            rules: previousData.rules.map((rule) =>
-              rule.id === id ? { ...rule, is_active } : rule,
-            ),
-          },
-        );
-      }
-
-      return { previousData };
-    },
-    onError: (_err, _newRule, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(
-          queryKeys.recurring.list,
-          context.previousData,
-        );
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.recurring.list });
-    },
-  });
-
-  const rules = response?.rules || [];
-  const activeRules = rules.filter((r) => r.is_active === 1);
-  const inactiveRules = rules.filter((r) => r.is_active !== 1);
-
-  const totalMonthlyExpenses = activeRules
-    .filter((r) => r.type === 'expense' && r.frequency === 'monthly')
-    .reduce((sum, r) => sum + r.amount, 0);
-
-  const totalMonthlyIncome = activeRules
-    .filter((r) => r.type === 'income' && r.frequency === 'monthly')
-    .reduce((sum, r) => sum + r.amount, 0);
+  const { rules, isLoading, toggleRule, togglingRuleId, toggleError } =
+    useRecurringRules();
+  const { active, inactive, monthlyExpenses, monthlyIncome } =
+    summarizeRecurringRules(rules);
 
   return (
     <div className="flex h-full flex-col">
@@ -134,22 +63,22 @@ export default function RecurringPage() {
             <div className="bg-card border-border flex items-center gap-1.5 rounded-xl border px-3 py-1.5">
               <Zap size={13} className="text-emerald-400" />
               <span className="text-secondary text-xs font-medium">
-                {activeRules.length} activos
+                {active.length} activos
               </span>
             </div>
-            {totalMonthlyExpenses > 0 && (
+            {monthlyExpenses > 0 && (
               <div className="flex items-center gap-1.5 rounded-xl border border-red-500/15 bg-red-500/5 px-3 py-1.5">
                 <TrendingDown size={13} className="text-red-400" />
                 <span className="text-xs font-medium text-red-400">
-                  −${formatCurrency(totalMonthlyExpenses)}/mes
+                  −${formatCurrency(monthlyExpenses)}/mes
                 </span>
               </div>
             )}
-            {totalMonthlyIncome > 0 && (
+            {monthlyIncome > 0 && (
               <div className="flex items-center gap-1.5 rounded-xl border border-emerald-500/15 bg-emerald-500/5 px-3 py-1.5">
                 <TrendingUp size={13} className="text-emerald-400" />
                 <span className="text-xs font-medium text-emerald-400">
-                  +${formatCurrency(totalMonthlyIncome)}/mes
+                  +${formatCurrency(monthlyIncome)}/mes
                 </span>
               </div>
             )}
@@ -178,7 +107,12 @@ export default function RecurringPage() {
             />
           ) : (
             <div className="space-y-6">
-              {activeRules.length > 0 && (
+              {toggleError && (
+                <p role="alert" className="text-sm text-red-400">
+                  No se pudo actualizar la regla. Intenta nuevamente.
+                </p>
+              )}
+              {active.length > 0 && (
                 <div>
                   <div className="mb-3 flex items-center gap-3">
                     <span className="text-secondary text-xs font-semibold tracking-wider uppercase">
@@ -187,23 +121,22 @@ export default function RecurringPage() {
                     <div className="bg-border h-px flex-1" />
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {activeRules.map((rule) => (
+                    {active.map((rule) => (
                       <RuleCard
                         key={rule.id}
                         rule={rule}
+                        onEdit={() => openModal(rule)}
                         onToggle={() =>
-                          toggleMutation.mutate({
-                            id: rule.id,
-                            is_active: rule.is_active === 1 ? 0 : 1,
-                          })
+                          toggleRule(rule.id, rule.is_active === 1 ? 0 : 1)
                         }
+                        isToggling={togglingRuleId === rule.id}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              {inactiveRules.length > 0 && (
+              {inactive.length > 0 && (
                 <div>
                   <div className="mb-3 flex items-center gap-3">
                     <span className="text-muted text-xs font-semibold tracking-wider uppercase">
@@ -212,16 +145,15 @@ export default function RecurringPage() {
                     <div className="bg-border h-px flex-1" />
                   </div>
                   <div className="grid grid-cols-1 gap-3 opacity-60 sm:grid-cols-2 xl:grid-cols-3">
-                    {inactiveRules.map((rule) => (
+                    {inactive.map((rule) => (
                       <RuleCard
                         key={rule.id}
                         rule={rule}
+                        onEdit={() => openModal(rule)}
                         onToggle={() =>
-                          toggleMutation.mutate({
-                            id: rule.id,
-                            is_active: rule.is_active === 1 ? 0 : 1,
-                          })
+                          toggleRule(rule.id, rule.is_active === 1 ? 0 : 1)
                         }
+                        isToggling={togglingRuleId === rule.id}
                       />
                     ))}
                   </div>
@@ -235,10 +167,9 @@ export default function RecurringPage() {
       {/* ── Mobile FAB — Only when rules exist ── */}
       {rules.length > 0 && (
         <button
+          type="button"
           onClick={() => openModal()}
-          className={`group bg-accent shadow-accent/30 fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl transition-all duration-300 hover:bg-emerald-600 active:scale-90 sm:hidden ${
-            fabMounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-          }`}
+          className="group bg-accent shadow-accent/30 animate-in fade-in slide-in-from-bottom-4 fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl duration-300 hover:bg-emerald-600 active:scale-90 sm:hidden"
           style={{
             bottom: 'calc(5rem + env(safe-area-inset-bottom) + 0.75rem)',
           }}
@@ -257,16 +188,19 @@ export default function RecurringPage() {
 
 function RuleCard({
   rule,
+  onEdit,
   onToggle,
+  isToggling,
 }: {
   rule: RecurringRule;
+  onEdit: () => void;
   onToggle: () => void;
+  isToggling: boolean;
 }) {
   const isIncome = rule.type === 'income';
   const freqColor =
     frequencyColors[rule.frequency] ||
     'bg-zinc-800 text-zinc-400 border-zinc-700';
-  const { openModal } = useRecurringModal();
 
   return (
     <article className="bg-card border-border flex flex-col gap-4 rounded-2xl border p-4 transition-all duration-150">
@@ -303,7 +237,7 @@ function RuleCard({
 
         <button
           type="button"
-          onClick={() => openModal(rule)}
+          onClick={onEdit}
           className="bg-inset border-border text-secondary hover:text-primary inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors"
           aria-label={`Editar regla ${rule.title}`}
         >
@@ -314,11 +248,12 @@ function RuleCard({
         <button
           type="button"
           onClick={onToggle}
+          disabled={isToggling}
           title={rule.is_active === 1 ? 'Pausar' : 'Activar'}
           role="switch"
           aria-checked={rule.is_active === 1}
           aria-label={`${rule.is_active === 1 ? 'Pausar' : 'Activar'} regla ${rule.title}`}
-          className={`flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors duration-300 ease-out ${
+          className={`flex h-5 w-9 shrink-0 items-center rounded-full px-0.5 transition-colors duration-300 ease-out disabled:opacity-60 ${
             rule.is_active === 1 ? 'bg-emerald-500' : 'bg-zinc-600'
           }`}
         >
