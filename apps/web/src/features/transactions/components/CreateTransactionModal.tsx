@@ -29,6 +29,11 @@ import type { Transaction } from '@/types/api';
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionTypeToggle } from '@/components/forms/TransactionTypeToggle';
 import {
+  AccountSelector,
+  CategorySelector,
+  TagSelector,
+} from '@/components/forms/FinancialSelectors';
+import {
   buildTransactionPayload,
   getEqualSplitPercentages,
   getInitialSplitPercentages,
@@ -76,9 +81,7 @@ export function CreateTransactionModal({
   );
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [amount, setAmount] = useState(
-    initialData
-      ? formatCurrencyInput(initialData.amount)
-      : '',
+    initialData ? formatCurrencyInput(initialData.amount) : '',
   );
   const [categoryId, setCategoryId] = useState<number | ''>(
     initialData?.category_id || '',
@@ -157,7 +160,8 @@ export function CreateTransactionModal({
         ? err.response?.data?.error ||
           err.message ||
           'No se pudo guardar el movimiento. Intenta nuevamente.'
-        : err.message || 'No se pudo guardar el movimiento. Intenta nuevamente.';
+        : err.message ||
+          'No se pudo guardar el movimiento. Intenta nuevamente.';
       setError(msg);
     },
   });
@@ -352,163 +356,28 @@ export function CreateTransactionModal({
             />
           </div>
 
-          {/* Category Bento Grid */}
-          <div>
-            <p
-              id="transaction-category-label"
-              className="text-secondary mb-3 block text-sm font-semibold"
-            >
-              Categoría
-            </p>
-            <div
-              role="group"
-              aria-labelledby="transaction-category-label"
-              className="grid grid-cols-3 gap-2 sm:grid-cols-4"
-            >
-              {isLoadingCategories
-                ? Array(6)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset aspect-square animate-pulse rounded-2xl"
-                      />
-                    ))
-                : categories
-                    .filter((cat) => cat.type === type)
-                    .map((cat) => {
-                      const isSelected = categoryId === cat.id;
-                      // Determine palette based on index to give colorful look like reference image
-                      // Using emerald as generic nice colorful look for now
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategoryId(cat.id)}
-                          className={`flex aspect-square flex-col items-center justify-center rounded-2xl border p-2 pt-4 pb-3 transition-all ${
-                            isSelected
-                              ? 'scale-[1.02] border-orange-400/50 bg-orange-500/10 shadow-sm'
-                              : 'bg-card border-border hover:bg-card-hover'
-                          }`}
-                        >
-                          <span className="mb-1 text-2xl">
-                            {cat.icon || '🏷️'}
-                          </span>
-                          <span
-                            className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}
-                          >
-                            {cat.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-            </div>
-          </div>
-
-          {/* Accounts Bento Grid */}
-          <div>
-            <p
-              id="transaction-account-label"
-              className="text-secondary mb-3 block text-sm font-semibold"
-            >
-              Cuenta
-            </p>
-            <div
-              role="group"
-              aria-labelledby="transaction-account-label"
-              className="grid grid-cols-3 gap-2 sm:grid-cols-4"
-            >
-              {isLoadingAccounts
-                ? Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset h-16 animate-pulse rounded-2xl"
-                      />
-                    ))
-                : accounts.map((acc) => {
-                    const isSelected = accountId === acc.id;
-                    const getIcon = (t: string) => {
-                      switch (t.toLowerCase()) {
-                        case 'cash':
-                          return '💵';
-                        case 'bank':
-                          return '🏦';
-                        case 'credit':
-                          return '💳';
-                        case 'investment':
-                          return '📈';
-                        default:
-                          return '💰';
-                      }
-                    };
-                    return (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => setAccountId(acc.id)}
-                        className={`flex flex-col items-center justify-center rounded-2xl border p-2 pt-3 pb-2 transition-all ${
-                          isSelected
-                            ? 'scale-[1.02] border-blue-400/50 bg-blue-500/10 shadow-sm'
-                            : 'bg-card border-border hover:bg-card-hover'
-                        }`}
-                      >
-                        <span className="mb-1 text-xl">
-                          {getIcon(acc.type)}
-                        </span>
-                        <span
-                          className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}
-                        >
-                          {acc.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-            </div>
-          </div>
-
-          <div>
-            <p
-              id="transaction-tags-label"
-              className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase"
-            >
-              Tags
-            </p>
-            <div
-              role="group"
-              aria-labelledby="transaction-tags-label"
-              className="flex flex-wrap gap-2"
-            >
-              {isLoadingTags ? (
-                <div className="bg-inset h-8 w-full animate-pulse rounded-lg"></div>
-              ) : (
-                tags.map((tag) => {
-                  const isSelected = tagIds.includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setTagIds(tagIds.filter((id) => id !== tag.id));
-                        } else {
-                          setTagIds([...tagIds, tag.id]);
-                        }
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-primary text-card border-primary scale-105 shadow-sm'
-                          : 'bg-inset text-muted border-border hover:border-border-subtle'
-                      }`}
-                    >
-                      {tag.name}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <CategorySelector
+            idPrefix="transaction"
+            categories={categories}
+            type={type}
+            selectedId={categoryId}
+            onChange={setCategoryId}
+            isLoading={isLoadingCategories}
+          />
+          <AccountSelector
+            idPrefix="transaction"
+            accounts={accounts}
+            selectedId={accountId}
+            onChange={setAccountId}
+            isLoading={isLoadingAccounts}
+          />
+          <TagSelector
+            idPrefix="transaction"
+            tags={tags}
+            selectedIds={tagIds}
+            onChange={setTagIds}
+            isLoading={isLoadingTags}
+          />
 
           {/* Installments (Cuotas) Section */}
           {type === 'expense' && !initialData && (
@@ -591,9 +460,7 @@ export function CreateTransactionModal({
                     </div>
                   </div>
                   {(() => {
-                    const parsedAmt = amount
-                      ? parseCurrencyInput(amount)
-                      : 0;
+                    const parsedAmt = amount ? parseCurrencyInput(amount) : 0;
                     if (parsedAmt > 0 && installments >= 2) {
                       const baseAmt = Math.floor(parsedAmt / installments);
                       const remainder = parsedAmt - baseAmt * installments;
@@ -686,9 +553,7 @@ export function CreateTransactionModal({
                     (() => {
                       const members = selectedGroup.members;
                       const is2Members = members.length === 2;
-                      const parsedAmt = amount
-                        ? parseCurrencyInput(amount)
-                        : 0;
+                      const parsedAmt = amount ? parseCurrencyInput(amount) : 0;
                       const firstPct =
                         splitPercentages[members[0]?.user_id] || 0;
 

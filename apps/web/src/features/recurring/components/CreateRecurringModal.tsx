@@ -23,6 +23,11 @@ import type { RecurringRule } from '@/types/api';
 import { queryKeys } from '@/lib/query-keys';
 import { TransactionTypeToggle } from '@/components/forms/TransactionTypeToggle';
 import {
+  AccountSelector,
+  CategorySelector,
+  TagSelector,
+} from '@/components/forms/FinancialSelectors';
+import {
   buildRecurringPayload,
   getInitialRecurringValues,
   type RecurringPayload,
@@ -369,140 +374,28 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
             </div>
           )}
 
-          {/* Category Bento Grid */}
-          <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
-              Categoría
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {isLoadingCategories
-                ? Array(6)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset aspect-square animate-pulse rounded-2xl"
-                      />
-                    ))
-                : categories
-                    .filter((cat) => cat.type === type)
-                    .map((cat) => {
-                      const isSelected = categoryId === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategoryId(cat.id)}
-                          className={`flex aspect-square flex-col items-center justify-center rounded-2xl border p-2 pt-4 pb-3 transition-all ${
-                            isSelected
-                              ? 'scale-[1.02] border-orange-400/50 bg-orange-500/10 shadow-sm'
-                              : 'bg-card border-border hover:bg-card-hover'
-                          }`}
-                        >
-                          <span className="mb-1 text-2xl">
-                            {cat.icon || '🏷️'}
-                          </span>
-                          <span
-                            className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}
-                          >
-                            {cat.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-            </div>
-          </div>
-
-          {/* Accounts Bento Grid */}
-          <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
-              Cuenta
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {isLoadingAccounts
-                ? Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset h-16 animate-pulse rounded-2xl"
-                      />
-                    ))
-                : accounts.map((acc) => {
-                    const isSelected = accountId === acc.id;
-                    const getIcon = (t: string) => {
-                      switch (t.toLowerCase()) {
-                        case 'cash':
-                          return '💵';
-                        case 'bank':
-                          return '🏦';
-                        case 'credit':
-                          return '💳';
-                        case 'investment':
-                          return '📈';
-                        default:
-                          return '💰';
-                      }
-                    };
-                    return (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => setAccountId(acc.id)}
-                        className={`flex flex-col items-center justify-center rounded-2xl border p-2 pt-3 pb-2 transition-all ${
-                          isSelected
-                            ? 'scale-[1.02] border-blue-400/50 bg-blue-500/10 shadow-sm'
-                            : 'bg-card border-border hover:bg-card-hover'
-                        }`}
-                      >
-                        <span className="mb-1 text-xl">
-                          {getIcon(acc.type)}
-                        </span>
-                        <span
-                          className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}
-                        >
-                          {acc.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase">
-              Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {isLoadingTags ? (
-                <div className="bg-inset h-8 w-full animate-pulse rounded-lg"></div>
-              ) : (
-                tags.map((tag) => {
-                  const isSelected = tagIds.includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setTagIds(tagIds.filter((id) => id !== tag.id));
-                        } else {
-                          setTagIds([...tagIds, tag.id]);
-                        }
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-primary text-card border-primary scale-105 shadow-sm'
-                          : 'bg-inset text-muted border-border hover:border-border-subtle'
-                      }`}
-                    >
-                      {tag.name}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <CategorySelector
+            idPrefix="recurring"
+            categories={categories}
+            type={type}
+            selectedId={categoryId}
+            onChange={setCategoryId}
+            isLoading={isLoadingCategories}
+          />
+          <AccountSelector
+            idPrefix="recurring"
+            accounts={accounts}
+            selectedId={accountId}
+            onChange={setAccountId}
+            isLoading={isLoadingAccounts}
+          />
+          <TagSelector
+            idPrefix="recurring"
+            tags={tags}
+            selectedIds={tagIds}
+            onChange={setTagIds}
+            isLoading={isLoadingTags}
+          />
 
           {error && (
             <div
