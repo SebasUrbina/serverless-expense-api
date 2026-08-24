@@ -1,13 +1,6 @@
 'use client';
 
 import {
-  format,
-  parseISO,
-  isToday,
-  isYesterday,
-} from 'date-fns';
-import { es } from 'date-fns/locale';
-import {
   ArrowUpRight,
   ArrowDownRight,
   Receipt,
@@ -29,12 +22,15 @@ import { useSearchParams } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { formatCurrency } from '@/lib/utils';
-import type { Transaction } from '@/types/api';
 import { EmptyState } from '@/components/ui/EmptyState';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { useTransactions } from '@/features/transactions/hooks/useTransactions';
+import {
+  groupTransactionsByDate,
+  summarizeTransactions,
+} from '@/features/transactions/model/transaction-list';
 
 export default function TransactionsPage() {
   return (
@@ -42,27 +38,6 @@ export default function TransactionsPage() {
       <TransactionsContent />
     </Suspense>
   );
-}
-
-function formatGroupDate(dateStr: string): string {
-  const date = parseISO(dateStr);
-  if (isToday(date)) return 'Hoy';
-  if (isYesterday(date)) return 'Ayer';
-  return format(date, "EEEE, d 'de' MMMM", { locale: es });
-}
-
-function groupTransactionsByDate(
-  transactions: Transaction[],
-): { date: string; label: string; items: Transaction[] }[] {
-  const groups: Record<string, Transaction[]> = {};
-  for (const tx of transactions) {
-    const key = tx.date.slice(0, 10);
-    if (!groups[key]) groups[key] = [];
-    groups[key].push(tx);
-  }
-  return Object.entries(groups)
-    .sort(([a], [b]) => b.localeCompare(a))
-    .map(([date, items]) => ({ date, label: formatGroupDate(date), items }));
 }
 
 function TransactionsContent() {
@@ -124,6 +99,10 @@ function TransactionsContent() {
   );
   const grouped = useMemo(
     () => groupTransactionsByDate(transactions),
+    [transactions],
+  );
+  const summary = useMemo(
+    () => summarizeTransactions(transactions),
     [transactions],
   );
   const activeFilterCount = [
@@ -294,23 +273,15 @@ function TransactionsContent() {
                   Total:{' '}
                   <span className="font-bold text-violet-400">
                     $
-                    {formatCurrency(
-                      transactions.reduce((sum, tx) => sum + tx.amount, 0),
-                    )}
+                    {formatCurrency(summary.total)}
                   </span>
-                  {transactions.some((tx) => tx.my_split_amount != null) && (
+                  {summary.hasMySplit && (
                     <>
                       {' '}
                       · Tu parte:{' '}
                       <span className="font-bold text-violet-400">
                         $
-                        {formatCurrency(
-                          transactions.reduce(
-                            (sum, tx) =>
-                              sum + (tx.my_split_amount ?? tx.amount),
-                            0,
-                          ),
-                        )}
+                        {formatCurrency(summary.mySplitTotal)}
                       </span>
                     </>
                   )}
@@ -333,26 +304,18 @@ function TransactionsContent() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-xs font-semibold">
-                  {transactions.some((tx) => tx.type === 'income') && (
+                  {summary.hasIncome && (
                     <span className="flex items-center gap-1 text-emerald-500">
                       <ArrowUpRight size={14} />
                       Ingresos: $
-                      {formatCurrency(
-                        transactions
-                          .filter((tx) => tx.type === 'income')
-                          .reduce((sum, tx) => sum + tx.amount, 0),
-                      )}
+                      {formatCurrency(summary.incomeTotal)}
                     </span>
                   )}
-                  {transactions.some((tx) => tx.type === 'expense') && (
+                  {summary.hasExpense && (
                     <span className="flex items-center gap-1 text-red-500">
                       <ArrowDownRight size={14} />
                       Gastos: $
-                      {formatCurrency(
-                        transactions
-                          .filter((tx) => tx.type === 'expense')
-                          .reduce((sum, tx) => sum + tx.amount, 0),
-                      )}
+                      {formatCurrency(summary.expenseTotal)}
                     </span>
                   )}
                 </div>
