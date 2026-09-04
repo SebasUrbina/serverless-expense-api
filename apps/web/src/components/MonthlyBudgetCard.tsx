@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Pencil,
   ChevronDown,
+  Wallet,
   ArrowRight,
   Check,
   X,
@@ -95,38 +96,47 @@ export function MonthlyBudgetCard({ month }: { month: string }) {
       className="bg-card border-border min-w-0 rounded-3xl border shadow-sm"
     >
       <details className="group/budget">
-        <summary className="text-primary flex cursor-pointer list-none items-center justify-between gap-3 rounded-3xl px-5 py-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 [&::-webkit-details-marker]:hidden">
-          <div className="min-w-0">
-            <h2 className="text-secondary text-sm font-medium">
-              {past ? 'Cierre del presupuesto' : 'Presupuesto disponible'}
+        <summary className="text-primary block cursor-pointer list-none rounded-3xl px-5 py-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 [&::-webkit-details-marker]:hidden">
+          <div className="flex items-center gap-3">
+            <span className="bg-accent-soft text-accent flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+              <Wallet size={20} aria-hidden="true" />
+            </span>
+            <h2 className="text-primary text-base font-bold">
+              {past ? 'Cierre del presupuesto' : 'Tu presupuesto'}
             </h2>
-            <p
-              className={`mt-1 text-xl font-bold break-words tabular-nums ${deficit ? 'text-red-600 dark:text-red-400' : 'text-primary'}`}
-            >
-              {data.available === null
-                ? 'Definir presupuesto'
-                : money(data.available)}
-            </p>
-            {deficit && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                Presupuesto excedido
-              </p>
-            )}
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            {!past && data.daily_available !== null && (
-              <p className="text-secondary text-right text-sm">
-                <span className="text-primary block font-semibold tabular-nums">
-                  {money(data.daily_available)}
-                </span>
-                por día
-              </p>
-            )}
             <ChevronDown
               aria-hidden="true"
               size={18}
-              className="text-secondary transition-transform group-open/budget:rotate-180"
+              className="text-secondary ml-auto shrink-0 transition-transform group-open/budget:rotate-180"
             />
+          </div>
+          <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-secondary text-sm">
+                {data.available === null
+                  ? 'Organiza tu mes'
+                  : deficit
+                    ? 'Excedido en'
+                    : past
+                      ? 'Quedaron'
+                      : 'Te quedan'}
+              </p>
+              <p
+                className={`mt-1 text-2xl font-bold break-words tabular-nums ${deficit ? 'text-red-600 dark:text-red-400' : data.available === null ? 'text-primary' : 'text-emerald-700 dark:text-emerald-400'}`}
+              >
+                {data.available === null
+                  ? 'Definir presupuesto'
+                  : money(Math.abs(data.available))}
+              </p>
+            </div>
+            {!past && data.daily_available !== null && (
+              <div className="shrink-0 text-right">
+                <p className="text-primary text-base font-bold tabular-nums">
+                  {money(data.daily_available)}
+                </p>
+                <p className="text-secondary mt-1 text-sm">por día</p>
+              </div>
+            )}
           </div>
         </summary>
         <div className="border-border border-t px-5 pt-4 pb-4">
@@ -228,7 +238,6 @@ export function MonthlyBudgetCard({ month }: { month: string }) {
             <div className="min-w-0 flex-1">
               <h2 className="text-primary text-sm font-semibold">
                 Próximos pagos
-                {data.payment_count > 0 ? ` (${data.payment_count})` : ''}
               </h2>
               <p className="text-secondary mt-0.5 truncate text-sm">
                 {data.payments[0]
@@ -238,7 +247,7 @@ export function MonthlyBudgetCard({ month }: { month: string }) {
             </div>
             {data.payment_count > 0 && (
               <span className="text-primary shrink-0 text-sm font-semibold tabular-nums">
-                {money(data.committed)}
+                {money(data.payments[0]?.amount ?? 0)}
               </span>
             )}
             <ChevronDown
@@ -308,6 +317,14 @@ export function MonthlyBudgetCard({ month }: { month: string }) {
               </button>
             )}
 
+            {data.payment_count > 0 && (
+              <div className="border-border mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-4 text-sm">
+                <span className="text-secondary">Total previsto del mes</span>
+                <span className="text-primary font-bold tabular-nums">
+                  {money(data.committed)}
+                </span>
+              </div>
+            )}
             <Link
               href="/recurring"
               className="text-secondary hover:text-primary mt-3 flex min-h-11 items-center justify-between gap-2 text-sm font-semibold"
