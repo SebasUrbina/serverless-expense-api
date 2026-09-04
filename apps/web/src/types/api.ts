@@ -1,3 +1,23 @@
+export type MonthlyAvailability = {
+  month: string;
+  as_of: string;
+  period: 'past' | 'current' | 'future';
+  budget: number | null;
+  spent: number;
+  committed: number;
+  available: number | null;
+  daily_available: number | null;
+  remaining_days: number;
+  payment_count: number;
+  payments: {
+    id: string;
+    title: string;
+    amount: number;
+    date: string;
+    source: 'transaction' | 'recurring';
+  }[];
+};
+
 export type TransactionSplit = {
   user_id: string;
   percentage: number;

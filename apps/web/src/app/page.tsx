@@ -164,6 +164,7 @@ export default function Home() {
             <LoadingState minHeight="h-64" />
           ) : (
             <div className="space-y-6">
+              <MonthlyBudgetCard key={filterMonth} month={filterMonth} />
               {/* Bento Grid Layout */}
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Left Column (spans 2) */}
@@ -262,11 +263,6 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Ritmo del mes */}
-                  {filterMonth && (
-                    <MonthlyBudgetCard month={filterMonth} expense={expense} />
-                  )}
 
                   {/* Categorías: donut + lista */}
                   <div className="bg-card border-border rounded-3xl border p-6 shadow-sm">

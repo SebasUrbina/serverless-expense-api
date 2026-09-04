@@ -15,6 +15,7 @@ import { RecurringDelete } from './endpoints/recurringDelete';
 import { TransactionMonthlySummary } from './endpoints/transactionMonthlySummary';
 import { TransactionCategorySummary } from './endpoints/transactionCategorySummary';
 import { TransactionKpiSummary } from './endpoints/transactionKpiSummary';
+import { TransactionAvailability } from './endpoints/transactionAvailability';
 import { TransactionCategoryTrend } from './endpoints/transactionCategoryTrend';
 import { AppConfigFetch } from './endpoints/appConfigFetch';
 import { BudgetList } from './endpoints/budgetList';
@@ -78,6 +79,7 @@ openapi.get('/api/transactions', TransactionList);
 openapi.get('/api/transactions/summary/monthly', TransactionMonthlySummary);
 openapi.get('/api/transactions/summary/category', TransactionCategorySummary);
 openapi.get('/api/transactions/summary/kpi', TransactionKpiSummary);
+openapi.get('/api/transactions/summary/availability', TransactionAvailability);
 openapi.get(
   '/api/transactions/summary/category-trend',
   TransactionCategoryTrend,

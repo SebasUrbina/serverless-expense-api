@@ -96,6 +96,9 @@ export default function RecurringPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring', 'list'] });
+      queryClient.invalidateQueries({
+        queryKey: ['transactions', 'availability'],
+      });
     },
   });
 

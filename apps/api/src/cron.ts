@@ -1,36 +1,4 @@
-// ── next_run computation ──────────────────────────────────────────────────────
-function computeNextRun(
-  frequency: string,
-  dayOfMonth: number | null,
-  fromDate: string,
-): string {
-  const [year, month, day] = fromDate.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-
-  switch (frequency) {
-    case 'daily':
-      d.setDate(d.getDate() + 1);
-      break;
-    case 'weekly':
-      d.setDate(d.getDate() + 7);
-      break;
-    case 'monthly': {
-      // Move to the same day_of_month next month, clamped to 28
-      const targetDay = Math.min(dayOfMonth ?? day, 28);
-      d.setMonth(d.getMonth() + 1);
-      d.setDate(targetDay);
-      break;
-    }
-    case 'yearly':
-      d.setFullYear(d.getFullYear() + 1);
-      break;
-  }
-
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
+import { nextOccurrence } from './services/monthlyAvailability';
 
 // ── Cron handler — called by Cloudflare Cron Trigger ─────────────────────────
 export async function scheduled(
@@ -55,11 +23,7 @@ export async function scheduled(
   const stmts: any[] = [];
 
   for (const rule of rules as any[]) {
-    const nextRun = computeNextRun(
-      rule.frequency,
-      rule.day_of_month,
-      rule.next_run,
-    );
+    const nextRun = nextOccurrence(rule, rule.next_run);
     const tagIds = JSON.parse(rule.tag_ids || '[]') as number[];
 
     // 1. Prepare Transaction Insert
