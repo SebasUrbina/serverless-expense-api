@@ -95,6 +95,9 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring'] });
+      queryClient.invalidateQueries({
+        queryKey: ['transactions', 'availability'],
+      });
       resetAndClose();
     },
     onError: (err: Error) => {
@@ -110,6 +113,9 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recurring'] });
+      queryClient.invalidateQueries({
+        queryKey: ['transactions', 'availability'],
+      });
       resetAndClose();
     },
     onError: (err: Error) => {

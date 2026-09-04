@@ -143,6 +143,38 @@ Deployments are handled automatically via `.github/workflows/deploy.yml` on push
 
 ## Architecture
 
+### Monthly availability and upcoming payments
+
+The dashboard starts with the monthly budget available after recorded spending
+and known commitments. `GET /api/transactions/summary/availability?month=2026-09&timezone=America/Santiago`
+returns the calculation and the month's upcoming expenses. The timezone defaults
+to `America/Santiago`; the web client supplies the device timezone.
+
+- Available = general monthly budget − expenses dated through today − future
+  expenses and ungenerated recurring occurrences in that month.
+- Daily available divides the nonnegative remainder by the days left, including
+  today. Missing budgets return `null`; a zero budget remains a valid budget.
+- Future installments already stored as transactions are included once. A recurring
+  occurrence with an existing transaction for the same rule and date is not added again.
+- Only active expense rules are projected, respecting frequency and end date.
+  Ungenerated occurrences earlier in the selected current month stay visible as
+  pending registration. Earlier months' arrears are outside this monthly view.
+- Past months show recorded spending only, without reconstructing old rules.
+  Future months reserve commitments across the full month.
+- This is budget availability, not bank balance or payment confirmation. Dates
+  determine recorded versus upcoming spending. Shared expenses use the full amount
+  recorded by the payer, consistent with the existing monthly summary. Future
+  income and expected reimbursements do not increase availability. Manually
+  recorded expenses without a recurring-rule link cannot be deduplicated against
+  that rule automatically.
+
+No database migration or new runtime binding is required. Calculation and API
+isolation tests run with Node 22.13+ using:
+
+```bash
+pnpm --filter api exec node --import tsx --test tests/monthlyAvailability.test.ts
+```
+
 This project implements a **Dual Authentication** architecture that supports both Long-lived static API Keys (for headless environments like Apple Shortcuts) and short-lived JWTs (for traditional App logins).
 
 ```mermaid

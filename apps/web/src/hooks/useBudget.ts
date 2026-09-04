@@ -30,6 +30,9 @@ export function useBudget(month: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['budgets', month] });
+      queryClient.invalidateQueries({
+        queryKey: ['transactions', 'availability'],
+      });
     },
   });
 
