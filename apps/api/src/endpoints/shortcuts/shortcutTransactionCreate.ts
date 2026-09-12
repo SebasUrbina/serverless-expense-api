@@ -1,6 +1,7 @@
 import { Bool, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext, Transaction } from '../../types';
+import { parseAmount } from '../../utils/parseAmount';
 
 export class ShortcutTransactionCreate extends OpenAPIRoute {
   schema = {
@@ -15,14 +16,10 @@ export class ShortcutTransactionCreate extends OpenAPIRoute {
           'application/json': {
             schema: z.object({
               title: z.string().trim().min(1, 'Title is required'),
-              amount: z.preprocess((val) => {
-                if (typeof val === 'number') return val;
-                const s = String(val)
-                  .replace(/[$\s]/g, '')
-                  .replace(/\./g, '')
-                  .replace(',', '.');
-                return Number(s);
-              }, z.number().positive('Amount must be positive')),
+              amount: z.preprocess(
+                parseAmount,
+                z.number().positive('Amount must be positive'),
+              ),
               type: z.enum(['expense', 'income']).default('expense'),
               category_name: z.string().trim().optional(),
               account_name: z.string().trim().optional(),

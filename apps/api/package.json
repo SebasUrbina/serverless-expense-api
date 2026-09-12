@@ -6,6 +6,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "start": "wrangler dev",
+    "test": "node --import tsx --test src/**/*.test.ts",
     "cf-typegen": "wrangler types",
     "db:migrate:create": "wrangler d1 migrations create DB",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
