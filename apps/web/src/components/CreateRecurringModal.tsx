@@ -74,12 +74,12 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   );
   const [nextRun, setNextRun] = useState(
     initialData?.next_run
-      ? format(new Date(initialData.next_run), 'yyyy-MM-dd')
+      ? initialData.next_run
       : format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
   );
   const [endDate, setEndDate] = useState(
     initialData?.end_date
-      ? format(new Date(initialData.end_date), 'yyyy-MM-dd')
+      ? initialData.end_date
       : '',
   );
 
