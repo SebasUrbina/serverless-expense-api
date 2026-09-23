@@ -128,9 +128,8 @@ export function CreateTransactionModal({
   );
   const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
   const [date, setDate] = useState(
-    initialData
-      ? format(new Date(initialData.date), 'yyyy-MM-dd')
-      : format(new Date(), 'yyyy-MM-dd'),
+    // API dates are calendar dates (YYYY-MM-DD), not UTC timestamps.
+    initialData?.date ?? format(new Date(), 'yyyy-MM-dd'),
   );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
