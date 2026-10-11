@@ -1,4 +1,8 @@
 'use client';
+import {
+  TransactionTitle,
+  InstallmentBadge,
+} from '@/components/TransactionTitle';
 
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { format, parseISO, isValid, subMonths } from 'date-fns';
@@ -553,13 +557,14 @@ export default function Home() {
                                   ))}
                               </div>
                               <div className="min-w-0">
-                                <p className="text-primary truncate text-sm font-bold">
-                                  {tx.title}
-                                </p>
-                                <p className="text-muted mt-0.5 text-xs font-medium">
-                                  {tx.category} ·{' '}
-                                  {format(parseISO(tx.date), 'd MMM')}
-                                </p>
+                                <TransactionTitle transaction={tx} />
+                                <div className="mt-1.5 flex items-center gap-1.5 overflow-x-auto">
+                                  <InstallmentBadge transaction={tx} />
+                                  <span className="text-muted shrink-0 text-xs font-medium whitespace-nowrap">
+                                    {tx.category} ·{' '}
+                                    {format(parseISO(tx.date), 'd MMM')}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <p

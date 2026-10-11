@@ -22,6 +22,7 @@ import { BaseModal } from './ui/BaseModal';
 import { SubmitButton } from './ui/SubmitButton';
 import { DeleteButton } from './ui/DeleteButton';
 import type { Transaction } from '@/types/api';
+import { getInstallmentDetails } from '@/lib/installments';
 
 type Props = {
   isOpen: boolean;
@@ -427,6 +428,13 @@ export function CreateTransactionModal({
               className="bg-inset text-primary placeholder:text-muted focus:ring-border w-full rounded-full px-5 py-3.5 text-base font-medium transition-colors duration-200 focus:ring-1 focus:outline-none"
               placeholder="Algún detalle para no olvidar?..."
             />
+            {initialData && getInstallmentDetails(initialData) && (
+              <p className="text-accent mt-2 px-2 text-xs font-medium">
+                Cuota {initialData.installment_number}/
+                {initialData.installment_total}
+                {' · '}Editas solo este movimiento.
+              </p>
+            )}
           </div>
 
           {/* Category Bento Grid */}

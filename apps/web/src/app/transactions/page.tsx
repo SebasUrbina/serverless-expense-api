@@ -34,6 +34,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
+import {
+  TransactionTitle,
+  InstallmentBadge,
+} from '@/components/TransactionTitle';
 
 export default function TransactionsPage() {
   return (
@@ -438,17 +442,14 @@ function TransactionsContent() {
 
                           {/* Content */}
                           <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <p className="text-primary truncate text-sm leading-tight font-medium">
-                                {tx.title}
-                              </p>
+                            <TransactionTitle transaction={tx} />
+                            <div className="mt-1.5 flex items-center gap-1.5 overflow-x-auto [&>span]:shrink-0 [&>span]:whitespace-nowrap">
+                              <InstallmentBadge transaction={tx} />
                               {!!tx.is_shared && (
-                                <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-md border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold text-violet-400">
+                                <span className="inline-flex items-center gap-1 rounded-md border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold text-violet-400">
                                   👥 {tx.group_name || 'Compartido'}
                                 </span>
                               )}
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               {tx.category && (
                                 <span className="bg-inset text-secondary border-border inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium">
                                   {tx.category}

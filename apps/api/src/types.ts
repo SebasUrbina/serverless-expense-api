@@ -28,7 +28,15 @@ export const Transaction = z.object({
   }),
   is_shared: Num({ required: false, description: '1 = shared, 0 = personal' }),
   group_id: Num({ required: false, description: 'Shared group ID' }),
-  installments: Num({ required: false, description: 'Number of installments' }),
+  installments: z.number().int().min(1).max(36).optional().openapi({
+    description: 'Number of monthly installments to create (1–36)',
+  }),
+  installment_number: z.number().int().min(1).nullable().optional().openapi({
+    description: 'Installment represented by this transaction (read-only)',
+  }),
+  installment_total: z.number().int().min(2).nullable().optional().openapi({
+    description: 'Total installments in the purchase (read-only)',
+  }),
   splits: z
     .array(
       z.object({
