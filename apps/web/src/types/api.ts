@@ -39,6 +39,8 @@ export type Transaction = {
   is_shared?: number;
   group_id?: number;
   installments?: number;
+  installment_number?: number | null;
+  installment_total?: number | null;
   splits?: TransactionSplit[];
   created_at?: string;
   category: string;

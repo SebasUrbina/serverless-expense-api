@@ -50,6 +50,13 @@ CREATE TABLE IF NOT EXISTS transactions (
     recurring_rule_id INTEGER, -- FK to recurring_rules (nullable)
     is_shared INTEGER DEFAULT 0,
     group_id INTEGER,
+    installment_number INTEGER CHECK (installment_number IS NULL OR
+      (typeof(installment_number) = 'integer' AND installment_number >= 1)),
+    installment_total INTEGER CHECK (
+      (installment_number IS NULL AND installment_total IS NULL) OR
+      (installment_number IS NOT NULL AND installment_total IS NOT NULL AND
+       typeof(installment_total) = 'integer' AND installment_total >= 2 AND
+       installment_number <= installment_total)),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,

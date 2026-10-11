@@ -32,7 +32,12 @@ export class TransactionCreate extends OpenAPIRoute {
       body: {
         content: {
           'application/json': {
-            schema: Transaction.omit({ id: true, created_at: true }),
+            schema: Transaction.omit({
+              id: true,
+              created_at: true,
+              installment_number: true,
+              installment_total: true,
+            }),
           },
         },
       },
@@ -60,6 +65,16 @@ export class TransactionCreate extends OpenAPIRoute {
     const data = await this.getValidatedData<typeof this.schema>();
     const t = data.body;
     const userId = c.get('userId');
+
+    if ((t.installments ?? 1) > 1 && t.type !== 'expense') {
+      return c.json(
+        {
+          success: false,
+          error: 'Installments are only supported for expenses',
+        },
+        400,
+      );
+    }
 
     const isShared = t.is_shared ? 1 : 0;
     const groupId = t.group_id || null;
@@ -101,15 +116,14 @@ export class TransactionCreate extends OpenAPIRoute {
       for (let idx = 0; idx < installmentsCount; idx++) {
         const instAmt = installmentAmounts[idx]!;
         const instDate = addMonths(t.date, idx);
-        const instTitle = `${t.title} (Cuota ${idx + 1}/${installmentsCount})`;
 
         // 1. Insert Transaction
         const txResult = (await c.env.DB.prepare(
-          `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+          `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id, installment_number, installment_total)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
         )
           .bind(
-            instTitle,
+            t.title,
             instAmt,
             t.category_id,
             t.type,
@@ -118,6 +132,8 @@ export class TransactionCreate extends OpenAPIRoute {
             instDate,
             isShared,
             groupId,
+            idx + 1,
+            installmentsCount,
           )
           .first()) as any;
 

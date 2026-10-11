@@ -14,7 +14,13 @@ export class TransactionUpdate extends OpenAPIRoute {
       body: {
         content: {
           'application/json': {
-            schema: Transaction.omit({ id: true, created_at: true }).partial(),
+            schema: Transaction.omit({
+              id: true,
+              created_at: true,
+              installments: true,
+              installment_number: true,
+              installment_total: true,
+            }).partial(),
           },
         },
       },
@@ -127,7 +133,6 @@ export class TransactionUpdate extends OpenAPIRoute {
     }
 
     // Handle splits update
-    let finalSplits: any[] = [];
     if (updates.splits !== undefined) {
       // Clear existing splits and re-insert
       const splitStmts: any[] = [
@@ -159,7 +164,7 @@ export class TransactionUpdate extends OpenAPIRoute {
     )
       .bind(newGroupId, id)
       .all();
-    finalSplits = splitsResult.results;
+    const finalSplits = splitsResult.results;
 
     const finalTags =
       updates.tag_ids !== undefined ? updates.tag_ids : currentTagIds;
