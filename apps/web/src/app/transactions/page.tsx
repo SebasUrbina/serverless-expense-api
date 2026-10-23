@@ -1,15 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import {
-  format,
-  parseISO,
-  endOfMonth,
-  isValid,
-  isToday,
-  isYesterday,
-} from 'date-fns';
+import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   ArrowUpRight,
@@ -21,15 +14,17 @@ import {
   X,
   Users,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { MonthSelector } from '@/components/MonthSelector';
 import { useTags, useCategories, useGroups } from '@/hooks/usePreferences';
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CustomSelect } from '@/components/CustomSelect';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types/api';
+import { transactionListOptions } from '@/lib/transactionList';
 import { EmptyState } from '@/components/ui/EmptyState';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -112,44 +107,56 @@ function TransactionsContent() {
   const { data: groupsData } = useGroups();
   const groupsList = groupsData?.groups || [];
 
-  const { data: response, isLoading } = useQuery<{
-    transactions: Transaction[];
-  }>({
-    queryKey: [
-      'transactions',
-      'list',
-      debouncedSearch,
-      filterMonth,
-      filterCategory,
-      filterTag,
-      filterShared,
-      filterGroupId,
-    ],
-    queryFn: async () => {
-      let url = debouncedSearch
-        ? `/transactions?limit=50&search=${encodeURIComponent(debouncedSearch)}`
-        : '/transactions?limit=50';
-      if (filterCategory !== '') url += `&category_id=${filterCategory}`;
-      if (filterTag !== '') url += `&tag_id=${filterTag}`;
-      if (filterShared) url += `&is_shared=1`;
-      if (filterGroupId !== '') url += `&group_id=${filterGroupId}`;
-      if (filterMonth) {
-        const start = `${filterMonth}-01`;
-        const dateObj = parseISO(start);
-        if (isValid(dateObj)) {
-          const end = format(endOfMonth(dateObj), 'yyyy-MM-dd');
-          url += `&startDate=${start}&endDate=${end}`;
-        }
-      }
-      const res = await api.get(url);
-      return res.data;
-    },
-  });
-
-  const transactions = useMemo(
-    () => response?.transactions ?? [],
-    [response?.transactions],
+  const listRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const {
+    data: response,
+    isLoading,
+    isError,
+    isFetching,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    hasNextPage,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteQuery(
+    transactionListOptions(
+      {
+        search: debouncedSearch,
+        month: filterMonth,
+        category: filterCategory,
+        tag: filterTag,
+        shared: filterShared,
+        group: filterGroupId,
+      },
+      async (url, signal) => (await api.get(url, { signal })).data,
+    ),
   );
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasNextPage || isFetching || isError) return;
+    if (typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) void fetchNextPage({ cancelRefetch: false });
+      },
+      { root: listRef.current, rootMargin: '0px 0px 250px 0px' },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetching, isError, fetchNextPage]);
+
+  const transactions = useMemo(() => {
+    const seen = new Set<number>();
+    return (response?.pages.flatMap((page) => page.transactions) ?? []).filter(
+      (tx) => {
+        if (seen.has(tx.id)) return false;
+        seen.add(tx.id);
+        return true;
+      },
+    );
+  }, [response?.pages]);
   const grouped = useMemo(
     () => groupTransactionsByDate(transactions),
     [transactions],
@@ -306,7 +313,7 @@ function TransactionsContent() {
       </PageHeader>
 
       {/* ── Transaction List ── */}
-      <div className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
+      <div ref={listRef} className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
         <div className="mx-auto max-w-7xl">
           {/* Shared transactions summary banner */}
           {filterShared && !isLoading && transactions.length > 0 && (
@@ -317,9 +324,10 @@ function TransactionsContent() {
                   {transactions.length} gasto
                   {transactions.length !== 1 ? 's' : ''} compartido
                   {transactions.length !== 1 ? 's' : ''}
+                  {hasNextPage ? ' cargados' : ''}
                 </span>
                 <span className="text-muted ml-2 text-xs">
-                  Total:{' '}
+                  {hasNextPage ? 'Subtotal cargado:' : 'Total:'}{' '}
                   <span className="font-bold text-violet-400">
                     $
                     {formatCurrency(
@@ -356,7 +364,10 @@ function TransactionsContent() {
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
                   <span className="text-primary text-xs font-bold">
-                    Resultados filtrados: {transactions.length}{' '}
+                    {hasNextPage
+                      ? 'Resultados cargados:'
+                      : 'Resultados filtrados:'}{' '}
+                    {transactions.length}{' '}
                     {transactions.length === 1 ? 'movimiento' : 'movimientos'}
                   </span>
                 </div>
@@ -364,7 +375,7 @@ function TransactionsContent() {
                   {transactions.some((tx) => tx.type === 'income') && (
                     <span className="flex items-center gap-1 text-emerald-500">
                       <ArrowUpRight size={14} />
-                      Ingresos: $
+                      {hasNextPage ? 'Ingresos cargados:' : 'Ingresos:'} $
                       {formatCurrency(
                         transactions
                           .filter((tx) => tx.type === 'income')
@@ -375,7 +386,7 @@ function TransactionsContent() {
                   {transactions.some((tx) => tx.type === 'expense') && (
                     <span className="flex items-center gap-1 text-red-500">
                       <ArrowDownRight size={14} />
-                      Gastos: $
+                      {hasNextPage ? 'Gastos cargados:' : 'Gastos:'} $
                       {formatCurrency(
                         transactions
                           .filter((tx) => tx.type === 'expense')
@@ -388,6 +399,19 @@ function TransactionsContent() {
             )}
           {isLoading ? (
             <LoadingState minHeight="h-48" />
+          ) : isError && transactions.length === 0 ? (
+            <div
+              role="alert"
+              className="text-secondary py-8 text-center text-sm"
+            >
+              <p>No pudimos cargar tus movimientos.</p>
+              <button
+                onClick={() => void refetch()}
+                className="text-accent mt-3 rounded-xl px-4 py-2 font-semibold"
+              >
+                Reintentar
+              </button>
+            </div>
           ) : grouped.length > 0 ? (
             <div className="space-y-6">
               {grouped.map(({ date, label, items }) => (
@@ -533,6 +557,51 @@ function TransactionsContent() {
               }
               className="mt-6"
             />
+          )}
+          {transactions.length > 0 && (
+            <div
+              ref={loadMoreRef}
+              className="text-muted flex min-h-20 flex-col items-center justify-center gap-2 py-4 text-center text-xs"
+              aria-live="polite"
+            >
+              {isFetchingNextPage ? (
+                <span role="status" className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin" /> Cargando más
+                  movimientos…
+                </span>
+              ) : isError ? (
+                <>
+                  <p role="alert">
+                    No pudimos cargar{' '}
+                    {isFetchNextPageError
+                      ? 'más movimientos'
+                      : 'los movimientos actualizados'}
+                    .
+                  </p>
+                  <button
+                    onClick={() =>
+                      void (isFetchNextPageError
+                        ? fetchNextPage({ cancelRefetch: false })
+                        : refetch())
+                    }
+                    disabled={isFetching}
+                    className="text-accent rounded-xl px-4 py-2 font-semibold disabled:opacity-50"
+                  >
+                    Reintentar
+                  </button>
+                </>
+              ) : hasNextPage ? (
+                <button
+                  onClick={() => void fetchNextPage({ cancelRefetch: false })}
+                  disabled={isFetching}
+                  className="text-accent rounded-xl px-4 py-2 font-semibold disabled:opacity-50"
+                >
+                  Cargar más movimientos
+                </button>
+              ) : (
+                <p>Todos los movimientos cargados · {transactions.length}</p>
+              )}
+            </div>
           )}
         </div>
       </div>

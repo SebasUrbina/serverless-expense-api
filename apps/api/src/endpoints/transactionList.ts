@@ -143,7 +143,7 @@ export class TransactionList extends OpenAPIRoute {
       binds.push(group_id);
     }
 
-    query += ` ORDER BY t.date DESC, t.created_at DESC`;
+    query += ` ORDER BY t.date DESC, t.created_at DESC, t.id DESC`;
 
     // Pagination logic
     const safePage = Math.max(1, page || 1);
