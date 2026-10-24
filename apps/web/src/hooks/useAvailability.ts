@@ -12,6 +12,7 @@ export function useAvailability(month: string) {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [today, setToday] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   useEffect(() => {
+    // Local calendar check only: the query key changes once per day, not per tick.
     const timer = setInterval(
       () => setToday(format(new Date(), 'yyyy-MM-dd')),
       60_000,
@@ -35,6 +36,12 @@ export function useAvailability(month: string) {
       }>('/transactions/summary/availability', { params: { month, timezone } });
       return response.data.availability;
     },
-    refetchInterval: 60_000,
+    // Mutations invalidate this query immediately. Otherwise reuse recent data
+    // when navigating or focusing the app instead of polling D1 every minute.
+    staleTime: 5 * 60_000,
+    refetchInterval: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
