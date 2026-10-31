@@ -25,6 +25,8 @@ export function transactionListOptions(
     // Separate from the persisted single-page cache used by older clients.
     queryKey: ['transactions', 'infinite-list', filters],
     initialPageParam: 1,
+    // A refetch reloads every loaded page, so don't trigger one on each app switch.
+    refetchOnWindowFocus: false,
     queryFn: ({ pageParam, signal }) => {
       const params = new URLSearchParams({
         limit: '50',

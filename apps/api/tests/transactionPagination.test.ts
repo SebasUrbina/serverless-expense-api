@@ -105,3 +105,83 @@ test('pagination returns every matching transaction exactly once with stable ord
     db.close();
   }
 });
+
+test('pagination merges owned and split-with-me transactions once each, in order', async () => {
+  const db = database();
+  const api = request(db);
+  try {
+    const insert =
+      db.prepare(`INSERT INTO transactions(title,amount,category_id,type,account_id,user_id,date,created_at,is_shared,group_id)
+      VALUES(?,?,1,'expense',1,?,?,'2026-01-01 10:00:00',?,?)`);
+    const split = db.prepare(
+      'INSERT INTO transaction_splits(transaction_id,user_id,amount,percentage) VALUES(?,?,?,50)',
+    );
+    const expected: { id: number; date: string }[] = [];
+    for (let day = 1; day <= 30; day++) {
+      const date = `2026-01-${String(day).padStart(2, '0')}`;
+      const own = insert.run('Mío', 100, 'local_user', date, 0, null);
+      expected.push({ id: Number(own.lastInsertRowid), date });
+      const mine = insert.run('Mío compartido', 200, 'local_user', date, 1, 1);
+      split.run(mine.lastInsertRowid, 'local_user', 100);
+      split.run(mine.lastInsertRowid, 'bob', 100);
+      expected.push({ id: Number(mine.lastInsertRowid), date });
+      const bobs = insert.run('De Bob', 300, 'bob', date, 1, 1);
+      split.run(bobs.lastInsertRowid, 'local_user', 150);
+      split.run(bobs.lastInsertRowid, 'bob', 150);
+      expected.push({ id: Number(bobs.lastInsertRowid), date });
+      insert.run('Solo Bob', 999, 'bob', date, 0, null);
+    }
+    expected.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+    const ids: number[] = [];
+    for (let page = 1; page <= 4; page++) {
+      const response = await api(
+        `/transactions?limit=25&endDate=2026-01-31&page=${page}`,
+      );
+      assert.equal(response.status, 200);
+      ids.push(...response.body.transactions.map((tx: any) => tx.id));
+      assert.equal(response.body.hasMore, page < 4);
+    }
+    assert.deepEqual(
+      ids,
+      expected.map((tx) => tx.id),
+    );
+
+    const shared = await api(
+      '/transactions?limit=100&endDate=2026-01-31&is_shared=1',
+    );
+    assert.equal(shared.body.transactions.length, 60);
+    const bobRow = shared.body.transactions.find(
+      (tx: any) => tx.title === 'De Bob',
+    );
+    assert.equal(bobRow.is_owner, false);
+    assert.equal(bobRow.my_split_amount, 150);
+
+    const balances = await api('/groups/balances?month=2026-01');
+    assert.equal(balances.status, 200);
+    const [group] = balances.body.balances;
+    assert.equal(group.transaction_count, 60);
+    const byUser = Object.fromEntries(
+      group.members.map((m: any) => [m.user_id, m]),
+    );
+    assert.deepEqual(
+      [byUser.local_user.total_paid, byUser.local_user.total_share],
+      [6000, 7500],
+    );
+    assert.deepEqual(
+      [byUser.bob.total_paid, byUser.bob.total_share],
+      [9000, 7500],
+    );
+    assert.equal(byUser.local_user.net, -1500);
+
+    const kpi = await api('/transactions/summary/kpi?month=2026-01');
+    assert.deepEqual(kpi.body.kpis, {
+      largest_expense: 200,
+      largest_expense_title: 'Mío compartido',
+      largest_income: 0,
+      transaction_count: 60,
+    });
+  } finally {
+    db.close();
+  }
+});

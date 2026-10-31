@@ -107,7 +107,6 @@ function TransactionsContent() {
   const { data: groupsData } = useGroups();
   const groupsList = groupsData?.groups || [];
 
-  const listRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const {
     data: response,
@@ -141,7 +140,8 @@ function TransactionsContent() {
       ([entry]) => {
         if (entry?.isIntersecting) void fetchNextPage({ cancelRefetch: false });
       },
-      { root: listRef.current, rootMargin: '0px 0px 250px 0px' },
+      // The page scrolls inside the layout's <main>, not this list, so observe the viewport.
+      { rootMargin: '0px 0px 250px 0px' },
     );
     observer.observe(target);
     return () => observer.disconnect();
@@ -313,7 +313,7 @@ function TransactionsContent() {
       </PageHeader>
 
       {/* ── Transaction List ── */}
-      <div ref={listRef} className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
+      <div className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
         <div className="mx-auto max-w-7xl">
           {/* Shared transactions summary banner */}
           {filterShared && !isLoading && transactions.length > 0 && (

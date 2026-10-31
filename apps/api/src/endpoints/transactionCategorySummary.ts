@@ -58,9 +58,7 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 
     let query = `
 			SELECT
-				c.name as category,
 				t.category_id as category_id,
-				c.icon as category_icon,
 				t.type as type,
 		`;
 
@@ -78,7 +76,6 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 
     query += `
 			FROM transactions t
-			LEFT JOIN categories c ON t.category_id = c.id
 			WHERE t.user_id = ?
 		`;
 
@@ -101,7 +98,13 @@ export class TransactionCategorySummary extends OpenAPIRoute {
       binds.push(type);
     }
 
-    query += ` GROUP BY t.category_id, t.type HAVING amount > 0 OR previous_amount > 0 ORDER BY amount DESC`;
+    query += ` GROUP BY t.category_id, t.type HAVING amount > 0 OR previous_amount > 0`;
+    query = `
+			SELECT c.name as category, c.icon as category_icon, s.*
+			FROM (${query}) s
+			LEFT JOIN categories c ON c.id = s.category_id
+			ORDER BY s.amount DESC
+		`;
 
     const result = await c.env.DB.prepare(query)
       .bind(...binds)

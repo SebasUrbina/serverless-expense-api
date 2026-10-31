@@ -96,7 +96,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minuto por defecto para transacciones
+            // Data only changes through this app's own mutations (which invalidate) and the daily cron.
+            staleTime: 5 * 60 * 1000,
             gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
           },
         },
