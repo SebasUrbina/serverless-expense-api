@@ -91,9 +91,71 @@ export class TransactionList extends OpenAPIRoute {
     } = data.query;
     const userId = c.get('userId');
 
-    let query = `
-			SELECT 
-				t.*, 
+    const filters: string[] = [];
+    const filterBinds: unknown[] = [];
+
+    if (search) {
+      filters.push(`LOWER(t.title) LIKE LOWER(?)`);
+      filterBinds.push(`%${search}%`);
+    }
+    if (category_id) {
+      filters.push(`t.category_id = ?`);
+      filterBinds.push(category_id);
+    }
+    if (tag_id) {
+      filters.push(
+        `EXISTS (SELECT 1 FROM transaction_tags tt WHERE tt.transaction_id = t.id AND tt.tag_id = ?)`,
+      );
+      filterBinds.push(tag_id);
+    }
+    if (type) {
+      filters.push(`t.type = ?`);
+      filterBinds.push(type);
+    }
+    if (startDate) {
+      filters.push(`t.date >= ?`);
+      filterBinds.push(startDate);
+    }
+    filters.push(`t.date <= ?`);
+    filterBinds.push(endDate || todayLocal());
+    if (is_shared) {
+      filters.push(`t.is_shared = 1`);
+    }
+    if (group_id) {
+      filters.push(`t.group_id = ?`);
+      filterBinds.push(group_id);
+    }
+    const where = filters.map((f) => ` AND ${f}`).join('');
+
+    const safePage = Math.max(1, page || 1);
+    const safeLimit = Math.max(1, Math.min(100, limit || 20)); // Max 100 items per page
+    const offset = (safePage - 1) * safeLimit;
+    // Fetch 1 extra item to easily check if there are more pages
+    const window = offset + safeLimit + 1;
+    const order = `t.date DESC, t.created_at DESC, t.id DESC`;
+
+    // D1 bills every row scanned. Owned and split-with-me rows are paged separately
+    // (each capped at offset + limit) so the scan walks the index and stops early,
+    // and the joins only run for the rows of the requested page.
+    const query = `
+			WITH page AS (
+				SELECT id, date, created_at FROM (
+					SELECT t.id, t.date, t.created_at FROM transactions t
+					WHERE t.user_id = ?${where}
+					ORDER BY ${order} LIMIT ?
+				)
+				UNION ALL
+				SELECT id, date, created_at FROM (
+					SELECT t.id, t.date, t.created_at FROM transaction_splits s
+					JOIN transactions t ON t.id = s.transaction_id
+					WHERE s.user_id = ? AND t.user_id != s.user_id${where}
+					ORDER BY ${order} LIMIT ?
+				)
+				ORDER BY date DESC, created_at DESC, id DESC
+				LIMIT ? OFFSET ?
+			)
+			SELECT
+				t.*,
 				c.name as category,
 				c.icon as category_icon,
 				a.name as account,
@@ -101,64 +163,25 @@ export class TransactionList extends OpenAPIRoute {
 				ts_me.amount as my_split_amount,
 				ts_me.percentage as my_split_percentage,
 				sg.name as group_name
-			FROM transactions t
+			FROM page
+			JOIN transactions t ON t.id = page.id
 			LEFT JOIN categories c ON t.category_id = c.id
 			LEFT JOIN accounts a ON t.account_id = a.id
 			LEFT JOIN transaction_splits ts_me ON ts_me.transaction_id = t.id AND ts_me.user_id = ?
 			LEFT JOIN shared_groups sg ON t.group_id = sg.id
-			WHERE t.id IN (
-				SELECT id FROM transactions WHERE user_id = ?
-				UNION
-				SELECT transaction_id FROM transaction_splits WHERE user_id = ?
-			)
+			ORDER BY ${order}
 		`;
-    const binds: any[] = [userId, userId, userId];
-
-    if (search) {
-      query += ` AND LOWER(t.title) LIKE LOWER(?)`;
-      binds.push(`%${search}%`);
-    }
-    if (category_id) {
-      query += ` AND t.category_id = ?`;
-      binds.push(category_id);
-    }
-    if (tag_id) {
-      query += ` AND EXISTS (SELECT 1 FROM transaction_tags tt WHERE tt.transaction_id = t.id AND tt.tag_id = ?)`;
-      binds.push(tag_id);
-    }
-    if (type) {
-      query += ` AND t.type = ?`;
-      binds.push(type);
-    }
-    if (startDate) {
-      query += ` AND t.date >= ?`;
-      binds.push(startDate);
-    }
-    if (endDate) {
-      query += ` AND t.date <= ?`;
-      binds.push(endDate);
-    } else {
-      query += ` AND t.date <= ?`;
-      binds.push(todayLocal());
-    }
-    if (is_shared) {
-      query += ` AND t.is_shared = 1`;
-    }
-    if (group_id) {
-      query += ` AND t.group_id = ?`;
-      binds.push(group_id);
-    }
-
-    query += ` ORDER BY t.date DESC, t.created_at DESC, t.id DESC`;
-
-    // Pagination logic
-    const safePage = Math.max(1, page || 1);
-    const safeLimit = Math.max(1, Math.min(100, limit || 20)); // Max 100 items per page
-    const offset = (safePage - 1) * safeLimit;
-
-    // Fetch 1 extra item to easily check if there are more pages
-    query += ` LIMIT ? OFFSET ?`;
-    binds.push(safeLimit + 1, offset);
+    const binds = [
+      userId,
+      ...filterBinds,
+      window,
+      userId,
+      ...filterBinds,
+      window,
+      safeLimit + 1,
+      offset,
+      userId,
+    ];
 
     const result = await c.env.DB.prepare(query)
       .bind(...binds)

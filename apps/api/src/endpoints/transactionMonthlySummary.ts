@@ -47,20 +47,24 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
     // strftime('%Y-%m', date) gives us the month string
     const safeMonths = Math.max(1, Math.min(12, months || 6));
 
+    const today = todayLocal();
+    const start = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
+    start.setUTCMonth(start.getUTCMonth() - (safeMonths - 1));
+
     const query = `
 			SELECT 
 				strftime('%Y-%m', date) as month,
 				SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
 				SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income
 			FROM transactions
-			WHERE user_id = ? AND date <= ?
+			WHERE user_id = ? AND date >= ? AND date <= ?
 			GROUP BY month
 			ORDER BY month DESC
 			LIMIT ?
 		`;
 
     const result = await c.env.DB.prepare(query)
-      .bind(userId, todayLocal(), safeMonths)
+      .bind(userId, start.toISOString().slice(0, 10), today, safeMonths)
       .all();
 
     // Map the results and return them in chronological order

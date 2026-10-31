@@ -53,15 +53,25 @@ export class TransactionKpiSummary extends OpenAPIRoute {
     }
 
     const query = `
-			SELECT 
-                (SELECT amount FROM transactions ${baseFilter} AND type = 'expense' ORDER BY amount DESC LIMIT 1) as largest_expense,
-                (SELECT title FROM transactions ${baseFilter} AND type = 'expense' ORDER BY amount DESC LIMIT 1) as largest_expense_title,
-                (SELECT amount FROM transactions ${baseFilter} AND type = 'income' ORDER BY amount DESC LIMIT 1) as largest_income,
-                (SELECT count(*) FROM transactions ${baseFilter}) as transaction_count
+			SELECT
+				totals.largest_income,
+				totals.transaction_count,
+				top_expense.amount as largest_expense,
+				top_expense.title as largest_expense_title
+			FROM (
+				SELECT
+					MAX(CASE WHEN type = 'income' THEN amount END) as largest_income,
+					COUNT(*) as transaction_count
+				FROM transactions ${baseFilter}
+			) totals
+			LEFT JOIN (
+				SELECT amount, title FROM transactions ${baseFilter} AND type = 'expense'
+				ORDER BY amount DESC LIMIT 1
+			) top_expense ON 1 = 1
 		`;
 
     const result = (await c.env.DB.prepare(query)
-      .bind(...binds, ...binds, ...binds, ...binds)
+      .bind(...binds, ...binds)
       .first()) as any;
 
     return {

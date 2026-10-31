@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seva-static-v1';
+const CACHE_NAME = 'seva-static-v2';
 const OFFLINE_URL = '/offline';
 const APP_SHELL = [
   '/',
@@ -77,7 +77,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(handleStaticRequest(request));
+  // Build assets are content-hashed and safe to serve from cache. Everything else
+  // (RSC payloads for client navigations, manifest) must match the deployed build.
+  if (url.pathname.startsWith('/_next/static/') || /\.(png|ico|svg|woff2?)$/.test(url.pathname)) {
+    event.respondWith(handleStaticRequest(request));
+    return;
+  }
+
+  event.respondWith(handleNavigationRequest(request));
 });
 
 async function handleNavigationRequest(request) {

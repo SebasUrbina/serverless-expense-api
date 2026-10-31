@@ -59,16 +59,18 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 
     const { results } = await c.env.DB.prepare(
       `SELECT
-				t.category_id as category_id,
+				s.category_id as category_id,
 				c.name as category,
 				c.icon as category_icon,
-				strftime('%Y-%m', t.date) as month,
-				SUM(t.amount) as amount
-			 FROM transactions t
-			 LEFT JOIN categories c ON c.id = t.category_id
-			 WHERE t.user_id = ? AND t.type = 'expense'
-			   AND t.date >= ? AND t.date <= ?
-			 GROUP BY t.category_id, strftime('%Y-%m', t.date)
+				s.month as month,
+				s.amount as amount
+			 FROM (
+				SELECT category_id, strftime('%Y-%m', date) as month, SUM(amount) as amount
+				FROM transactions
+				WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ?
+				GROUP BY category_id, month
+			 ) s
+			 LEFT JOIN categories c ON c.id = s.category_id
 			 ORDER BY month ASC, amount DESC`,
     )
       .bind(userId, startMonth, today)

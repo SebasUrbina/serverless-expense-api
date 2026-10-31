@@ -53,75 +53,57 @@ export class GroupBalances extends OpenAPIRoute {
 
     const balances = [];
 
-    for (const group of groupsResult.results as any[]) {
-      // Get members
-      const membersResult = await c.env.DB.prepare(
-        `SELECT user_id, nickname FROM shared_group_members WHERE group_id = ?`,
-      )
-        .bind(group.id)
-        .all();
-
-      const members = membersResult.results as any[];
-
-      // For each member, calculate:
-      // 1. How much they PAID (created shared transactions)
-      // 2. How much is their SHARE (sum of their splits)
-      const memberBalances = [];
-
-      for (const member of members) {
-        // Total paid by this member (transactions they created in this group)
-        const paidResult = (await c.env.DB.prepare(
-          `
-					SELECT COALESCE(SUM(amount), 0) as total_paid
-					FROM transactions
-					WHERE user_id = ? AND group_id = ? AND is_shared = 1
-					AND date >= ? AND date <= ?
+    const groups = groupsResult.results as any[];
+    // One query per group: the month's shared transactions are scanned once and
+    // reused for every member's paid/share totals.
+    const perGroup = groups.length
+      ? await c.env.DB.batch(
+          groups.map((group) =>
+            c.env.DB.prepare(
+              `
+					WITH tx AS MATERIALIZED (
+						SELECT id, user_id, amount FROM transactions
+						WHERE group_id = ? AND is_shared = 1 AND date >= ? AND date <= ?
+					), shares AS MATERIALIZED (
+						SELECT s.user_id, SUM(s.amount) as total
+						FROM tx JOIN transaction_splits s ON s.transaction_id = tx.id
+						GROUP BY s.user_id
+					), paid AS MATERIALIZED (
+						SELECT user_id, SUM(amount) as total FROM tx GROUP BY user_id
+					)
+					SELECT
+						m.user_id,
+						m.nickname,
+						COALESCE(paid.total, 0) as total_paid,
+						COALESCE(shares.total, 0) as total_share,
+						(SELECT COUNT(*) FROM tx) as transaction_count
+					FROM shared_group_members m
+					LEFT JOIN paid ON paid.user_id = m.user_id
+					LEFT JOIN shares ON shares.user_id = m.user_id
+					WHERE m.group_id = ?
 				`,
+            ).bind(group.id, startDate, endDate, group.id),
+          ),
         )
-          .bind(member.user_id, group.id, startDate, endDate)
-          .first()) as any;
+      : [];
 
-        // Total share assigned to this member
-        const shareResult = (await c.env.DB.prepare(
-          `
-					SELECT COALESCE(SUM(ts.amount), 0) as total_share
-					FROM transaction_splits ts
-					INNER JOIN transactions t ON ts.transaction_id = t.id
-					WHERE ts.user_id = ? AND t.group_id = ? AND t.is_shared = 1
-					AND t.date >= ? AND t.date <= ?
-				`,
-        )
-          .bind(member.user_id, group.id, startDate, endDate)
-          .first()) as any;
-
-        memberBalances.push({
-          user_id: member.user_id,
-          nickname: member.nickname,
-          total_paid: paidResult.total_paid,
-          total_share: shareResult.total_share,
-          // Positive = they overpaid (others owe them), Negative = they underpaid (they owe others)
-          net: paidResult.total_paid - shareResult.total_share,
-        });
-      }
-
-      // Transaction count for this group this month
-      const countResult = (await c.env.DB.prepare(
-        `
-				SELECT COUNT(*) as count FROM transactions
-				WHERE group_id = ? AND is_shared = 1 AND date >= ? AND date <= ?
-			`,
-      )
-        .bind(group.id, startDate, endDate)
-        .first()) as any;
-
+    groups.forEach((group, i) => {
+      const rows = (perGroup[i]?.results ?? []) as any[];
       balances.push({
         group_id: group.id,
         group_name: group.name,
         month,
-        transaction_count: countResult.count,
-        members: memberBalances,
+        transaction_count: rows[0]?.transaction_count ?? 0,
+        members: rows.map((member) => ({
+          user_id: member.user_id,
+          nickname: member.nickname,
+          total_paid: member.total_paid,
+          total_share: member.total_share,
+          // Positive = they overpaid (others owe them), Negative = they underpaid (they owe others)
+          net: member.total_paid - member.total_share,
+        })),
       });
-    }
+    });
 
     return {
       success: true,

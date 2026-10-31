@@ -15,6 +15,8 @@ pnpm workspace monorepo with two apps:
 
 **Database:** D1 (SQLite). Migrations live in `apps/api/migrations/`; `apps/api/schema.sql` is a reference snapshot. Multi-statement writes go through `DB.batch()` so they are atomic.
 
+**D1 rows read:** The free plan allows 5M rows read per day and every row a query scans counts (sorts, joins and subqueries included; covering indexes don't reduce it). Bound scans by date, page before joining, and check changes with `pnpm --filter api measure:rows [transactions]`.
+
 **Dates:** D1 runs in UTC. Use `todayLocal()` from `apps/api/src/utils/date.ts` (America/Santiago) instead of `date('now', 'localtime')`.
 
 **Cron:** `apps/api/src/cron.ts` runs daily at 06:00 UTC, processes active recurring rules (catching up missed occurrences), inserts transactions and advances `next_run`.
