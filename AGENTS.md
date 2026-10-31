@@ -2,59 +2,52 @@
 
 ## Architecture
 
-Three sub-projects sharing a single Cloudflare Workers REST API backend:
+pnpm workspace monorepo with two apps:
 
-| Sub-project    | Path                  | Purpose                                                                                |
-| -------------- | --------------------- | -------------------------------------------------------------------------------------- |
-| **API** (root) | `src/`                | Cloudflare Workers + Hono + Chanfana (OpenAPI). Auth middleware, D1 (SQLite), cron job |
-| **Web**        | `expense-app-web/`    | Next.js 16 + React 19, TanStack Query, Zustand, Recharts, Tailwind CSS                 |
-| **Mobile**     | `expense-app-mobile/` | Expo (React Native 0.81), Expo Router, NativeWind, TanStack Query                      |
+| App     | Path        | Purpose                                                                                |
+| ------- | ----------- | -------------------------------------------------------------------------------------- |
+| **API** | `apps/api/` | Cloudflare Workers + Hono + Chanfana (OpenAPI). Auth middleware, D1 (SQLite), cron job |
+| **Web** | `apps/web/` | Next.js 16 (static export) + React 19, TanStack Query, Zustand, Recharts, Tailwind CSS |
 
-**Auth:** Supabase JWT (`Authorization: Bearer`) validated against JWKS in `src/middleware/auth.ts`. Static API keys (`X-API-Key`) supported for iOS Shortcuts. Both clients (web + mobile) use Axios with auto-injected JWT from Supabase session.
+**Auth:** Supabase JWT (`Authorization: Bearer`) validated against JWKS in `apps/api/src/middleware/auth.ts`. Static API keys (`X-API-Key`) supported for iOS Shortcuts. The web client uses Axios with the JWT auto-injected from the Supabase session.
 
-**Database:** D1 (SQLite). Tables: `transactions`, `categories`, `accounts`, `tags`, `recurring_rules`, `shared_groups`, `api_keys`. See `schema.sql` for schema.
+**Local auth shortcuts** (`X-API-Key: local-dev-api-key`, `Bearer local-token`, no header) only work when `ENVIRONMENT=development` is set in `apps/api/.dev.vars`. Never set `ENVIRONMENT` in production and never gate auth on the request URL.
 
-**Cron:** `src/cron.ts` runs daily at 06:00 UTC, processes active recurring rules, inserts transactions, updates `next_run`.
+**Database:** D1 (SQLite). Migrations live in `apps/api/migrations/`; `apps/api/schema.sql` is a reference snapshot. Multi-statement writes go through `DB.batch()` so they are atomic.
 
-**Locale:** Both apps default to Spanish (es). Mobile uses i18next; web strings are hardcoded in Spanish.
+**Dates:** D1 runs in UTC. Use `todayLocal()` from `apps/api/src/utils/date.ts` (America/Santiago) instead of `date('now', 'localtime')`.
+
+**Cron:** `apps/api/src/cron.ts` runs daily at 06:00 UTC, processes active recurring rules (catching up missed occurrences), inserts transactions and advances `next_run`.
+
+**Locale:** Web strings are hardcoded in Spanish (es).
 
 ## Build & Dev Commands
 
-**API (root):**
+Run from the repo root:
 
 ```
-npm run dev          # wrangler dev — local Worker
-npm run deploy       # wrangler deploy
-npm run cf-typegen   # regenerate worker-configuration.d.ts after wrangler.jsonc changes
+pnpm dev               # API (wrangler dev) + Web (next dev) in parallel
+pnpm lint              # ESLint
+pnpm typecheck         # tsc --noEmit for api and web
+pnpm test              # node:test suites for api and web
+pnpm build:web         # static export to apps/web/out
+pnpm db:setup:local    # apply migrations + seed local D1
+pnpm --filter api cf-typegen   # regenerate apps/api/worker-configuration.d.ts after wrangler.jsonc changes
 ```
 
-**Web (`expense-app-web/`):**
-
-```
-npm run dev    # Next.js dev server
-npm run build  # production build
-npm run lint   # ESLint
-```
-
-**Mobile (`expense-app-mobile/`):**
-
-```
-npm start          # Metro bundler
-npm run android    # Android emulator
-npm run ios        # iOS simulator
-```
+CI (`.github/workflows/deploy.yml`) runs lint, typecheck and tests before deploying.
 
 ## Conventions
 
-**API endpoints:** Classes extend `OpenAPIRoute` (Chanfana), named `<Resource><Verb>` (e.g., `TransactionCreate`, `GroupSettle`). Registered on the Hono OpenAPI router in `src/index.ts` as `openapi.METHOD("/api/path", Class)`. Follow existing resource patterns before adding new routes.
+**API endpoints:** Classes extend `OpenAPIRoute` (Chanfana), named `<Resource><Verb>` (e.g., `TransactionCreate`, `GroupSettle`). Registered on the Hono OpenAPI router in `apps/api/src/index.ts` as `openapi.METHOD("/api/path", Class)`. Follow existing resource patterns before adding new routes.
 
-**Validation:** Use Zod schemas via Chanfana for request/response validation. All core types live in `src/types.ts`.
+**Validation:** Use Zod schemas via Chanfana for request/response validation. All core types live in `apps/api/src/types.ts`.
 
-**TypeScript:** `strict: true`, `strictNullChecks: false`, `noUncheckedIndexedAccess: true`. Module resolution: `"Bundler"`, target `"es2022"`.
+**TypeScript:** `strict: true`, `strictNullChecks: false`, `noUncheckedIndexedAccess: true`. Module resolution: `"Bundler"`.
 
-**Styling:** Tailwind CSS everywhere. Web uses CSS variables for theming (`--text-primary`, `--bg-card`, `--border`, etc.). Mobile uses NativeWind.
+**Styling:** Tailwind CSS with CSS variables for theming (`--text-primary`, `--bg-card`, `--border`, etc.) defined in `apps/web/src/app/globals.css`.
 
-**State (Web):** TanStack Query for server state; Zustand for modal/UI state.
+**State (Web):** TanStack Query for server state (persisted to `localStorage`, cleared on sign-out); Zustand for modal/UI state.
 
 ## Cloudflare Workers
 
@@ -67,4 +60,4 @@ STOP. Your knowledge of Cloudflare Workers APIs and limits may be outdated. Alwa
 - Errors: https://developers.cloudflare.com/workers/observability/errors/ (Error 1102 = CPU/memory exceeded)
 - Product docs: `/kv/` · `/r2/` · `/d1/` · `/durable-objects/` · `/queues/` · `/vectorize/` · `/workers-ai/` · `/agents/`
 
-Run `npm run cf-typegen` after changing bindings in `wrangler.jsonc`.
+Run `pnpm --filter api cf-typegen` after changing bindings in `apps/api/wrangler.jsonc`.
