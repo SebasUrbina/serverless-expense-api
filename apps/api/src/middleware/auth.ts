@@ -6,6 +6,10 @@ const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 const apiKeyCache = new Map<string, { userId: string; expiresAt: number }>();
 const API_KEY_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
+const LOCAL_USER_ID = 'local_user';
+const LOCAL_API_KEY = 'local-dev-api-key';
+const LOCAL_TOKENS = new Set(['local-token', LOCAL_USER_ID]);
+
 function getJWKS(supabaseUrl: string) {
   let jwks = jwksCache.get(supabaseUrl);
   if (!jwks) {
@@ -21,22 +25,33 @@ function getJWKS(supabaseUrl: string) {
   return jwks;
 }
 
+export function invalidateApiKeyCache(userId: string) {
+  for (const [key, entry] of apiKeyCache) {
+    if (entry.userId === userId) apiKeyCache.delete(key);
+  }
+}
+
 export const authMiddleware = async (
   c: AppContext,
   next: () => Promise<void>,
 ) => {
   const authHeader = c.req.header('Authorization');
   const apiKeyHeader = c.req.header('X-API-Key');
+  // Local shortcuts must never depend on request data (URL, Host), only on deployment config.
+  const isDevelopment = c.env.ENVIRONMENT === 'development';
 
-  // 1. Try to authenticate via static API key (e.g., iOS Shortcuts or Local Dev)
+  const useLocalUser = () => {
+    c.set('userId', LOCAL_USER_ID);
+    c.set('userDisplayName', 'Local User');
+    return next();
+  };
+
+  // 1. Try to authenticate via static API key (e.g., iOS Shortcuts)
   if (apiKeyHeader) {
-    if (apiKeyHeader === 'local-dev-api-key') {
-      c.set('userId', 'local_user');
-      c.set('userDisplayName', 'Local User');
-      return next();
+    if (isDevelopment && apiKeyHeader === LOCAL_API_KEY) {
+      return useLocalUser();
     }
 
-    // Check in-memory cache first
     const cachedKey = apiKeyCache.get(apiKeyHeader);
     if (cachedKey && cachedKey.expiresAt > Date.now()) {
       c.set('userId', cachedKey.userId);
@@ -62,17 +77,11 @@ export const authMiddleware = async (
     return c.json({ error: 'Unauthorized: Invalid X-API-Key provided' }, 401);
   }
 
-  // 2. Dev bypass for dummy local testing when no Auth header is present
-  if (
-    !authHeader &&
-    (c.req.url.includes('localhost') || c.req.url.includes('127.0.0.1'))
-  ) {
-    c.set('userId', 'local_user');
-    c.set('userDisplayName', 'Local User');
-    return next();
+  if (!authHeader && isDevelopment) {
+    return useLocalUser();
   }
 
-  // 3. Fallback to Bearer JWT Session
+  // 2. Bearer JWT Session
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return c.json(
       { error: 'Missing or invalid Authorization header / X-API-Key' },
@@ -80,16 +89,13 @@ export const authMiddleware = async (
     );
   }
 
-  const token = authHeader.split('Bearer ')[1];
+  const token = authHeader.slice('Bearer '.length);
 
-  // Allow 'local-token' for quick manual testing
-  if (token === 'local-token' || token === 'local_user') {
-    c.set('userId', 'local_user');
-    c.set('userDisplayName', 'Local User');
-    return next();
+  if (isDevelopment && LOCAL_TOKENS.has(token)) {
+    return useLocalUser();
   }
 
-  // 4. Verify JWT using cached Supabase JWKS
+  // 3. Verify JWT using cached Supabase JWKS
   try {
     const supabaseUrl =
       c.env.SUPABASE_URL || 'https://zyaewkmgxsiqfnevcigz.supabase.co';
@@ -100,32 +106,26 @@ export const authMiddleware = async (
       audience: 'authenticated',
     });
 
-    if (payload && payload.sub) {
-      c.set('userId', payload.sub);
-      const meta = (payload.user_metadata as any) || {};
-      const displayName =
-        meta.display_name ||
-        meta.full_name ||
-        meta.name ||
-        ((payload.email as string) || '').split('@')[0] ||
-        'User';
-      c.set('userDisplayName', displayName);
-      return next();
-    } else {
+    if (!payload.sub) {
       return c.json({ error: 'Session missing User ID (sub)' }, 401);
     }
+
+    c.set('userId', payload.sub);
+    const meta = (payload.user_metadata as Record<string, string>) || {};
+    const displayName =
+      meta.display_name ||
+      meta.full_name ||
+      meta.name ||
+      ((payload.email as string) || '').split('@')[0] ||
+      'User';
+    c.set('userDisplayName', displayName);
+    return next();
   } catch (error) {
     console.error('JWKS Token validation failed:', error);
-    // Local development fallback if token expired or invalid locally
-    if (c.req.url.includes('localhost') || c.req.url.includes('127.0.0.1')) {
+    if (isDevelopment) {
       console.log('Local development fallback triggered — using local_user');
-      c.set('userId', 'local_user');
-      c.set('userDisplayName', 'Local User');
-      return next();
+      return useLocalUser();
     }
-    return c.json(
-      { error: 'Unauthorized: Invalid API Key or Session JWT', details: error },
-      401,
-    );
+    return c.json({ error: 'Unauthorized: Invalid or expired session' }, 401);
   }
 };

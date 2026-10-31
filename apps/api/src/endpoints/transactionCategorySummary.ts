@@ -1,6 +1,7 @@
 import { Str, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
+import { todayLocal } from '../utils/date';
 
 export class TransactionCategorySummary extends OpenAPIRoute {
   schema = {
@@ -91,7 +92,8 @@ export class TransactionCategorySummary extends OpenAPIRoute {
       query += ` AND t.date >= ? AND t.date <= ?`;
       binds.push(`${prevMonth}-01`, `${month}-31`);
     } else {
-      query += ` AND t.date <= date('now', 'localtime')`;
+      query += ` AND t.date <= ?`;
+      binds.push(todayLocal());
     }
 
     if (type) {

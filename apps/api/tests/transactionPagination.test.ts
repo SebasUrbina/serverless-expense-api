@@ -42,8 +42,8 @@ function request(db: DatabaseSync) {
       };
       return stmt;
     },
-    batch: (statements: { run: () => Promise<unknown> }[]) =>
-      Promise.all(statements.map((s) => s.run())),
+    batch: (statements: { all: () => Promise<unknown> }[]) =>
+      Promise.all(statements.map((s) => s.all())),
   };
   return async (
     path: string,
@@ -57,7 +57,7 @@ function request(db: DatabaseSync) {
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
         body: body === undefined ? undefined : JSON.stringify(body),
       }),
-      { DB } as unknown as Env,
+      { DB, ENVIRONMENT: 'development' } as unknown as Env,
       {} as ExecutionContext,
     );
     return { status: response.status, body: (await response.json()) as any };

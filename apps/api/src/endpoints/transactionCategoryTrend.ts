@@ -1,6 +1,7 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
+import { todayLocal } from '../utils/date';
 
 export class TransactionCategoryTrend extends OpenAPIRoute {
   schema = {
@@ -48,12 +49,11 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 
     // Build chronological list of YYYY-MM for the last N months (including current)
     const monthsArr: string[] = [];
-    const now = new Date();
+    const today = todayLocal();
     for (let i = safeMonths - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      monthsArr.push(
-        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      );
+      const d = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
+      d.setUTCMonth(d.getUTCMonth() - i);
+      monthsArr.push(d.toISOString().slice(0, 7));
     }
     const startMonth = monthsArr[0] + '-01';
 
@@ -67,11 +67,11 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 			 FROM transactions t
 			 LEFT JOIN categories c ON c.id = t.category_id
 			 WHERE t.user_id = ? AND t.type = 'expense'
-			   AND t.date >= ? AND t.date <= date('now', 'localtime')
+			   AND t.date >= ? AND t.date <= ?
 			 GROUP BY t.category_id, strftime('%Y-%m', t.date)
 			 ORDER BY month ASC, amount DESC`,
     )
-      .bind(userId, startMonth)
+      .bind(userId, startMonth, today)
       .all();
 
     // Aggregate into per-category arrays aligned with monthsArr
