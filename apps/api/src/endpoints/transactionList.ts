@@ -1,6 +1,7 @@
 import { Bool, Num, OpenAPIRoute, Str } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext, Transaction } from '../types';
+import { todayLocal } from '../utils/date';
 
 export class TransactionList extends OpenAPIRoute {
   schema = {
@@ -105,7 +106,11 @@ export class TransactionList extends OpenAPIRoute {
 			LEFT JOIN accounts a ON t.account_id = a.id
 			LEFT JOIN transaction_splits ts_me ON ts_me.transaction_id = t.id AND ts_me.user_id = ?
 			LEFT JOIN shared_groups sg ON t.group_id = sg.id
-			WHERE (t.user_id = ? OR t.id IN (SELECT transaction_id FROM transaction_splits WHERE user_id = ?))
+			WHERE t.id IN (
+				SELECT id FROM transactions WHERE user_id = ?
+				UNION
+				SELECT transaction_id FROM transaction_splits WHERE user_id = ?
+			)
 		`;
     const binds: any[] = [userId, userId, userId];
 
@@ -133,7 +138,8 @@ export class TransactionList extends OpenAPIRoute {
       query += ` AND t.date <= ?`;
       binds.push(endDate);
     } else {
-      query += ` AND t.date <= date('now', 'localtime')`;
+      query += ` AND t.date <= ?`;
+      binds.push(todayLocal());
     }
     if (is_shared) {
       query += ` AND t.is_shared = 1`;

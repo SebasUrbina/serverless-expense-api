@@ -1,6 +1,7 @@
 import { Bool, OpenAPIRoute, Str } from 'chanfana';
 import { z } from 'zod';
 import type { AppContext } from '../types';
+import { invalidateApiKeyCache } from '../middleware/auth';
 
 export class ApiKeyGenerate extends OpenAPIRoute {
   schema = {
@@ -30,19 +31,17 @@ export class ApiKeyGenerate extends OpenAPIRoute {
   async handle(c: AppContext) {
     const userId = c.get('userId');
 
-    // Delete any existing keys for this user to ensure only 1 active key
-    await c.env.DB.prepare(`DELETE FROM api_keys WHERE user_id = ?`)
-      .bind(userId)
-      .run();
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const newKey = `sk-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`;
 
-    // Generate a shorter token (e.g. ek_live_1234abcd)
-    const randomString = crypto.randomUUID().split('-')[0];
-    const newKey = `sk-${randomString}`; // Expense Key Live
-
-    // Store in database
-    await c.env.DB.prepare(`INSERT INTO api_keys (key, user_id) VALUES (?, ?)`)
-      .bind(newKey, userId)
-      .run();
+    // Replace any existing key atomically so the user always has exactly one
+    await c.env.DB.batch([
+      c.env.DB.prepare(`DELETE FROM api_keys WHERE user_id = ?`).bind(userId),
+      c.env.DB.prepare(
+        `INSERT INTO api_keys (key, user_id) VALUES (?, ?)`,
+      ).bind(newKey, userId),
+    ]);
+    invalidateApiKeyCache(userId);
 
     return {
       success: true,

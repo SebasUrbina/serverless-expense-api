@@ -23,6 +23,15 @@ function addMonths(baseDate: string, count: number): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function splitIntoInstallments(amount: number, count: number): number[] {
+  const base = Math.floor(amount / count);
+  const amounts = Array.from({ length: count }, () => base);
+  amounts[0] = amounts[0]! + (amount - base * count);
+  return amounts;
+}
+
+const SPLIT_TOTAL_TOLERANCE = 0.5;
+
 export class TransactionCreate extends OpenAPIRoute {
   schema = {
     tags: ['Transactions'],
@@ -65,8 +74,10 @@ export class TransactionCreate extends OpenAPIRoute {
     const data = await this.getValidatedData<typeof this.schema>();
     const t = data.body;
     const userId = c.get('userId');
+    const db = c.env.DB;
 
-    if ((t.installments ?? 1) > 1 && t.type !== 'expense') {
+    const installmentsCount = t.installments ?? 1;
+    if (installmentsCount > 1 && t.type !== 'expense') {
       return c.json(
         {
           success: false,
@@ -78,189 +89,150 @@ export class TransactionCreate extends OpenAPIRoute {
 
     const isShared = t.is_shared ? 1 : 0;
     const groupId = t.group_id || null;
+    const splits = isShared ? (t.splits ?? []) : [];
+    const tagIds = t.tag_ids ?? [];
 
-    // Validate group membership if shared
+    const [ownership, members] = await db.batch<
+      { id: number } | { user_id: string }
+    >([
+      db
+        .prepare(
+          `SELECT
+             (SELECT 1 FROM categories WHERE id = ? AND user_id = ?) AS category_ok,
+             (SELECT 1 FROM accounts WHERE id = ? AND user_id = ?) AS account_ok`,
+        )
+        .bind(t.category_id, userId, t.account_id, userId),
+      db
+        .prepare(`SELECT user_id FROM shared_group_members WHERE group_id = ?`)
+        .bind(groupId),
+    ]);
+
+    const owned = ownership.results[0] as unknown as {
+      category_ok: number | null;
+      account_ok: number | null;
+    };
+    if (!owned?.category_ok || !owned?.account_ok) {
+      return c.json(
+        { success: false, error: 'Category or account not found' },
+        404,
+      );
+    }
+
     if (isShared && groupId) {
-      const membership = await c.env.DB.prepare(
-        `SELECT * FROM shared_group_members WHERE group_id = ? AND user_id = ?`,
-      )
-        .bind(groupId, userId)
-        .first();
-      if (!membership) {
+      const memberIds = new Set(
+        (members.results as { user_id: string }[]).map((m) => m.user_id),
+      );
+      if (!memberIds.has(userId)) {
         return c.json(
           { success: false, error: 'You are not a member of this group' },
           403,
         );
       }
+      if (splits.some((s) => !memberIds.has(s.user_id))) {
+        return c.json(
+          { success: false, error: 'Split users must be members of the group' },
+          400,
+        );
+      }
     }
 
-    const installmentsCount = t.installments || 1;
-
-    if (installmentsCount > 1) {
-      const baseAmount = Math.floor(t.amount / installmentsCount);
-      let totalDistributed = 0;
-      const installmentAmounts: number[] = [];
-
-      for (let i = 0; i < installmentsCount; i++) {
-        installmentAmounts.push(baseAmount);
-        totalDistributed += baseAmount;
+    if (splits.length > 0) {
+      const total = splits.reduce((sum, s) => sum + s.percentage, 0);
+      if (
+        splits.some((s) => s.percentage < 0) ||
+        Math.abs(total - 100) > SPLIT_TOTAL_TOLERANCE
+      ) {
+        return c.json(
+          { success: false, error: 'Split percentages must add up to 100' },
+          400,
+        );
       }
+    }
 
-      const remainder = t.amount - totalDistributed;
-      if (remainder !== 0) {
-        installmentAmounts[0] = installmentAmounts[0]! + remainder;
-      }
+    // D1 runs a batch as a single serialized transaction, so MAX(id) is the row inserted just before.
+    const lastTransactionId = `(SELECT MAX(id) FROM transactions)`;
+    const amounts = splitIntoInstallments(t.amount, installmentsCount);
+    const isInstallment = installmentsCount > 1;
+    const statements: D1PreparedStatement[] = [];
+    const insertIndexes: number[] = [];
 
-      const createdTransactions: any[] = [];
-
-      for (let idx = 0; idx < installmentsCount; idx++) {
-        const instAmt = installmentAmounts[idx]!;
-        const instDate = addMonths(t.date, idx);
-
-        // 1. Insert Transaction
-        const txResult = (await c.env.DB.prepare(
-          `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id, installment_number, installment_total)
-					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
-        )
+    amounts.forEach((amount, idx) => {
+      insertIndexes.push(statements.length);
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id, installment_number, installment_total)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+          )
           .bind(
             t.title,
-            instAmt,
+            amount,
             t.category_id,
             t.type,
             t.account_id,
             userId,
-            instDate,
+            addMonths(t.date, idx),
             isShared,
             groupId,
-            idx + 1,
-            installmentsCount,
-          )
-          .first()) as any;
+            isInstallment ? idx + 1 : null,
+            isInstallment ? installmentsCount : null,
+          ),
+      );
 
-        // 2 & 3. Insert Tags and Splits in a single combined D1 batch call
-        const batchStmts: any[] = [];
-        if (t.tag_ids && t.tag_ids.length > 0) {
-          t.tag_ids.forEach((tagId) => {
-            batchStmts.push(
-              c.env.DB.prepare(
-                `INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`,
-              ).bind(txResult.id, tagId),
-            );
-          });
-        }
-        if (isShared && t.splits && t.splits.length > 0) {
-          t.splits.forEach((split) => {
-            const splitAmount = Math.round((instAmt * split.percentage) / 100);
-            batchStmts.push(
-              c.env.DB.prepare(
-                `INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`,
-              ).bind(txResult.id, split.user_id, splitAmount, split.percentage),
-            );
-          });
-        }
-        if (batchStmts.length > 0) {
-          await c.env.DB.batch(batchStmts);
-        }
-
-        let finalSplits: any[] = [];
-        if (isShared && t.splits && t.splits.length > 0) {
-          // Fetch splits with nicknames for response
-          const splitsResult = await c.env.DB.prepare(
-            `
-						SELECT ts.*, sgm.nickname
-						FROM transaction_splits ts
-						LEFT JOIN shared_group_members sgm ON sgm.user_id = ts.user_id AND sgm.group_id = ?
-						WHERE ts.transaction_id = ?
-					`,
-          )
-            .bind(groupId, txResult.id)
-            .all();
-          finalSplits = splitsResult.results;
-        }
-
-        const finalResult = {
-          ...txResult,
-          tag_ids: t.tag_ids || [],
-          splits: finalSplits,
-        };
-        createdTransactions.push(finalResult);
+      if (tagIds.length > 0) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT INTO transaction_tags (transaction_id, tag_id)
+               SELECT ${lastTransactionId}, id FROM tags
+               WHERE user_id = ? AND id IN (SELECT value FROM json_each(?))`,
+            )
+            .bind(userId, JSON.stringify(tagIds)),
+        );
       }
 
-      return {
-        success: true,
-        transaction: createdTransactions[0],
-      };
-    } else {
-      // 1. Insert Transaction
-      const txResult = (await c.env.DB.prepare(
-        `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, is_shared, group_id)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
-      )
-        .bind(
-          t.title,
-          t.amount,
-          t.category_id,
-          t.type,
-          t.account_id,
-          userId,
-          t.date,
-          isShared,
-          groupId,
+      for (const split of splits) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage)
+               VALUES (${lastTransactionId}, ?, ?, ?)`,
+            )
+            .bind(
+              split.user_id,
+              Math.round((amount * split.percentage) / 100),
+              split.percentage,
+            ),
+        );
+      }
+    });
+
+    const results = await db.batch<Record<string, unknown>>(statements);
+    const first = results[insertIndexes[0]!]!.results[0] as {
+      id: number;
+    } & Record<string, unknown>;
+
+    let finalSplits: unknown[] = [];
+    if (splits.length > 0) {
+      const splitsResult = await db
+        .prepare(
+          `SELECT ts.*, sgm.nickname
+           FROM transaction_splits ts
+           LEFT JOIN shared_group_members sgm ON sgm.user_id = ts.user_id AND sgm.group_id = ?
+           WHERE ts.transaction_id = ?`,
         )
-        .first()) as any;
-
-      // 2 & 3. Insert Tags and Splits in a single combined D1 batch call
-      const batchStmts: any[] = [];
-      if (t.tag_ids && t.tag_ids.length > 0) {
-        t.tag_ids.forEach((tagId) => {
-          batchStmts.push(
-            c.env.DB.prepare(
-              `INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`,
-            ).bind(txResult.id, tagId),
-          );
-        });
-      }
-      if (isShared && t.splits && t.splits.length > 0) {
-        t.splits.forEach((split) => {
-          const splitAmount = Math.round((t.amount * split.percentage) / 100);
-          batchStmts.push(
-            c.env.DB.prepare(
-              `INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage) VALUES (?, ?, ?, ?)`,
-            ).bind(txResult.id, split.user_id, splitAmount, split.percentage),
-          );
-        });
-      }
-      if (batchStmts.length > 0) {
-        await c.env.DB.batch(batchStmts);
-      }
-
-      let finalSplits: any[] = [];
-      if (isShared && t.splits && t.splits.length > 0) {
-        // Fetch splits with nicknames for response
-        const splitsResult = await c.env.DB.prepare(
-          `
-					SELECT ts.*, sgm.nickname
-					FROM transaction_splits ts
-					LEFT JOIN shared_group_members sgm ON sgm.user_id = ts.user_id AND sgm.group_id = ?
-					WHERE ts.transaction_id = ?
-				`,
-        )
-          .bind(groupId, txResult.id)
-          .all();
-        finalSplits = splitsResult.results;
-      }
-
-      // Merge for frontend
-      const finalResult = {
-        ...txResult,
-        tag_ids: t.tag_ids || [],
-        splits: finalSplits,
-      };
-
-      return {
-        success: true,
-        transaction: finalResult,
-      };
+        .bind(groupId, first.id)
+        .all();
+      finalSplits = splitsResult.results;
     }
+
+    return {
+      success: true,
+      transaction: {
+        ...first,
+        tag_ids: tagIds,
+        splits: finalSplits,
+      },
+    };
   }
 }

@@ -1,94 +1,110 @@
 import { nextOccurrence } from './services/monthlyAvailability';
 
-// ── Cron handler — called by Cloudflare Cron Trigger ─────────────────────────
-export async function scheduled(
-  event: ScheduledEvent,
-  env: Env,
-  ctx: ExecutionContext,
-) {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD UTC
+type DueRule = {
+  id: number;
+  title: string;
+  amount: number;
+  category_id: number;
+  type: string;
+  account_id: number;
+  user_id: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  day_of_month: number | null;
+  next_run: string;
+  end_date: string | null;
+  tag_ids: string | null;
+};
 
-  // Find all active rules due today or overdue
-  const { results: rules } = await env.DB.prepare(
-    `SELECT r.*, 
-		    (SELECT json_group_array(tag_id) FROM recurring_rule_tags WHERE recurring_rule_id = r.id) as tag_ids
-		 FROM recurring_rules r 
-		 WHERE r.is_active = 1 AND r.next_run <= ?`,
-  )
-    .bind(today)
-    .all();
+// Upper bound on catch-up occurrences per rule (e.g. a daily rule paused for a year).
+const MAX_OCCURRENCES_PER_RUN = 366;
 
-  if (rules.length === 0) return;
+function buildRuleStatements(db: D1Database, rule: DueRule, today: string) {
+  const statements: D1PreparedStatement[] = [];
+  const tagIds = rule.tag_ids ?? '[]';
+  const hasTags = tagIds !== '[]';
+  let runDate = rule.next_run;
+  let generated = 0;
 
-  const stmts: any[] = [];
-
-  for (const rule of rules as any[]) {
-    const nextRun = nextOccurrence(rule, rule.next_run);
-    const tagIds = JSON.parse(rule.tag_ids || '[]') as number[];
-
-    // 1. Prepare Transaction Insert
-    const txId = crypto.randomUUID(); // We need an ID to link tags if we want to do it all in one batch with specific IDs,
-    // but SQLite AUTOINCREMENT is tricky in batch if we need the ID for the next stmt in the SAME batch.
-    // However, I can use a subquery for the ID or just do it in separate steps.
-    // BETTER: Use a CTE or just two batches? No, D1 batch is meant for independent stmts or we can use `last_insert_rowid()`.
-    // But in a batch of MANY transactions, `last_insert_rowid()` is dangerous.
-
-    // Actually, I can just use a separate batch for each rule or just accept that I can't easily link tags in ONE global batch without knowing IDs.
-    // OR: I can insert the transaction, then in a separate tool/step insert tags.
-
-    // Wait, if I'm in a worker, I can just await the tx insert, get the ID, then batch the tags.
-    // But the current code tries to be efficient with one batch.
-
-    // Let's do it per rule to be safe with IDs, or use a custom ID (UUID) if I change the schema to use TEXT IDs (not requested).
-    // Alternative: Use `RETURNING id` and await each.
-
-    const txResult = (await env.DB.prepare(
-      `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, recurring_rule_id)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
-    )
-      .bind(
-        rule.title,
-        rule.amount,
-        rule.category_id,
-        rule.type,
-        rule.account_id,
-        rule.user_id,
-        rule.next_run,
-        rule.id,
-      )
-      .first()) as any;
-
-    if (txResult && tagIds.length > 0) {
-      const tagStmts = tagIds.map((tId) =>
-        env.DB.prepare(
-          `INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`,
-        ).bind(txResult.id, tId),
-      );
-      stmts.push(...tagStmts);
-    }
-
-    // 2. Advance next_run and check end_date
-    if (rule.end_date && nextRun > rule.end_date) {
-      stmts.push(
-        env.DB.prepare(
-          `UPDATE recurring_rules SET next_run = ?, is_active = 0 WHERE id = ?`,
-        ).bind(nextRun, rule.id),
-      );
-    } else {
-      stmts.push(
-        env.DB.prepare(
-          `UPDATE recurring_rules SET next_run = ? WHERE id = ?`,
-        ).bind(nextRun, rule.id),
+  while (
+    runDate <= today &&
+    (!rule.end_date || runDate <= rule.end_date) &&
+    generated < MAX_OCCURRENCES_PER_RUN
+  ) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date, recurring_rule_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
+          rule.title,
+          rule.amount,
+          rule.category_id,
+          rule.type,
+          rule.account_id,
+          rule.user_id,
+          runDate,
+          rule.id,
+        ),
+    );
+    if (hasTags) {
+      // D1 runs a batch as a single serialized transaction, so MAX(id) is the row inserted just before.
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO transaction_tags (transaction_id, tag_id)
+             SELECT (SELECT MAX(id) FROM transactions), value FROM json_each(?)`,
+          )
+          .bind(tagIds),
       );
     }
+    runDate = nextOccurrence(rule, runDate);
+    generated++;
   }
 
-  // Run remaining updates + tag inserts
-  if (stmts.length > 0) {
-    await env.DB.batch(stmts);
+  const finished = !!rule.end_date && runDate > rule.end_date;
+  statements.push(
+    db
+      .prepare(
+        `UPDATE recurring_rules SET next_run = ?, is_active = CASE WHEN ? THEN 0 ELSE is_active END WHERE id = ?`,
+      )
+      .bind(runDate, finished ? 1 : 0, rule.id),
+  );
+
+  return { statements, generated };
+}
+
+// ── Cron handler — called by Cloudflare Cron Trigger ─────────────────────────
+export async function scheduled(
+  _event: ScheduledEvent,
+  env: Env,
+) {
+  const today = new Date().toISOString().split('T')[0]!; // YYYY-MM-DD UTC
+
+  const { results: rules } = await env.DB.prepare(
+    `SELECT r.*,
+            (SELECT json_group_array(tag_id) FROM recurring_rule_tags WHERE recurring_rule_id = r.id) AS tag_ids
+     FROM recurring_rules r
+     WHERE r.is_active = 1 AND r.next_run <= ?`,
+  )
+    .bind(today)
+    .all<DueRule>();
+
+  let total = 0;
+  for (const rule of rules) {
+    const { statements, generated } = buildRuleStatements(env.DB, rule, today);
+    try {
+      await env.DB.batch(statements);
+      total += generated;
+    } catch (error) {
+      console.error(
+        `[cron] Failed to process recurring rule ${rule.id}`,
+        error,
+      );
+    }
   }
 
   console.log(
-    `[cron] Generated ${rules.length} recurring transactions for ${today}`,
+    `[cron] Generated ${total} recurring transactions from ${rules.length} rules for ${today}`,
   );
 }

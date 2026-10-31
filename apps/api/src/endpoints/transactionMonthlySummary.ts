@@ -1,6 +1,7 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
+import { todayLocal } from '../utils/date';
 
 export class TransactionMonthlySummary extends OpenAPIRoute {
   schema = {
@@ -52,13 +53,15 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
 				SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
 				SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income
 			FROM transactions
-			WHERE user_id = ? AND date <= date('now', 'localtime')
+			WHERE user_id = ? AND date <= ?
 			GROUP BY month
 			ORDER BY month DESC
 			LIMIT ?
 		`;
 
-    const result = await c.env.DB.prepare(query).bind(userId, safeMonths).all();
+    const result = await c.env.DB.prepare(query)
+      .bind(userId, todayLocal(), safeMonths)
+      .all();
 
     // Map the results and return them in chronological order
     const summary = result.results

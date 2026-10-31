@@ -1,6 +1,7 @@
 import { Str, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
+import { todayLocal } from '../utils/date';
 
 export class TransactionKpiSummary extends OpenAPIRoute {
   schema = {
@@ -44,10 +45,11 @@ export class TransactionKpiSummary extends OpenAPIRoute {
     const binds: any[] = [userId];
 
     if (month) {
-      baseFilter += ` AND strftime('%Y-%m', date) = ?`;
-      binds.push(month);
+      baseFilter += ` AND date >= ? AND date <= ?`;
+      binds.push(`${month}-01`, `${month}-31`);
     } else {
-      baseFilter += ` AND date <= date('now', 'localtime')`;
+      baseFilter += ` AND date <= ?`;
+      binds.push(todayLocal());
     }
 
     const query = `

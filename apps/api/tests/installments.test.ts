@@ -43,8 +43,8 @@ function request(db: DatabaseSync) {
       };
       return stmt;
     },
-    batch: (statements: { run: () => Promise<unknown> }[]) =>
-      Promise.all(statements.map((s) => s.run())),
+    batch: (statements: { all: () => Promise<unknown> }[]) =>
+      Promise.all(statements.map((s) => s.all())),
   };
   return async (
     path: string,
@@ -58,7 +58,7 @@ function request(db: DatabaseSync) {
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
         body: body === undefined ? undefined : JSON.stringify(body),
       }),
-      { DB } as unknown as Env,
+      { DB, ENVIRONMENT: 'development' } as unknown as Env,
       {} as ExecutionContext,
     );
     return { status: response.status, body: (await response.json()) as any };
@@ -251,6 +251,59 @@ test('API validates installment counts and leaves ordinary transactions without 
       assert.equal(response.body.transaction.installment_number, null);
       assert.equal(response.body.transaction.installment_total, null);
     }
+  } finally {
+    db.close();
+  }
+});
+
+test('API rejects foreign categories, outsider splits and splits that do not add up to 100', async () => {
+  const db = database();
+  const api = request(db);
+  db.exec(
+    `INSERT INTO categories(id,user_id,name,type) VALUES(2,'bob','Ajena','expense');`,
+  );
+  const base = {
+    title: 'Cena',
+    amount: 100,
+    category_id: 1,
+    type: 'expense',
+    account_id: 1,
+    date: '2026-01-01',
+  };
+  const shared = { ...base, is_shared: 1, group_id: 1 };
+  try {
+    assert.equal(
+      (await api('/transactions', 'POST', { ...base, category_id: 2 })).status,
+      404,
+    );
+    assert.equal(
+      (
+        await api('/transactions', 'POST', {
+          ...shared,
+          splits: [
+            { user_id: 'local_user', percentage: 50 },
+            { user_id: 'mallory', percentage: 50 },
+          ],
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await api('/transactions', 'POST', {
+          ...shared,
+          splits: [
+            { user_id: 'local_user', percentage: 50 },
+            { user_id: 'bob', percentage: 30 },
+          ],
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      db.prepare('SELECT count(*) AS n FROM transactions').get()?.n,
+      0,
+    );
   } finally {
     db.close();
   }

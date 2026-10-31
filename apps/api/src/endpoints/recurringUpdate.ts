@@ -1,6 +1,10 @@
 import { Bool, Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext, RecurringRule } from '../types';
+import {
+  nextOccurrence,
+  type PlannedRule,
+} from '../services/monthlyAvailability';
 
 export class RecurringUpdate extends OpenAPIRoute {
   schema = {
@@ -67,6 +71,19 @@ export class RecurringUpdate extends OpenAPIRoute {
         updates.end_date !== undefined ? updates.end_date : existing.end_date,
       is_active: updates.is_active ?? existing.is_active,
     };
+
+    // Resuming a paused rule must not backfill the occurrences skipped while it was paused
+    const isResuming = !existing.is_active && merged.is_active === 1;
+    if (isResuming && updates.next_run === undefined) {
+      const today = new Date().toISOString().slice(0, 10);
+      const rule = {
+        frequency: merged.frequency as PlannedRule['frequency'],
+        day_of_month: merged.day_of_month as number | null,
+      };
+      let nextRun = merged.next_run as string;
+      while (nextRun < today) nextRun = nextOccurrence(rule, nextRun);
+      merged.next_run = nextRun;
+    }
 
     // Fetch existing tags to prefill if no change
     let currentTagIds: number[] = [];

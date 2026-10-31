@@ -9,6 +9,7 @@ declare namespace Cloudflare {
     DB: D1Database;
     SUPABASE_URL: string;
     IOS_SHORTCUT_URL: string;
+    ENVIRONMENT?: string;
   }
 }
 interface Env extends Cloudflare.Env {}
