@@ -20,27 +20,40 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Handle 401 responses — attempt token refresh, then redirect to login
+// Concurrent 401s share one refresh so Supabase's refresh token is only rotated once
+let refreshPromise: Promise<string | null> | null = null;
+
+function refreshAccessToken() {
+  refreshPromise ??= supabase.auth
+    .refreshSession()
+    .then(({ data, error }) =>
+      error ? null : (data.session?.access_token ?? null),
+    )
+    .finally(() => {
+      refreshPromise = null;
+    });
+  return refreshPromise;
+}
+
+// Handle 401 responses — attempt token refresh once, then redirect to login
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        await supabase.auth.signOut();
-        window.location.href = '/login';
-        return Promise.reject(error);
-      }
-      // Retry the original request with refreshed token
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        error.config.headers.Authorization = `Bearer ${session.access_token}`;
-        return api.request(error.config);
-      }
+    const config = error.config;
+    if (error.response?.status !== 401 || !config || config._retried) {
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    const accessToken = await refreshAccessToken();
+    if (!accessToken) {
+      await supabase.auth.signOut();
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    config._retried = true;
+    config.headers.Authorization = `Bearer ${accessToken}`;
+    return api.request(config);
   },
 );
 

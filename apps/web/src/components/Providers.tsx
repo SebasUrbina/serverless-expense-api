@@ -1,6 +1,10 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -8,8 +12,34 @@ import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/lib/AuthProvider';
 import { usePathname, useRouter } from 'next/navigation';
 import { applyTheme, useTheme } from '@/store/useTheme';
+import { supabase } from '@/lib/supabase';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
+const QUERY_CACHE_KEY = 'SEVA_QUERY_CACHE';
+
+// The persisted query cache holds financial data, so it must not survive a change of user.
+function ClearCacheOnUserChange() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    let currentUserId: string | null | undefined;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUserId = session?.user.id ?? null;
+      const userChanged =
+        currentUserId !== undefined && currentUserId !== nextUserId;
+      if (event === 'SIGNED_OUT' || userChanged) {
+        queryClient.clear();
+        window.localStorage.removeItem(QUERY_CACHE_KEY);
+      }
+      currentUserId = nextUserId;
+    });
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
+  return null;
+}
 
 function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
@@ -77,7 +107,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (typeof window === 'undefined') return undefined;
     return createSyncStoragePersister({
       storage: window.localStorage,
-      key: 'SEVA_QUERY_CACHE',
+      key: QUERY_CACHE_KEY,
     });
   });
 
@@ -92,6 +122,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             buster: 'v1',
           }}
         >
+          <ClearCacheOnUserChange />
           <ThemeProvider>
             <AuthGuard>{children}</AuthGuard>
           </ThemeProvider>
@@ -99,6 +130,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         </PersistQueryClientProvider>
       ) : (
         <QueryClientProvider client={queryClient}>
+          <ClearCacheOnUserChange />
           <ThemeProvider>
             <AuthGuard>{children}</AuthGuard>
           </ThemeProvider>
