@@ -21,6 +21,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { Card, CardNotice } from '@/components/ui/Card';
 import { TransactionRow } from '@/components/TransactionRow';
+import { MovementsTabs } from '@/components/MovementsTabs';
 
 const TYPE_LABELS: Record<string, string> = {
   expense: 'Gastos',
@@ -215,6 +216,7 @@ function TransactionsContent() {
           onClick: () => openModal(),
         }}
       >
+        <MovementsTabs />
         {!hasNoData && (
           <div className="flex gap-2">
             <div className="relative flex-1">

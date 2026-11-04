@@ -33,6 +33,8 @@ export type Transaction = {
   category_icon?: string;
   type: 'expense' | 'income';
   account_id: number;
+  /** Who recorded it; for shared movements, the member who paid. */
+  user_id?: string;
   tag_ids?: number[];
   date: string;
   recurring_rule_id?: number;

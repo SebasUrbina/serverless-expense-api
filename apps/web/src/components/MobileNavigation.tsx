@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useTransactionModal } from '@/store/useTransactionModal';
-import { isActivePath, mainNavigation } from '@/lib/navigation';
+import { isActiveItem, mainNavigation } from '@/lib/navigation';
 
 function NavLink({
   item,
@@ -51,7 +51,7 @@ export function MobileNavigation() {
               <NavLink
                 key={item.href}
                 item={item}
-                active={isActivePath(pathname, item.href)}
+                active={isActiveItem(pathname, item)}
               />
             ),
         )}
@@ -67,7 +67,7 @@ export function MobileNavigation() {
           <NavLink
             key={item.href}
             item={item}
-            active={isActivePath(pathname, item.href)}
+            active={isActiveItem(pathname, item)}
           />
         ))}
       </nav>
