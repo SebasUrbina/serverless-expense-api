@@ -53,8 +53,9 @@ export function CustomSelect({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`flex w-full items-center justify-between rounded-xl transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
-          size === 'small' ? 'h-[42px] px-3' : 'px-4 py-3'
+        aria-expanded={isOpen}
+        className={`focus-ring flex w-full items-center justify-between rounded-xl transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+          size === 'small' ? 'h-10 px-3' : 'px-4 py-3'
         } ${isOpen ? '' : 'hover:bg-(--bg-inset)'}`}
         style={{
           background: 'var(--bg-card)',
@@ -81,10 +82,11 @@ export function CustomSelect({
 
       {isOpen && !disabled && (
         <div
-          className="animate-in fade-in zoom-in-95 absolute left-0 z-50 mt-2 max-h-60 w-full min-w-[140px] overflow-hidden overflow-y-auto rounded-2xl p-1.5 shadow-[0_8px_30px_rgb(0,0,0,0.5)] duration-200 sm:right-auto"
+          className="absolute left-0 z-50 mt-2 max-h-60 w-full min-w-[140px] overflow-hidden overflow-y-auto rounded-2xl p-1.5 sm:right-auto"
           style={{
             background: 'var(--bg-card)',
             border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-elevated)',
           }}
         >
           {options.length === 0 ? (
@@ -106,10 +108,10 @@ export function CustomSelect({
                       onChange(option.value);
                       setIsOpen(false);
                     }}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                    className={`focus-ring flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       isSelected
-                        ? 'bg-emerald-500/10 font-medium text-emerald-500'
-                        : 'font-medium hover:bg-(--bg-inset)'
+                        ? 'bg-accent-soft text-accent'
+                        : 'hover:bg-(--bg-inset)'
                     }`}
                     style={{ color: isSelected ? '' : 'var(--text-primary)' }}
                   >
@@ -117,7 +119,7 @@ export function CustomSelect({
                       {option.label}
                     </span>
                     {isSelected && (
-                      <Check size={16} className="shrink-0 text-emerald-500" />
+                      <Check size={16} className="text-accent shrink-0" />
                     )}
                   </button>
                 );

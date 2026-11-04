@@ -5,6 +5,7 @@ import type { Transaction } from '../types/api';
 export interface TransactionFilters {
   search: string;
   month: string;
+  type: Transaction['type'] | '';
   category: number | '';
   tag: number | '';
   shared: boolean;
@@ -33,6 +34,7 @@ export function transactionListOptions(
         page: String(pageParam),
       });
       if (filters.search) params.set('search', filters.search);
+      if (filters.type) params.set('type', filters.type);
       if (filters.category !== '')
         params.set('category_id', String(filters.category));
       if (filters.tag !== '') params.set('tag_id', String(filters.tag));

@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useTags, useCreateTag, useDeleteTag } from '@/hooks/usePreferences';
-import { Plus, Trash2, Hash } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { PrimaryButton, SettingsListEmpty, fieldClass } from './settings/ui';
 
 export function TagManager() {
   const { data, isLoading } = useTags();
@@ -21,77 +22,65 @@ export function TagManager() {
     if (!name.trim()) return;
     createMutation.mutate(
       { name: name.trim() },
-      {
-        onSuccess: () => setName(''),
-      },
+      { onSuccess: () => setName('') },
     );
   };
 
   return (
-    <div className="space-y-4">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-card border-border-subtle space-y-3 rounded-2xl border p-3"
-      >
-        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <div className="min-w-0 flex-1">
-            <label className="text-muted mb-1 block px-0.5 text-[10px] font-semibold tracking-wider uppercase sm:hidden">
-              Nombre de la etiqueta
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. vacaciones, trabajo, casa"
-              className="focus:ring-accent/30 bg-card border-border text-primary w-full rounded-xl border px-3.5 py-3 text-sm transition-all focus:ring-2 focus:outline-none"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!name.trim() || createMutation.isPending}
-            className="bg-accent flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50 sm:px-5"
-          >
-            {createMutation.isPending ? (
-              <LoadingSpinner size="sm" color="white" />
-            ) : (
-              <>
-                <Plus size={14} />
-                <span>Agregar etiqueta</span>
-              </>
-            )}
-          </button>
-        </div>
-      </form>
-
+    <div className="space-y-6">
       {isLoading ? (
         <div className="flex justify-center py-4">
           <LoadingSpinner color="muted" />
         </div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
+      ) : tags.length > 0 ? (
+        <ul aria-label="Tus etiquetas" className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <div
+            <li
               key={tag.id}
-              className="group bg-card border-border text-primary hover:bg-card-hover flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all"
+              className="bg-inset text-primary flex h-9 items-center gap-1 rounded-full pr-1 pl-3.5 text-sm font-medium"
             >
-              <Hash size={12} className="text-muted" />
-              <span>{tag.name}</span>
+              {tag.name}
               <button
+                type="button"
                 onClick={() => setTagToDelete(tag.id)}
                 disabled={deleteMutation.isPending}
-                className="ml-0.5 text-red-400 transition-opacity hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100"
+                aria-label={`Eliminar etiqueta ${tag.name}`}
+                className="text-muted hover:text-expense focus-ring flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-red-500/10"
               >
-                <Trash2 size={12} />
+                <X size={14} />
               </button>
-            </div>
+            </li>
           ))}
-          {tags.length === 0 && (
-            <p className="text-muted w-full py-2 text-sm">
-              Aún no tienes etiquetas. Agrega una para empezar a organizar.
-            </p>
-          )}
-        </div>
+        </ul>
+      ) : (
+        <SettingsListEmpty>
+          Aún no tienes etiquetas. Úsalas para agrupar movimientos de distintas
+          categorías, como un viaje o un proyecto.
+        </SettingsListEmpty>
       )}
+
+      <form onSubmit={handleSubmit} aria-label="Nueva etiqueta">
+        <h3 className="text-primary mb-3 text-sm font-semibold">
+          Nueva etiqueta
+        </h3>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            aria-label="Nombre de la etiqueta"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. vacaciones, trabajo, casa"
+            className={fieldClass}
+          />
+          <PrimaryButton
+            type="submit"
+            loading={createMutation.isPending}
+            disabled={!name.trim()}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Agregar
+          </PrimaryButton>
+        </div>
+      </form>
 
       <ConfirmDeleteModal
         isOpen={tagToDelete !== null}
@@ -100,7 +89,7 @@ export function TagManager() {
           if (tagToDelete !== null) deleteMutation.mutate(tagToDelete);
         }}
         title="Eliminar etiqueta"
-        message="¿Estás seguro? Borrar esta etiqueta eliminará su asociación en todas las transacciones."
+        message="La etiqueta se quitará de todos los movimientos que la usan."
       />
     </div>
   );

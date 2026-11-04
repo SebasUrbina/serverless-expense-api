@@ -1,5 +1,15 @@
 @import 'tailwindcss';
 
+/* `dark:` follows the theme chosen in the app, not the OS preference. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
 @theme {
   --color-brand-500: #6366f1;
   --color-success-500: #30d158;
@@ -7,8 +17,11 @@
   --color-balance: var(--color-balance);
   --color-expense: var(--color-expense);
   --color-income: var(--color-income);
+  --color-warning: var(--color-warning);
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
 
   /* Semantic Theme Variables Map */
   --color-base: var(--bg-base);
@@ -32,9 +45,12 @@
 :root {
   --color-balance: #7c3aed;
   --color-expense: #dc2626;
-  --color-income: #059669;
-  --accent: #10b981;
-  --accent-soft: rgba(16, 185, 129, 0.12);
+  /* Brand greens from the logo (icon.tsx); white text on --accent is 5.3:1. */
+  --color-income: #1e7a4e;
+  --accent: #1e7a4e;
+  --accent-hover: #186640;
+  --accent-soft: rgba(30, 122, 78, 0.1);
+  --on-accent: #ffffff;
 
   --bg-base: #f6f7f9;
   --bg-card: #ffffff;
@@ -55,19 +71,43 @@
   --shadow-elevated:
     0 4px 12px rgba(16, 24, 40, 0.06), 0 2px 4px rgba(16, 24, 40, 0.04);
 
-  --emerald-soft: #d1fae5;
   --red-soft: #fee2e2;
+  --color-warning: #d97706;
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-thumb-hover: #94a3b8;
+
+  /* Category palette: avoids pure green/red, which mean income/expense. */
+  --cat-1: #6366f1;
+  --cat-2: #f59e0b;
+  --cat-3: #0ea5e9;
+  --cat-4: #ec4899;
+  --cat-5: #8b5cf6;
+  --cat-6: #f97316;
+  --cat-7: #14b8a6;
+  --cat-8: #ca8a04;
+
+  /* Hero surface: brand greens from the logo; white text is ≥5.3:1. */
+  --hero-bg: linear-gradient(150deg, #1e7a4e 0%, #155c3a 100%);
+  --hero-border: transparent;
+  --hero-text: #ffffff;
+  --hero-text-secondary: rgba(255, 255, 255, 0.8);
+  --hero-text-muted: rgba(255, 255, 255, 0.66);
+  --hero-divider: rgba(255, 255, 255, 0.2);
+  --hero-income: #b7f5d6;
+  --hero-expense: #ffd1cc;
+  --hero-warning: #fcd34d;
 }
 
 /* ── Dark Theme (Clean · high contrast, true black) ────── */
 [data-theme='dark'] {
   --color-balance: #a78bfa;
   --color-expense: #f87171;
-  --color-income: #34d399;
-  --accent: #10b981;
-  --accent-soft: rgba(16, 185, 129, 0.16);
+  /* Light brand green on black needs dark text on top of it. */
+  --color-income: #4edda0;
+  --accent: #4edda0;
+  --accent-hover: #6fe6b4;
+  --accent-soft: rgba(78, 221, 160, 0.14);
+  --on-accent: #04140c;
 
   /* Base */
   --bg-base: #000000;
@@ -93,12 +133,45 @@
   --shadow-elevated: 0 6px 20px rgba(0, 0, 0, 0.6);
 
   /* Accents */
-  --emerald-soft: rgba(16, 185, 129, 0.15);
   --red-soft: rgba(239, 68, 68, 0.15);
+  --color-warning: #fbbf24;
 
   /* Scroll */
   --scrollbar-thumb: #26262a;
   --scrollbar-thumb-hover: #3f3f46;
+
+  --cat-1: #818cf8;
+  --cat-2: #fbbf24;
+  --cat-3: #38bdf8;
+  --cat-4: #f472b6;
+  --cat-5: #a78bfa;
+  --cat-6: #fb923c;
+  --cat-7: #2dd4bf;
+  --cat-8: #facc15;
+
+  --hero-bg: linear-gradient(150deg, #0f3626 0%, #08211a 100%);
+  --hero-border: #1c4a35;
+  --hero-text: #f5f5f7;
+  --hero-text-secondary: rgba(245, 245, 247, 0.74);
+  --hero-text-muted: rgba(245, 245, 247, 0.56);
+  --hero-divider: rgba(78, 221, 160, 0.2);
+  --hero-income: #4edda0;
+  --hero-expense: #fca5a5;
+  --hero-warning: #fbbf24;
+}
+
+/* Re-points the semantic utilities so any content inside reads on the hero. */
+.tone-hero {
+  background: var(--hero-bg);
+  border-color: var(--hero-border);
+  --color-primary: var(--hero-text);
+  --color-secondary: var(--hero-text-secondary);
+  --color-muted: var(--hero-text-muted);
+  --color-border: var(--hero-divider);
+  --color-income: var(--hero-income);
+  --color-expense: var(--hero-expense);
+  --color-warning: var(--hero-warning);
+  --accent: var(--hero-text);
 }
 
 /* ── Base ────────────────────────────────────────────── */
@@ -144,8 +217,7 @@ input[type='range']::-webkit-slider-thumb {
   border-radius: 50%;
   background: white;
   cursor: pointer;
-  border: 2px solid #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  border: 2px solid var(--accent);
   transition: transform 0.15s ease;
 }
 input[type='range']::-webkit-slider-thumb:hover {
@@ -157,8 +229,7 @@ input[type='range']::-moz-range-thumb {
   border-radius: 50%;
   background: white;
   cursor: pointer;
-  border: 2px solid #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  border: 2px solid var(--accent);
 }
 
 /* ── Theme-aware utilities ───────────────────────────── */
@@ -336,10 +407,6 @@ select option {
   animation: login-fade-up 0.5s ease-out both;
 }
 
-.recurring-fade-up {
-  animation: login-fade-up 0.5s ease-out both;
-}
-
 @keyframes seva-slide-up {
   from {
     opacity: 0;
@@ -353,4 +420,24 @@ select option {
 
 .animate-seva-slide-up {
   animation: seva-slide-up 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-fade-up,
+  .animate-seva-slide-up,
+  .animate-tx-success,
+  .animate-tx-circle,
+  .animate-tx-check,
+  .animate-tx-glow-1,
+  .animate-tx-glow-2,
+  .animate-tx-amount,
+  .animate-tx-label {
+    /* Jump to the end state: some elements start hidden (e.g. the SVG check). */
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+  .modal-sheet,
+  .modal-backdrop {
+    transition: none;
+  }
 }

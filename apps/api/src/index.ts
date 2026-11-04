@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { TransactionCreate } from './endpoints/transactionCreate';
 import { TransactionDelete } from './endpoints/transactionDelete';
 import { TransactionFetch } from './endpoints/transactionFetch';
+import { TransactionSuggestions } from './endpoints/transactionSuggestions';
 import { TransactionList } from './endpoints/transactionList';
 import { TransactionUpdate } from './endpoints/transactionUpdate';
 import { ApiKeyFetch } from './endpoints/apiKeyFetch';
@@ -84,6 +85,7 @@ openapi.get(
   '/api/transactions/summary/category-trend',
   TransactionCategoryTrend,
 );
+openapi.get('/api/transactions/suggestions', TransactionSuggestions);
 openapi.post('/api/transactions', TransactionCreate);
 openapi.get('/api/transactions/:id', TransactionFetch);
 openapi.put('/api/transactions/:id', TransactionUpdate);

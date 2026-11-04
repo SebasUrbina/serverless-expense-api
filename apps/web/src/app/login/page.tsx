@@ -138,17 +138,13 @@ export default function LoginPage() {
           LEFT — Hero + Benefits
          ══════════════════════════════════════════════════ */}
       <div className="relative flex flex-col justify-center overflow-hidden px-6 pt-16 pb-8 sm:px-10 sm:py-12 lg:w-[55%] lg:px-16 lg:py-0">
-        {/* Background gradient orbs */}
-        <div className="pointer-events-none absolute top-1/4 left-1/3 h-80 w-80 rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="pointer-events-none absolute right-1/4 bottom-1/3 h-96 w-96 rounded-full bg-emerald-600/5 blur-[140px]" />
-
         <div className="relative z-10 mx-auto max-w-lg lg:mx-0">
           {/* Logo */}
           <h1
             className="login-fade-up mb-4 text-5xl font-extrabold tracking-tighter sm:text-6xl lg:text-7xl"
             style={{ color: 'var(--text-primary)' }}
           >
-            Se<span className="text-emerald-500">va</span>
+            Se<span className="text-accent">va</span>
           </h1>
 
           {/* Headline */}
@@ -177,12 +173,11 @@ export default function LoginPage() {
                 className="login-fade-up flex items-start gap-4"
                 style={{ animationDelay: `${240 + i * 100}ms` }}
               >
-                <div
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ background: 'var(--emerald-soft)' }}
-                >
-                  <b.icon size={20} className="text-emerald-500" />
-                </div>
+                <b.icon
+                  size={20}
+                  className="text-accent mt-0.5 shrink-0"
+                  aria-hidden="true"
+                />
                 <div>
                   <p
                     className="text-sm font-semibold sm:text-base"
@@ -251,7 +246,9 @@ export default function LoginPage() {
                   setMode('login');
                   resetForm();
                 }}
-                className="flex-1 rounded-lg py-2 text-sm font-semibold transition-all"
+                type="button"
+                aria-pressed={mode === 'login'}
+                className="focus-ring flex-1 rounded-lg py-2 text-sm font-semibold transition-colors"
                 style={
                   mode === 'login'
                     ? {
@@ -262,14 +259,16 @@ export default function LoginPage() {
                     : { color: 'var(--text-muted)' }
                 }
               >
-                Iniciar Sesión
+                Iniciar sesión
               </button>
               <button
                 onClick={() => {
                   setMode('signup');
                   resetForm();
                 }}
-                className="flex-1 rounded-lg py-2 text-sm font-semibold transition-all"
+                type="button"
+                aria-pressed={mode === 'signup'}
+                className="focus-ring flex-1 rounded-lg py-2 text-sm font-semibold transition-colors"
                 style={
                   mode === 'signup'
                     ? {
@@ -280,18 +279,24 @@ export default function LoginPage() {
                     : { color: 'var(--text-muted)' }
                 }
               >
-                Crear Cuenta
+                Crear cuenta
               </button>
             </div>
 
             {/* Alerts */}
             {error && (
-              <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-sm font-medium text-red-400">
+              <div
+                role="alert"
+                className="text-expense mb-5 rounded-xl bg-red-500/10 p-3.5 text-sm font-medium"
+              >
                 {error}
               </div>
             )}
             {success && (
-              <div className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3.5 text-sm font-medium text-emerald-400">
+              <div
+                role="status"
+                className="text-income bg-accent-soft mb-5 rounded-xl p-3.5 text-sm font-medium"
+              >
                 {success}
               </div>
             )}
@@ -304,8 +309,7 @@ export default function LoginPage() {
               {mode === 'signup' && (
                 <div>
                   <label
-                    className="mb-1.5 block pl-0.5 text-xs font-semibold tracking-wider uppercase"
-                    style={{ color: 'var(--text-muted)' }}
+                    className="text-secondary mb-1.5 block pl-0.5 text-sm font-medium"
                     htmlFor="displayName"
                   >
                     Tu nombre
@@ -321,7 +325,7 @@ export default function LoginPage() {
                       id="displayName"
                       type="text"
                       required
-                      className="w-full rounded-xl py-3 pr-4 pl-10 text-sm font-medium transition-all focus:ring-2 focus:ring-emerald-500/40 focus:outline-none"
+                      className="focus:ring-accent/40 w-full rounded-xl py-3 pr-4 pl-10 text-sm font-medium transition-all focus:ring-2 focus:outline-none"
                       style={{
                         background: 'var(--bg-inset)',
                         border: '1px solid var(--border)',
@@ -337,8 +341,7 @@ export default function LoginPage() {
 
               <div>
                 <label
-                  className="mb-1.5 block pl-0.5 text-xs font-semibold tracking-wider uppercase"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="text-secondary mb-1.5 block pl-0.5 text-sm font-medium"
                   htmlFor="email"
                 >
                   Correo electrónico
@@ -354,7 +357,7 @@ export default function LoginPage() {
                     id="email"
                     type="email"
                     required
-                    className="w-full rounded-xl py-3 pr-4 pl-10 text-sm font-medium transition-all focus:ring-2 focus:ring-emerald-500/40 focus:outline-none"
+                    className="focus:ring-accent/40 w-full rounded-xl py-3 pr-4 pl-10 text-sm font-medium transition-all focus:ring-2 focus:outline-none"
                     style={{
                       background: 'var(--bg-inset)',
                       border: '1px solid var(--border)',
@@ -369,8 +372,7 @@ export default function LoginPage() {
 
               <div>
                 <label
-                  className="mb-1.5 block pl-0.5 text-xs font-semibold tracking-wider uppercase"
-                  style={{ color: 'var(--text-muted)' }}
+                  className="text-secondary mb-1.5 block pl-0.5 text-sm font-medium"
                   htmlFor="password"
                 >
                   Contraseña
@@ -387,7 +389,7 @@ export default function LoginPage() {
                     type="password"
                     required
                     minLength={6}
-                    className="w-full rounded-xl py-3 pr-4 pl-10 text-sm font-medium transition-all focus:ring-2 focus:ring-emerald-500/40 focus:outline-none"
+                    className="focus:ring-accent/40 w-full rounded-xl py-3 pr-4 pl-10 text-sm font-medium transition-all focus:ring-2 focus:outline-none"
                     style={{
                       background: 'var(--bg-inset)',
                       border: '1px solid var(--border)',
@@ -403,13 +405,13 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading || googleLoading}
-                className="group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-emerald-500 px-4 py-3 font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:bg-emerald-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                className="bg-accent focus-ring text-on-accent hover:bg-accent-hover mt-1 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <Loader2 size={19} className="animate-spin" />
                 ) : (
                   <>
-                    {mode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                    {mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
                     {mode === 'login' ? (
                       <ArrowRight size={17} className="opacity-80" />
                     ) : (
@@ -428,9 +430,9 @@ export default function LoginPage() {
                   style={{ borderTop: '1px solid var(--border)' }}
                 />
               </div>
-              <div className="relative flex justify-center text-[11px]">
+              <div className="relative flex justify-center text-xs">
                 <span
-                  className="px-3 font-semibold tracking-widest uppercase"
+                  className="px-3 font-medium"
                   style={{
                     background: 'var(--bg-card)',
                     color: 'var(--text-muted)',
@@ -446,7 +448,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading || googleLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 font-semibold transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className="focus-ring flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3 font-semibold transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               style={{
                 background: 'var(--bg-inset)',
                 border: '1px solid var(--border)',

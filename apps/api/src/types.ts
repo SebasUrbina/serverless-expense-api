@@ -69,8 +69,8 @@ export const RecurringRule = z.object({
   end_date: Str({
     required: false,
     example: '2025-12-31',
-    description: 'Optional end date',
-  }),
+    description: 'Optional end date; null removes it',
+  }).nullable(),
   is_active: Num({ required: false, description: '1 = active, 0 = paused' }),
   created_at: DateTime({ required: false }),
 });

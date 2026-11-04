@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 type LoadingSpinnerProps = {
   size?: 'sm' | 'md' | 'lg';
-  color?: 'accent' | 'emerald' | 'muted' | 'white';
+  color?: 'accent' | 'current' | 'muted';
   className?: string;
 };
 
@@ -17,9 +17,8 @@ const sizeClasses = {
 
 const colorClasses = {
   accent: 'text-accent',
-  emerald: 'text-emerald-500',
+  current: 'text-current',
   muted: 'text-muted',
-  white: 'text-white',
 };
 
 export function LoadingSpinner({
@@ -38,7 +37,7 @@ type LoadingStateProps = {
   minHeight?: string;
   text?: string;
   size?: 'sm' | 'md' | 'lg';
-  color?: 'accent' | 'emerald' | 'muted' | 'white';
+  color?: 'accent' | 'current' | 'muted';
   className?: string;
 };
 

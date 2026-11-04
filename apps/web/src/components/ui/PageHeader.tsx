@@ -9,7 +9,8 @@ type PrimaryAction = {
   label: string;
   onClick: () => void;
   icon?: ReactNode;
-  variant?: 'accent' | 'emerald';
+  /** By default mobile relies on the navigation bar's add button. */
+  showOnMobile?: boolean;
 };
 
 type PageHeaderProps = {
@@ -25,6 +26,8 @@ type PageHeaderProps = {
   showMobileSettings?: boolean;
   /** Extra content rendered below title or alongside controls (e.g. summary pills) */
   children?: ReactNode;
+  /** Narrow pages (lists) center a reading-width column on desktop. */
+  narrow?: boolean;
   className?: string;
 };
 
@@ -36,11 +39,14 @@ export function PageHeader({
   monthSelector,
   showMobileSettings = true,
   children,
+  narrow = false,
   className = '',
 }: PageHeaderProps) {
   return (
     <div className={`px-4 pt-5 pb-4 sm:px-6 sm:pt-6 ${className}`}>
-      <div className="mx-auto flex max-w-7xl flex-col gap-3">
+      <div
+        className={`mx-auto flex flex-col gap-3 ${narrow ? 'max-w-3xl' : 'max-w-7xl'}`}
+      >
         <div className="flex items-center justify-between gap-3 sm:items-start sm:gap-4">
           <div className="min-w-0 flex-1 pr-1">
             {customTitle ? (
@@ -59,17 +65,17 @@ export function PageHeader({
             {showMobileSettings && (
               <Link
                 href="/settings"
-                className="bg-card border-border text-secondary hover:text-primary hover:bg-card-hover flex h-10 w-10 items-center justify-center rounded-2xl border transition-all active:scale-95 sm:hidden"
+                className="bg-card border-border text-secondary hover:text-primary hover:bg-card-hover focus-ring flex h-10 w-10 items-center justify-center rounded-xl border transition-colors sm:hidden"
                 aria-label="Ajustes"
               >
-                <Settings size={18} className="text-accent" />
+                <Settings size={18} />
               </Link>
             )}
 
             {primaryAction && (
               <button
                 onClick={primaryAction.onClick}
-                className="bg-accent hidden items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition-all hover:scale-[1.02] hover:bg-emerald-600 active:scale-[0.98] active:bg-emerald-700 sm:flex"
+                className={`bg-accent focus-ring text-on-accent hover:bg-accent-hover min-h-10 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap transition-colors sm:flex sm:px-4 ${primaryAction.showOnMobile ? 'flex' : 'hidden'}`}
               >
                 {primaryAction.icon ? (
                   primaryAction.icon

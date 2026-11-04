@@ -8,7 +8,7 @@ type Props = {
   className?: string;
 };
 const variantStyles = {
-  title: 'text-2xl sm:text-3xl tracking-tight',
+  title: 'truncate text-xl sm:text-3xl tracking-tight',
   subtitle: 'text-sm mt-0.5 hidden sm:block',
   body: 'text-sm',
   caption: 'text-xs',
@@ -26,7 +26,7 @@ function Text({
   variant = 'body',
   weight = 'normal',
   children,
-  className,
+  className = '',
 }: Props) {
   return (
     <Component

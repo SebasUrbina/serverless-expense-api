@@ -8,9 +8,18 @@ import {
   useDeleteGroup,
   useUpdateGroup,
 } from '@/hooks/usePreferences';
-import { Plus, Trash2, Copy, Check, LogIn, Pencil } from 'lucide-react';
+import { Trash2, Copy, Check, Pencil } from 'lucide-react';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import {
+  IconButton,
+  PrimaryButton,
+  SegmentedControl,
+  SettingsList,
+  SettingsListEmpty,
+  fieldClass,
+  secondaryButtonClass,
+} from './settings/ui';
 
 export function GroupManager() {
   const { data, isLoading } = useGroups();
@@ -19,13 +28,12 @@ export function GroupManager() {
   const deleteMutation = useDeleteGroup();
   const updateMutation = useUpdateGroup();
 
-  const [showCreate, setShowCreate] = useState(false);
-  const [showJoin, setShowJoin] = useState(false);
+  const [mode, setMode] = useState<'create' | 'join'>('create');
   const [groupName, setGroupName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [copiedGroupId, setCopiedGroupId] = useState<number | null>(null);
   const [groupToDelete, setGroupToDelete] = useState<number | null>(null);
-  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState('');
 
   const groups = data?.groups || [];
@@ -35,12 +43,7 @@ export function GroupManager() {
     if (!groupName.trim()) return;
     createMutation.mutate(
       { name: groupName.trim(), nickname: '' },
-      {
-        onSuccess: () => {
-          setGroupName('');
-          setShowCreate(false);
-        },
-      },
+      { onSuccess: () => setGroupName('') },
     );
   };
 
@@ -49,12 +52,16 @@ export function GroupManager() {
     if (!joinCode.trim()) return;
     joinMutation.mutate(
       { invite_code: joinCode.trim(), nickname: '' },
-      {
-        onSuccess: () => {
-          setJoinCode('');
-          setShowJoin(false);
-        },
-      },
+      { onSuccess: () => setJoinCode('') },
+    );
+  };
+
+  const saveName = (e: React.FormEvent, id: number) => {
+    e.preventDefault();
+    if (!editName.trim()) return;
+    updateMutation.mutate(
+      { id, name: editName.trim() },
+      { onSuccess: () => setEditingId(null) },
     );
   };
 
@@ -65,208 +72,174 @@ export function GroupManager() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => {
-            setShowJoin(!showJoin);
-            setShowCreate(false);
-          }}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm font-semibold transition-colors ${
-            showJoin
-              ? 'bg-card border-border text-primary shadow-sm'
-              : 'border-border text-secondary hover:text-primary'
-          }`}
-        >
-          <LogIn size={14} /> Unirme
-        </button>
-        <button
-          onClick={() => {
-            setShowCreate(!showCreate);
-            setShowJoin(false);
-          }}
-          className="bg-accent flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-600"
-        >
-          <Plus size={14} /> Crear grupo
-        </button>
-      </div>
-
-      {/* Create Form */}
-      {showCreate && (
-        <form onSubmit={handleCreate} className="flex gap-2">
-          <input
-            type="text"
-            required
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Nombre del grupo (ej. Pareja, Viaje)"
-            className="focus:ring-accent/30 bg-card border-border text-primary min-w-0 flex-1 rounded-xl border px-3 py-2.5 text-sm focus:ring-2 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="bg-accent shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
-          >
-            {createMutation.isPending ? (
-              <LoadingSpinner size="sm" color="white" />
-            ) : (
-              'Crear'
-            )}
-          </button>
-        </form>
-      )}
-
-      {/* Join Form */}
-      {showJoin && (
-        <form onSubmit={handleJoin} className="flex gap-2">
-          <input
-            type="text"
-            required
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-            placeholder="Código de invitación"
-            maxLength={6}
-            className="focus:ring-accent/30 bg-card border-border text-primary w-32 rounded-xl border px-4 py-2.5 text-center font-mono text-sm tracking-widest uppercase focus:ring-2 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={joinMutation.isPending}
-            className="bg-card border-border text-primary hover:bg-card-hover shrink-0 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors"
-          >
-            {joinMutation.isPending ? (
-              <LoadingSpinner size="sm" color="accent" />
-            ) : (
-              'Unirme'
-            )}
-          </button>
-          {joinMutation.isError && (
-            <p className="self-center text-xs text-red-400">
-              Código inválido o ya sos miembro.
-            </p>
-          )}
-        </form>
-      )}
-
-      {/* Groups List */}
+    <div className="space-y-6">
       {isLoading ? (
         <div className="flex justify-center py-6">
           <LoadingSpinner color="muted" />
         </div>
       ) : groups.length > 0 ? (
-        <div className="space-y-2">
+        <SettingsList label="Tus grupos">
           {groups.map((group) => (
-            <div
-              key={group.id}
-              className="group/card bg-card border-border hover:border-border-subtle rounded-xl border p-4 transition-colors"
-            >
-              <div className="mb-3 flex items-start justify-between">
-                <div className="min-w-0 flex-1">
-                  {editingGroupId === group.id ? (
-                    <input
-                      autoFocus
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && editName.trim()) {
-                          updateMutation.mutate({
-                            id: group.id,
-                            name: editName.trim(),
-                          });
-                          setEditingGroupId(null);
-                        }
-                        if (e.key === 'Escape') setEditingGroupId(null);
-                      }}
-                      onBlur={() => {
-                        if (editName.trim() && editName.trim() !== group.name) {
-                          updateMutation.mutate({
-                            id: group.id,
-                            name: editName.trim(),
-                          });
-                        }
-                        setEditingGroupId(null);
-                      }}
-                      className="focus:ring-accent/30 bg-inset border-border text-primary w-full rounded-lg border px-2 py-0.5 text-sm font-bold focus:ring-2 focus:outline-none"
-                    />
-                  ) : (
-                    <h4
-                      className="group/name text-primary flex cursor-pointer items-center gap-1.5 text-sm font-bold transition-colors"
+            <li key={group.id} className="px-4 py-3.5">
+              {editingId === group.id ? (
+                <form
+                  onSubmit={(e) => saveName(e, group.id)}
+                  className="flex flex-col gap-2 sm:flex-row"
+                >
+                  <input
+                    autoFocus
+                    aria-label="Nombre del grupo"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className={fieldClass}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className={secondaryButtonClass}
+                    >
+                      Cancelar
+                    </button>
+                    <PrimaryButton
+                      type="submit"
+                      loading={updateMutation.isPending}
+                      disabled={!editName.trim()}
+                    >
+                      Guardar
+                    </PrimaryButton>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-primary truncate text-sm font-semibold">
+                      {group.name}
+                    </p>
+                    <p className="text-muted mt-0.5 truncate text-xs">
+                      {group.members.map((m) => m.nickname).join(', ')}
+                    </p>
+                  </div>
+                  <div className="-mr-2 flex shrink-0 items-center">
+                    {group.invite_code && (
+                      <button
+                        type="button"
+                        onClick={() => copyCode(group.invite_code!, group.id)}
+                        aria-label={`Copiar código de invitación ${group.invite_code}`}
+                        className="text-secondary hover:text-primary hover:bg-inset focus-ring flex h-9 items-center gap-1.5 rounded-lg px-2.5 font-mono text-xs transition-colors"
+                      >
+                        {copiedGroupId === group.id ? (
+                          <>
+                            <Check size={14} className="text-accent" />
+                            Copiado
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={14} />
+                            {group.invite_code}
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <IconButton
+                      label={`Renombrar ${group.name}`}
                       onClick={() => {
-                        setEditingGroupId(group.id);
+                        setEditingId(group.id);
                         setEditName(group.name);
                       }}
                     >
-                      {group.name}
-                      <Pencil
-                        size={11}
-                        className="text-muted opacity-0 transition-opacity group-hover/name:opacity-100"
-                      />
-                    </h4>
-                  )}
-                  <p className="text-muted mt-0.5 text-[11px]">
-                    {group.members.length} miembro
-                    {group.members.length !== 1 ? 's' : ''}
-                  </p>
+                      <Pencil size={15} />
+                    </IconButton>
+                    {group.invite_code && (
+                      <IconButton
+                        label={`Eliminar ${group.name}`}
+                        tone="danger"
+                        onClick={() => setGroupToDelete(group.id)}
+                      >
+                        <Trash2 size={15} />
+                      </IconButton>
+                    )}
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {group.invite_code && (
-                    <button
-                      onClick={() => copyCode(group.invite_code!, group.id)}
-                      className="bg-inset border-border text-secondary hover:text-primary flex items-center gap-1 rounded-lg border px-2.5 py-1 font-mono text-[11px] transition-colors"
-                      title="Copiar código de invitación"
-                    >
-                      {copiedGroupId === group.id ? (
-                        <>
-                          <Check size={11} className="text-emerald-400" />{' '}
-                          Copiado
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={11} /> {group.invite_code}
-                        </>
-                      )}
-                    </button>
-                  )}
-                  {group.invite_code && (
-                    <button
-                      onClick={() => setGroupToDelete(group.id)}
-                      className="rounded-lg p-1.5 text-red-400 opacity-0 transition-all group-hover/card:opacity-100 hover:bg-red-500/10"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {group.members.map((member) => (
-                  <span
-                    key={member.user_id}
-                    className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-500"
-                  >
-                    {member.nickname}
-                  </span>
-                ))}
-              </div>
-            </div>
+              )}
+            </li>
           ))}
-        </div>
+        </SettingsList>
       ) : (
-        <p className="text-muted py-4 text-center text-sm">
-          Aún no tienes grupos. Crea uno o únete con un código de invitación.
-        </p>
+        <SettingsListEmpty>
+          Aún no tienes grupos. Crea uno para dividir gastos o únete con un
+          código de invitación.
+        </SettingsListEmpty>
       )}
+
+      <div>
+        <SegmentedControl
+          label="Agregar grupo"
+          value={mode}
+          options={[
+            { value: 'create', label: 'Crear grupo' },
+            { value: 'join', label: 'Unirme con código' },
+          ]}
+          onChange={setMode}
+          className="mb-3 sm:max-w-sm"
+        />
+        {mode === 'create' ? (
+          <form
+            onSubmit={handleCreate}
+            aria-label="Crear grupo"
+            className="flex flex-col gap-2 sm:flex-row"
+          >
+            <input
+              aria-label="Nombre del grupo"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Ej. Pareja, Viaje a Chiloé"
+              className={fieldClass}
+            />
+            <PrimaryButton
+              type="submit"
+              loading={createMutation.isPending}
+              disabled={!groupName.trim()}
+            >
+              Crear
+            </PrimaryButton>
+          </form>
+        ) : (
+          <form onSubmit={handleJoin} aria-label="Unirme a un grupo">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                aria-label="Código de invitación"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Código de 6 caracteres"
+                maxLength={6}
+                className={`${fieldClass} font-mono tracking-widest uppercase sm:max-w-56`}
+              />
+              <PrimaryButton
+                type="submit"
+                loading={joinMutation.isPending}
+                disabled={!joinCode.trim()}
+              >
+                Unirme
+              </PrimaryButton>
+            </div>
+            {joinMutation.isError && (
+              <p role="alert" className="text-expense mt-2 text-sm">
+                El código no es válido o ya eres parte de ese grupo.
+              </p>
+            )}
+          </form>
+        )}
+      </div>
 
       <ConfirmDeleteModal
         isOpen={groupToDelete !== null}
         onClose={() => setGroupToDelete(null)}
         onConfirm={() => {
-          if (groupToDelete !== null) {
-            deleteMutation.mutate(groupToDelete);
-            setGroupToDelete(null);
-          }
+          if (groupToDelete !== null) deleteMutation.mutate(groupToDelete);
         }}
         title="Eliminar grupo"
-        message="¿Estás seguro? Todos los miembros serán removidos. Las transacciones compartidas existentes mantendrán sus datos de división."
+        message="Todos los miembros saldrán del grupo. Los gastos compartidos que ya existen mantienen su división."
       />
     </div>
   );

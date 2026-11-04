@@ -10,6 +10,9 @@ import { useTransactionModal } from '@/store/useTransactionModal';
 import { CreateRecurringModal } from './CreateRecurringModal';
 import { useRecurringModal } from '@/store/useRecurringModal';
 import { PullToRefresh } from './PullToRefresh';
+import { UndoDeleteToast } from './UndoDeleteToast';
+import { CategoryDetailSheet } from './CategoryDetailSheet';
+import { SyncStatusBanner } from './SyncStatusBanner';
 import { useQueryClient } from '@tanstack/react-query';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
@@ -46,7 +49,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="theme-bg theme-text flex h-dvh min-h-dvh overflow-hidden selection:bg-emerald-500/30">
+    <div className="theme-bg theme-text selection:bg-accent-soft flex h-dvh min-h-dvh overflow-hidden">
       <Sidebar />
       <div className="flex w-0 flex-1 flex-col overflow-hidden">
         <main
@@ -55,10 +58,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
             paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))',
           }}
         >
+          <SyncStatusBanner />
           <PullToRefresh onRefresh={handleRefresh}>{children}</PullToRefresh>
         </main>
       </div>
       <MobileNavigation />
+      <UndoDeleteToast />
+      <CategoryDetailSheet />
       {isOpen ? (
         <CreateTransactionModal
           isOpen={isOpen}

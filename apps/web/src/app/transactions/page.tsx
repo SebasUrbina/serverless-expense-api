@@ -4,35 +4,28 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import {
-  ArrowUpRight,
-  ArrowDownRight,
-  Receipt,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  X,
-  Users,
-  Sparkles,
-  Loader2,
-} from 'lucide-react';
+import { Plus, Search, X, Loader2 } from 'lucide-react';
 import { MonthSelector } from '@/components/MonthSelector';
+import { MenuChip, ToggleChip } from '@/components/FilterChip';
+import { OptionList } from '@/components/ui/Popover';
 import { useTags, useCategories, useGroups } from '@/hooks/usePreferences';
+import { useCategoryColors } from '@/hooks/useCategoryColors';
 import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CustomSelect } from '@/components/CustomSelect';
 import { useTransactionModal } from '@/store/useTransactionModal';
+import { usePendingDeletes } from '@/store/usePendingDeletes';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types/api';
 import { transactionListOptions } from '@/lib/transactionList';
-import { EmptyState } from '@/components/ui/EmptyState';
-import AnimatedButton from '@/components/ui/AnimatedButton';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
-import {
-  TransactionTitle,
-  InstallmentBadge,
-} from '@/components/TransactionTitle';
+import { Card, CardNotice } from '@/components/ui/Card';
+import { TransactionRow } from '@/components/TransactionRow';
+
+const TYPE_LABELS: Record<string, string> = {
+  expense: 'Gastos',
+  income: 'Ingresos',
+};
 
 export default function TransactionsPage() {
   return (
@@ -49,9 +42,15 @@ function formatGroupDate(dateStr: string): string {
   return format(date, "EEEE, d 'de' MMMM", { locale: es });
 }
 
+function sumBy(transactions: Transaction[], type: Transaction['type']) {
+  return transactions
+    .filter((tx) => tx.type === type)
+    .reduce((sum, tx) => sum + tx.amount, 0);
+}
+
 function groupTransactionsByDate(
   transactions: Transaction[],
-): { date: string; label: string; items: Transaction[] }[] {
+): { date: string; label: string; items: Transaction[]; expense: number }[] {
   const groups: Record<string, Transaction[]> = {};
   for (const tx of transactions) {
     const key = tx.date.slice(0, 10);
@@ -60,7 +59,12 @@ function groupTransactionsByDate(
   }
   return Object.entries(groups)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([date, items]) => ({ date, label: formatGroupDate(date), items }));
+    .map(([date, items]) => ({
+      date,
+      label: formatGroupDate(date),
+      items,
+      expense: sumBy(items, 'expense'),
+    }));
 }
 
 function TransactionsContent() {
@@ -75,9 +79,7 @@ function TransactionsContent() {
     : '';
 
   const { openModal } = useTransactionModal();
-  const [showFilters, setShowFilters] = useState(
-    !!initialMonth || !!initialCategory || initialShared,
-  );
+  const categoryColors = useCategoryColors();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -88,6 +90,7 @@ function TransactionsContent() {
   }, [searchTerm]);
 
   const [filterMonth, setFilterMonth] = useState(initialMonth);
+  const [filterType, setFilterType] = useState<Transaction['type'] | ''>('');
   const [filterCategory, setFilterCategory] = useState<number | ''>(
     initialCategory,
   );
@@ -103,6 +106,7 @@ function TransactionsContent() {
 
   const { data: categoriesData } = useCategories();
   const categoriesList = categoriesData?.categories || [];
+  const selectedCategory = categoriesList.find((c) => c.id === filterCategory);
 
   const { data: groupsData } = useGroups();
   const groupsList = groupsData?.groups || [];
@@ -123,6 +127,7 @@ function TransactionsContent() {
       {
         search: debouncedSearch,
         month: filterMonth,
+        type: filterType,
         category: filterCategory,
         tag: filterTag,
         shared: filterShared,
@@ -147,8 +152,9 @@ function TransactionsContent() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetching, isError, fetchNextPage]);
 
+  const pendingDeletes = usePendingDeletes((s) => s.items);
   const transactions = useMemo(() => {
-    const seen = new Set<number>();
+    const seen = new Set<number>(pendingDeletes.map((item) => item.id));
     return (response?.pages.flatMap((page) => page.transactions) ?? []).filter(
       (tx) => {
         if (seen.has(tx.id)) return false;
@@ -156,408 +162,353 @@ function TransactionsContent() {
         return true;
       },
     );
-  }, [response?.pages]);
+  }, [response?.pages, pendingDeletes]);
   const grouped = useMemo(
     () => groupTransactionsByDate(transactions),
     [transactions],
   );
   const activeFilterCount = [
+    filterType !== '',
     filterCategory !== '',
     filterTag !== '',
     filterMonth !== '',
     filterShared,
     filterGroupId !== '',
   ].filter(Boolean).length;
+  const isFiltered = activeFilterCount > 0 || !!debouncedSearch;
+  const hasNoData = grouped.length === 0 && !isFiltered;
+
+  const clearFilters = () => {
+    setFilterMonth('');
+    setFilterType('');
+    setFilterCategory('');
+    setFilterTag('');
+    setFilterShared(false);
+    setFilterGroupId('');
+  };
+
+  const totals = useMemo(
+    () => ({
+      expense: sumBy(transactions, 'expense'),
+      income: sumBy(transactions, 'income'),
+      myShare: transactions.some((tx) => tx.my_split_amount != null)
+        ? transactions.reduce(
+            (sum, tx) => sum + (tx.my_split_amount ?? tx.amount),
+            0,
+          )
+        : null,
+    }),
+    [transactions],
+  );
 
   return (
     <div className="flex h-full flex-col">
-      {/* ── Header ── */}
       <PageHeader
-        title="Mis movimientos"
+        title="Movimientos"
         subtitle="Todo lo que entra y sale de tus cuentas."
+        narrow
         primaryAction={{
           label: 'Agregar',
           icon: <Plus size={16} />,
           onClick: () => openModal(),
         }}
       >
-        {/* Search + Filter Toggle */}
-        {!(
-          grouped.length === 0 &&
-          !debouncedSearch &&
-          activeFilterCount === 0
-        ) && (
+        {!hasNoData && (
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search
-                className="text-muted absolute top-1/2 left-3 -translate-y-1/2"
-                size={15}
+                className="text-muted pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"
+                size={16}
+                aria-hidden="true"
               />
               <input
-                type="text"
-                placeholder="Buscar un gasto o ingreso..."
+                type="search"
+                aria-label="Buscar movimientos"
+                placeholder="Buscar un gasto o ingreso"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-card border-border text-primary focus:ring-accent/30 w-full rounded-xl border py-2.5 pr-4 pl-9 text-base transition-all focus:ring-2 focus:outline-none sm:text-sm"
+                className="bg-card border-border text-primary placeholder:text-muted focus:border-secondary h-10 w-full rounded-xl border pr-9 pl-9 text-base transition-colors focus:outline-none sm:text-sm [&::-webkit-search-cancel-button]:hidden"
               />
               {searchTerm && (
                 <button
+                  type="button"
+                  aria-label="Borrar búsqueda"
                   onClick={() => setSearchTerm('')}
-                  className="text-muted hover:text-primary absolute top-1/2 right-3 -translate-y-1/2 transition-colors"
+                  className="text-muted hover:text-primary focus-ring absolute top-1/2 right-2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md transition-colors"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
-            <button
-              onClick={() => setShowFilters((v) => !v)}
-              className={`relative flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
-                showFilters || activeFilterCount > 0
-                  ? 'bg-accent/10 border-accent/30 text-accent'
-                  : 'bg-card border-border text-secondary hover:text-primary'
-              }`}
-            >
-              <SlidersHorizontal size={15} />
-              <span className="hidden sm:inline">Filtros</span>
-              {activeFilterCount > 0 && (
-                <span className="bg-accent absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
           </div>
         )}
 
-        {/* Expandable Filters */}
-        {showFilters &&
-          !(
-            grouped.length === 0 &&
-            !debouncedSearch &&
-            activeFilterCount === 0
-          ) && (
-            <div className="animate-in slide-in-from-top-4 fade-in flex flex-wrap items-center gap-2 pt-1 duration-200">
-              <div className="min-w-[130px] flex-1">
-                <MonthSelector
-                  value={filterMonth}
-                  onChange={setFilterMonth}
-                  className="w-full"
-                  alignDropdown="left"
-                />
-              </div>
-              <div className="z-20 min-w-[140px] flex-1">
-                <CustomSelect
-                  value={filterCategory}
-                  onChange={(value) =>
-                    setFilterCategory(value === '' ? '' : Number(value))
-                  }
-                  placeholder="Todas las categorías"
-                  size="small"
+        {!hasNoData && (
+          <div
+            role="group"
+            aria-label="Filtros"
+            className="flex flex-wrap items-center gap-2"
+          >
+            <MonthSelector
+              variant="chip"
+              value={filterMonth}
+              onChange={setFilterMonth}
+            />
+            <MenuChip
+              label={TYPE_LABELS[filterType] ?? 'Tipo'}
+              menuLabel="Elegir tipo"
+              active={filterType !== ''}
+              onClear={() => setFilterType('')}
+              panelWidth={200}
+            >
+              {(close) => (
+                <OptionList
+                  label="Tipo"
+                  value={filterType}
                   options={[
-                    { value: '', label: 'Todas las categorías' },
-                    ...categoriesList.map((c) => ({
-                      value: c.id,
-                      label: `${c.icon || ''} ${c.name}`,
-                    })),
+                    { value: 'expense', label: 'Gastos' },
+                    { value: 'income', label: 'Ingresos' },
                   ]}
-                />
-              </div>
-              <div className="z-10 min-w-[130px] flex-1">
-                <CustomSelect
-                  value={filterTag}
-                  onChange={(value) =>
-                    setFilterTag(value === '' ? '' : Number(value))
-                  }
-                  placeholder="Todas las etiquetas"
-                  size="small"
-                  options={[
-                    { value: '', label: 'Todas las etiquetas' },
-                    ...tagsList.map((t) => ({ value: t.id, label: t.name })),
-                  ]}
-                />
-              </div>
-              {filterShared && groupsList.length > 0 && (
-                <div className="z-[5] min-w-[130px] flex-1">
-                  <CustomSelect
-                    value={filterGroupId}
-                    onChange={(value) =>
-                      setFilterGroupId(value === '' ? '' : Number(value))
+                  onSelect={(value) => {
+                    setFilterType(value);
+                    const category = categoriesList.find(
+                      (c) => c.id === filterCategory,
+                    );
+                    if (value && category && category.type !== value) {
+                      setFilterCategory('');
                     }
-                    placeholder="Todos los grupos"
-                    size="small"
-                    options={[
-                      { value: '', label: 'Todos los grupos' },
-                      ...groupsList.map((g) => ({
-                        value: g.id,
-                        label: `👥 ${g.name}`,
-                      })),
-                    ]}
-                  />
-                </div>
-              )}
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={() => {
-                    setFilterMonth('');
-                    setFilterCategory('');
-                    setFilterTag('');
-                    setFilterShared(false);
-                    setFilterGroupId('');
+                    close();
                   }}
-                  className="flex h-[42px] shrink-0 items-center justify-center gap-1.5 self-center rounded-xl bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:bg-red-500/20"
-                >
-                  <X size={13} /> Limpiar
-                </button>
+                />
               )}
-            </div>
-          )}
+            </MenuChip>
+            <MenuChip
+              label={
+                selectedCategory
+                  ? `${selectedCategory.icon ? `${selectedCategory.icon} ` : ''}${selectedCategory.name}`
+                  : 'Categoría'
+              }
+              menuLabel="Elegir categoría"
+              active={filterCategory !== ''}
+              onClear={() => setFilterCategory('')}
+            >
+              {(close) => (
+                <OptionList
+                  label="Categoría"
+                  value={filterCategory}
+                  options={categoriesList
+                    .filter((c) => !filterType || c.type === filterType)
+                    .map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                      icon: c.icon,
+                      color: categoryColors.get(c.id),
+                    }))}
+                  onSelect={(value) => {
+                    setFilterCategory(value);
+                    close();
+                  }}
+                />
+              )}
+            </MenuChip>
+            {tagsList.length > 0 && (
+              <MenuChip
+                label={
+                  filterTag !== ''
+                    ? (tagsMap.get(filterTag) ?? 'Etiqueta')
+                    : 'Etiqueta'
+                }
+                menuLabel="Elegir etiqueta"
+                active={filterTag !== ''}
+                onClear={() => setFilterTag('')}
+                panelWidth={224}
+              >
+                {(close) => (
+                  <OptionList
+                    label="Etiqueta"
+                    value={filterTag}
+                    options={tagsList.map((t) => ({
+                      value: t.id,
+                      label: t.name,
+                    }))}
+                    onSelect={(value) => {
+                      setFilterTag(value);
+                      close();
+                    }}
+                  />
+                )}
+              </MenuChip>
+            )}
+            {groupsList.length > 0 && (
+              <ToggleChip
+                label="👥 Compartidos"
+                active={filterShared}
+                onToggle={() => {
+                  setFilterShared((on) => !on);
+                  setFilterGroupId('');
+                }}
+              />
+            )}
+            {filterShared && groupsList.length > 1 && (
+              <MenuChip
+                label={
+                  groupsList.find((g) => g.id === filterGroupId)?.name ??
+                  'Grupo'
+                }
+                menuLabel="Elegir grupo"
+                active={filterGroupId !== ''}
+                onClear={() => setFilterGroupId('')}
+                panelWidth={224}
+              >
+                {(close) => (
+                  <OptionList
+                    label="Grupo"
+                    value={filterGroupId}
+                    options={groupsList.map((g) => ({
+                      value: g.id,
+                      label: g.name,
+                    }))}
+                    onSelect={(value) => {
+                      setFilterGroupId(value);
+                      close();
+                    }}
+                  />
+                )}
+              </MenuChip>
+            )}
+            {activeFilterCount > 1 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-secondary hover:text-primary focus-ring h-9 rounded-full px-2 text-[13px] font-semibold transition-colors"
+              >
+                Limpiar todo
+              </button>
+            )}
+          </div>
+        )}
       </PageHeader>
 
-      {/* ── Transaction List ── */}
       <div className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-        <div className="mx-auto max-w-7xl">
-          {/* Shared transactions summary banner */}
-          {filterShared && !isLoading && transactions.length > 0 && (
-            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-violet-500/20 bg-violet-500/10 px-4 py-3">
-              <Users size={16} className="shrink-0 text-violet-400" />
-              <div className="min-w-0 flex-1">
-                <span className="text-xs font-semibold text-violet-400">
-                  {transactions.length} gasto
-                  {transactions.length !== 1 ? 's' : ''} compartido
-                  {transactions.length !== 1 ? 's' : ''}
-                  {hasNextPage ? ' cargados' : ''}
-                </span>
-                <span className="text-muted ml-2 text-xs">
-                  {hasNextPage ? 'Subtotal cargado:' : 'Total:'}{' '}
-                  <span className="font-bold text-violet-400">
-                    $
-                    {formatCurrency(
-                      transactions.reduce((sum, tx) => sum + tx.amount, 0),
-                    )}
-                  </span>
-                  {transactions.some((tx) => tx.my_split_amount != null) && (
-                    <>
-                      {' '}
-                      · Tu parte:{' '}
-                      <span className="font-bold text-violet-400">
-                        $
-                        {formatCurrency(
-                          transactions.reduce(
-                            (sum, tx) =>
-                              sum + (tx.my_split_amount ?? tx.amount),
-                            0,
-                          ),
-                        )}
-                      </span>
-                    </>
-                  )}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* General transactions summary banner when filters are active */}
-          {!filterShared &&
-            (activeFilterCount > 0 || debouncedSearch) &&
+        <div className="mx-auto max-w-3xl">
+          {(isFiltered || filterShared) &&
             !isLoading &&
             transactions.length > 0 && (
-              <div className="bg-card border-border mb-4 flex flex-col justify-between gap-2 rounded-2xl border px-4 py-3 shadow-sm sm:flex-row sm:items-center">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-primary text-xs font-bold">
-                    {hasNextPage
-                      ? 'Resultados cargados:'
-                      : 'Resultados filtrados:'}{' '}
-                    {transactions.length}{' '}
-                    {transactions.length === 1 ? 'movimiento' : 'movimientos'}
+              <p
+                aria-live="polite"
+                className="text-secondary mb-4 flex flex-wrap gap-x-3 gap-y-1 text-[13px] tabular-nums"
+              >
+                <span>
+                  <b className="text-primary font-semibold">
+                    {transactions.length}
+                  </b>{' '}
+                  {transactions.length === 1 ? 'movimiento' : 'movimientos'}
+                  {hasNextPage ? ' cargados' : ''}
+                </span>
+                {totals.expense > 0 && (
+                  <span>
+                    Gastos{' '}
+                    <b className="text-primary font-semibold">
+                      −${formatCurrency(totals.expense)}
+                    </b>
                   </span>
-                </div>
-                <div className="flex items-center gap-3 text-xs font-semibold">
-                  {transactions.some((tx) => tx.type === 'income') && (
-                    <span className="flex items-center gap-1 text-emerald-500">
-                      <ArrowUpRight size={14} />
-                      {hasNextPage ? 'Ingresos cargados:' : 'Ingresos:'} $
-                      {formatCurrency(
-                        transactions
-                          .filter((tx) => tx.type === 'income')
-                          .reduce((sum, tx) => sum + tx.amount, 0),
-                      )}
-                    </span>
-                  )}
-                  {transactions.some((tx) => tx.type === 'expense') && (
-                    <span className="flex items-center gap-1 text-red-500">
-                      <ArrowDownRight size={14} />
-                      {hasNextPage ? 'Gastos cargados:' : 'Gastos:'} $
-                      {formatCurrency(
-                        transactions
-                          .filter((tx) => tx.type === 'expense')
-                          .reduce((sum, tx) => sum + tx.amount, 0),
-                      )}
-                    </span>
-                  )}
-                </div>
-              </div>
+                )}
+                {totals.income > 0 && (
+                  <span>
+                    Ingresos{' '}
+                    <b className="text-income font-semibold">
+                      +${formatCurrency(totals.income)}
+                    </b>
+                  </span>
+                )}
+                {filterShared && totals.myShare !== null && (
+                  <span>
+                    Tu parte{' '}
+                    <b className="text-primary font-semibold">
+                      ${formatCurrency(totals.myShare)}
+                    </b>
+                  </span>
+                )}
+              </p>
             )}
+
           {isLoading ? (
             <LoadingState minHeight="h-48" />
           ) : isError && transactions.length === 0 ? (
-            <div
-              role="alert"
-              className="text-secondary py-8 text-center text-sm"
-            >
-              <p>No pudimos cargar tus movimientos.</p>
-              <button
-                onClick={() => void refetch()}
-                className="text-accent mt-3 rounded-xl px-4 py-2 font-semibold"
-              >
-                Reintentar
-              </button>
-            </div>
+            <Card label="Error">
+              <CardNotice
+                title="No pudimos cargar tus movimientos"
+                description="Revisa tu conexión e intenta nuevamente."
+                action={{ label: 'Reintentar', onClick: () => void refetch() }}
+              />
+            </Card>
           ) : grouped.length > 0 ? (
-            <div className="space-y-6">
-              {grouped.map(({ date, label, items }) => (
-                <div key={date}>
-                  {/* Date Group Header */}
-                  <div className="mb-2 flex items-center gap-3">
-                    <span className="text-secondary text-xs font-semibold capitalize">
+            <div className="space-y-4 sm:space-y-6">
+              {grouped.map(({ date, label, items, expense }) => (
+                <section
+                  key={date}
+                  aria-label={label}
+                  className="bg-card border-border rounded-3xl border px-5 py-3 shadow-sm sm:px-6"
+                >
+                  <h2 className="flex items-baseline justify-between gap-3 py-2">
+                    <span className="text-primary text-sm font-semibold capitalize">
                       {label}
                     </span>
-                    <div className="bg-border h-px flex-1" />
-                    <span className="text-muted text-xs">
-                      {items.length}{' '}
-                      {items.length === 1 ? 'movimiento' : 'movimientos'}
-                    </span>
-                  </div>
-
-                  {/* Cards */}
-                  <div className="space-y-2">
-                    {items.map((tx) => {
-                      const canEdit = tx.is_owner !== false;
-                      return (
-                        <div
-                          key={tx.id}
-                          onClick={() => {
-                            if (!canEdit) return;
-                            openModal(tx);
-                          }}
-                          className={`bg-card border-border flex min-h-[68px] items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all duration-150 ${
-                            canEdit
-                              ? 'hover:bg-card-hover cursor-pointer'
-                              : 'cursor-default'
-                          }`}
-                        >
-                          {/* Icon */}
-                          <div
-                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-lg ${
-                              tx.category_icon
-                                ? 'bg-inset'
-                                : tx.type === 'income'
-                                  ? 'bg-emerald-500/10 text-emerald-500'
-                                  : 'bg-red-500/10 text-red-500'
-                            }`}
-                          >
-                            {tx.category_icon ? (
-                              <span>{tx.category_icon}</span>
-                            ) : tx.type === 'income' ? (
-                              <ArrowUpRight size={18} />
-                            ) : (
-                              <ArrowDownRight size={18} />
-                            )}
-                          </div>
-
-                          {/* Content */}
-                          <div className="min-w-0 flex-1">
-                            <TransactionTitle transaction={tx} />
-                            <div className="mt-1.5 flex items-center gap-1.5 overflow-x-auto [&>span]:shrink-0 [&>span]:whitespace-nowrap">
-                              <InstallmentBadge transaction={tx} />
-                              {!!tx.is_shared && (
-                                <span className="inline-flex items-center gap-1 rounded-md border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold text-violet-400">
-                                  👥 {tx.group_name || 'Compartido'}
-                                </span>
-                              )}
-                              {tx.category && (
-                                <span className="bg-inset text-secondary border-border inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium">
-                                  {tx.category}
-                                </span>
-                              )}
-                              {(tx.tag_names && tx.tag_names.length > 0
-                                ? tx.tag_names
-                                : tx.tag_ids?.map(
-                                    (id: number) =>
-                                      tagsMap.get(id) || 'Desconocido',
-                                  ) || []
-                              ).map((name: string, i: number) => (
-                                <span
-                                  key={i}
-                                  className="bg-inset text-muted border-border rounded-md border px-1.5 py-0.5 text-[10px] font-medium"
-                                >
-                                  {name}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Amount */}
-                          <div className="flex-shrink-0 text-right">
-                            <p
-                              className="text-sm font-bold"
-                              style={{
-                                color:
-                                  tx.type === 'income'
-                                    ? 'var(--color-income)'
-                                    : 'var(--color-expense)',
-                              }}
-                            >
-                              {tx.type === 'income' ? '+' : '-'}$
-                              {formatCurrency(tx.amount)}
-                            </p>
-                            {!!tx.is_shared && tx.my_split_amount != null && (
-                              <p className="mt-0.5 text-xs text-violet-400">
-                                ${formatCurrency(tx.my_split_amount)} (
-                                {tx.my_split_percentage}%)
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                    {expense > 0 && (
+                      <span className="text-muted text-xs tabular-nums">
+                        −${formatCurrency(expense)}
+                      </span>
+                    )}
+                  </h2>
+                  <ul className="divide-border divide-y">
+                    {items.map((tx) => (
+                      <li key={tx.id} className="py-0.5">
+                        <TransactionRow
+                          transaction={tx}
+                          tagNames={
+                            tx.tag_names?.length
+                              ? tx.tag_names
+                              : (tx.tag_ids ?? []).map(
+                                  (id) => tagsMap.get(id) || 'Desconocido',
+                                )
+                          }
+                          onSelect={
+                            tx.is_owner === false ? undefined : openModal
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
             </div>
           ) : (
-            <EmptyState
-              icon={<Receipt className="h-9 w-9" />}
-              secondaryIcon={
-                !debouncedSearch &&
-                activeFilterCount === 0 && (
-                  <Sparkles size={14} className="text-white" />
-                )
-              }
-              title={
-                debouncedSearch || activeFilterCount > 0
-                  ? 'Nada encontrado'
-                  : 'Finanzas bajo control'
-              }
-              description={
-                debouncedSearch || activeFilterCount > 0
-                  ? 'Prueba ajustando tus filtros de búsqueda.'
-                  : 'Cuando empieces a registrar movimientos, aparecerán mágicamente aquí.'
-              }
-              actionButton={
-                !debouncedSearch &&
-                activeFilterCount === 0 && (
-                  <AnimatedButton
-                    text="Primer movimiento"
-                    onClick={() => openModal()}
-                  />
-                )
-              }
-              primaryColor={
-                debouncedSearch || activeFilterCount > 0 ? 'zinc' : 'emerald'
-              }
-              className="mt-6"
-            />
+            <Card label="Sin movimientos">
+              {isFiltered ? (
+                <CardNotice
+                  title="No encontramos movimientos"
+                  description="Prueba con otra búsqueda o quita algunos filtros."
+                  action={{
+                    label: 'Limpiar búsqueda y filtros',
+                    onClick: () => {
+                      setSearchTerm('');
+                      clearFilters();
+                    },
+                  }}
+                />
+              ) : (
+                <CardNotice
+                  title="Aún no tienes movimientos"
+                  description="Registra tu primer gasto o ingreso para empezar a ver en qué se va tu dinero."
+                  action={{
+                    label: 'Agregar movimiento',
+                    onClick: () => openModal(),
+                  }}
+                />
+              )}
+            </Card>
           )}
+
           {transactions.length > 0 && (
             <div
               ref={loadMoreRef}
@@ -579,22 +530,24 @@ function TransactionsContent() {
                     .
                   </p>
                   <button
+                    type="button"
                     onClick={() =>
                       void (isFetchNextPageError
                         ? fetchNextPage({ cancelRefetch: false })
                         : refetch())
                     }
                     disabled={isFetching}
-                    className="text-accent rounded-xl px-4 py-2 font-semibold disabled:opacity-50"
+                    className="text-accent focus-ring rounded-xl px-4 py-2 font-semibold disabled:opacity-50"
                   >
                     Reintentar
                   </button>
                 </>
               ) : hasNextPage ? (
                 <button
+                  type="button"
                   onClick={() => void fetchNextPage({ cancelRefetch: false })}
                   disabled={isFetching}
-                  className="text-accent rounded-xl px-4 py-2 font-semibold disabled:opacity-50"
+                  className="text-accent focus-ring rounded-xl px-4 py-2 font-semibold disabled:opacity-50"
                 >
                   Cargar más movimientos
                 </button>

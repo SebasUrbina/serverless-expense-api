@@ -7,8 +7,8 @@ type Props = {
 
 export function TransactionSuccessOverlay({ amount, type }: Props) {
   const isExpense = type === 'expense';
-  const ringColor = isExpense ? '#ef4444' : '#10b981';
-  const textColor = isExpense ? 'text-red-500' : 'text-emerald-500';
+  const ringColor = isExpense ? '#ef4444' : '#2d9e6b';
+  const textColor = isExpense ? 'text-expense' : 'text-income';
 
   return (
     <div className="fixed inset-0 z-100 flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-4">

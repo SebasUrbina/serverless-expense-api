@@ -1,21 +1,16 @@
 'use client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import {
-  Users,
-  ArrowRight,
-  CheckCircle2,
-  ExternalLink,
-  Receipt,
-} from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Card, CardHeader, CardLink } from '@/components/ui/Card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAccounts } from '@/hooks/usePreferences';
 import { useAuth } from '@/lib/AuthProvider';
 import { formatCurrency } from '@/lib/utils';
+import { computeSettlements } from '@/lib/settlements';
 import { useState } from 'react';
-import Link from 'next/link';
 import { SettleConfirmModal } from './SettleConfirmModal';
 import type {
   GroupBalance,
@@ -97,235 +92,36 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
 
   return (
     <>
-      <div className="bg-card border-border mt-4 rounded-3xl border p-5 sm:p-6 lg:col-span-3 xl:col-span-4">
-        <div className="mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
-              <Users className="text-violet-500" size={20} />
-            </div>
-            <div>
-              <h3 className="text-primary text-sm font-bold">
-                Gastos compartidos
-              </h3>
-              <p className="text-muted text-xs capitalize">{monthLabel}</p>
-            </div>
-          </div>
-          <Link
-            href={`/transactions?shared=1&month=${currentMonth}`}
-            className="flex items-center gap-1 rounded-xl bg-violet-500/10 px-3 py-1.5 text-[11px] font-semibold text-violet-400 transition-colors hover:text-violet-300"
-          >
-            <Receipt size={12} />
-            <span className="hidden sm:inline">Ver movimientos</span>
-          </Link>
-        </div>
+      <Card label="Gastos compartidos">
+        <CardHeader
+          title="Gastos compartidos"
+          description={<span className="capitalize">{monthLabel}</span>}
+          link={{
+            href: `/transactions?shared=1&month=${currentMonth}`,
+            label: 'Ver movimientos',
+          }}
+        />
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <LoadingSpinner color="accent" />
+            <LoadingSpinner color="muted" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {balances.map((group) => {
-              const members = group.members;
-              if (members.length < 2) return null;
-
-              const hasActivity = group.transaction_count > 0;
-
-              // Compute settlement pairs using minimum cash flow
-              const nets = members.map((m) => ({ ...m }));
-              const settlementPairs: {
-                debtor: string;
-                creditor: string;
-                amount: number;
-              }[] = [];
-              while (true) {
-                let maxC = nets[0],
-                  maxD = nets[0];
-                for (const m of nets) {
-                  if (m.net > maxC.net) maxC = m;
-                  if (m.net < maxD.net) maxD = m;
-                }
-                if (Math.abs(maxD.net) < 1 && Math.abs(maxC.net) < 1) break;
-                const amt = Math.min(Math.abs(maxD.net), maxC.net);
-                if (amt < 1) break;
-                settlementPairs.push({
-                  debtor: maxD.nickname,
-                  creditor: maxC.nickname,
-                  amount: Math.round(amt),
-                });
-                maxD.net += amt;
-                maxC.net -= amt;
-              }
-              const hasDebts = settlementPairs.length > 0;
-
-              // Find current user's balance for hero display
-              const myBalance = members.find((m) => m.user_id === userId);
-              const myNet = myBalance?.net ?? 0;
-              const otherMember = members.find((m) => m.user_id !== userId);
-
-              return (
-                <div
-                  key={group.group_id}
-                  className="bg-inset border-border-subtle flex flex-col rounded-2xl border p-4 transition-colors"
-                >
-                  {/* Group header */}
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-primary text-sm font-bold tracking-tight">
-                      {group.group_name}
-                    </span>
-                    <Link
-                      href={`/transactions?shared=1&group_id=${group.group_id}&month=${currentMonth}`}
-                      className="text-muted bg-card border-border flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase transition-opacity hover:opacity-80"
-                    >
-                      {group.transaction_count} movs
-                      <ExternalLink size={9} />
-                    </Link>
-                  </div>
-
-                  {!hasActivity ? (
-                    <div className="flex flex-1 items-center justify-center py-6">
-                      <p className="text-muted text-center text-sm italic">
-                        No hay gastos compartidos este mes
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col">
-                      {/* Hero debt amount */}
-                      <div className="bg-card border-border-subtle mb-4 rounded-xl border px-4 py-4 text-center">
-                        {hasDebts ? (
-                          <>
-                            <p className="text-muted mb-1.5 text-[10px] font-bold tracking-wider uppercase">
-                              {myNet > 0
-                                ? 'Te deben'
-                                : myNet < 0
-                                  ? 'Debes'
-                                  : 'Sin deudas'}
-                            </p>
-                            <p
-                              className={`text-3xl font-extrabold tracking-tight ${myNet > 0 ? 'text-emerald-500' : myNet < 0 ? 'text-red-400' : 'text-primary'}`}
-                            >
-                              ${formatCurrency(Math.abs(myNet))}
-                            </p>
-                            {otherMember && myNet !== 0 && (
-                              <p className="text-muted mt-1.5 text-[11px] font-medium">
-                                {myNet > 0
-                                  ? `${otherMember.nickname} te debe`
-                                  : `Le debes a ${otherMember.nickname}`}
-                              </p>
-                            )}
-                          </>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2">
-                            <CheckCircle2
-                              size={16}
-                              className="text-emerald-500"
-                            />
-                            <span className="text-sm font-semibold text-emerald-500">
-                              Todo saldado — sin deudas
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Member breakdown */}
-                      <div className="mb-4 space-y-2.5">
-                        {members.map((member) => {
-                          const isMe = member.user_id === userId;
-                          return (
-                            <div
-                              key={member.user_id}
-                              className="flex items-center justify-between text-sm"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold uppercase ${isMe ? 'bg-violet-500/15 text-violet-400' : 'bg-emerald-500/10 text-emerald-500'}`}
-                                >
-                                  {member.nickname.substring(0, 2)}
-                                </div>
-                                <span className="text-secondary text-xs font-medium">
-                                  {member.nickname}
-                                  {isMe ? ' (tú)' : ''}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-muted flex gap-1 text-[10px]">
-                                  Pagó{' '}
-                                  <span className="text-secondary font-semibold">
-                                    ${formatCurrency(member.total_paid)}
-                                  </span>
-                                </span>
-                                <span className="text-muted flex gap-1 text-[10px]">
-                                  Cuota{' '}
-                                  <span className="text-secondary font-semibold">
-                                    ${formatCurrency(member.total_share)}
-                                  </span>
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Settlement section */}
-                      <div className="mt-auto">
-                        {hasDebts ? (
-                          <div className="border-border-subtle space-y-2 border-t border-dashed pt-3">
-                            {settlementPairs.map((pair, i) => (
-                              <div
-                                key={i}
-                                className="bg-card border-border-subtle flex items-center gap-2 rounded-xl border px-3 py-2.5"
-                              >
-                                <span className="text-secondary text-xs font-semibold">
-                                  {pair.debtor}
-                                </span>
-                                <ArrowRight
-                                  size={12}
-                                  className="mx-auto text-emerald-500"
-                                />
-                                <span className="text-secondary text-xs font-semibold">
-                                  {pair.creditor}
-                                </span>
-                                <span className="ml-2 text-xs font-bold text-emerald-500">
-                                  ${formatCurrency(pair.amount)}
-                                </span>
-                              </div>
-                            ))}
-                            <button
-                              onClick={() =>
-                                setSettleTarget({
-                                  group,
-                                  pairs: settlementPairs,
-                                })
-                              }
-                              disabled={!accounts.length}
-                              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:bg-emerald-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-emerald-500/50"
-                            >
-                              <CheckCircle2 size={14} />
-                              Saldar deudas ({settlementPairs.length})
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="border-border-subtle bg-card mt-3 flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5">
-                            <CheckCircle2
-                              size={14}
-                              className="text-emerald-500"
-                            />
-                            <span className="text-xs font-semibold text-emerald-500">
-                              Todo saldado — sin deudas
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {balances.map((group) => (
+              <GroupBalanceBlock
+                key={group.group_id}
+                group={group}
+                month={currentMonth}
+                userId={userId}
+                canSettle={accounts.length > 0}
+                onSettle={(pairs) => setSettleTarget({ group, pairs })}
+              />
+            ))}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Settle Confirmation Modal */}
       {settleTarget && (
         <SettleConfirmModal
           isOpen={!!settleTarget}
@@ -339,5 +135,133 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
         />
       )}
     </>
+  );
+}
+
+function GroupBalanceBlock({
+  group,
+  month,
+  userId,
+  canSettle,
+  onSettle,
+}: {
+  group: GroupBalance;
+  month: string;
+  userId?: string;
+  canSettle: boolean;
+  onSettle: (pairs: SettlementPair[]) => void;
+}) {
+  const { members } = group;
+  if (members.length < 2) return null;
+
+  const pairs = computeSettlements(members);
+  const myNet = members.find((m) => m.user_id === userId)?.net ?? 0;
+  const other = members.find((m) => m.user_id !== userId);
+  const owed = Math.round(myNet) !== 0 && pairs.length > 0;
+
+  return (
+    <div className="bg-inset flex flex-col rounded-2xl p-4">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-primary truncate text-sm font-semibold">
+          {group.group_name}
+        </p>
+        <CardLink
+          href={`/transactions?shared=1&group_id=${group.group_id}&month=${month}`}
+        >
+          {group.transaction_count}{' '}
+          {group.transaction_count === 1 ? 'movimiento' : 'movimientos'}
+        </CardLink>
+      </div>
+
+      {group.transaction_count === 0 ? (
+        <p className="text-secondary mt-3 text-sm">
+          No hay gastos compartidos este mes.
+        </p>
+      ) : (
+        <>
+          <div className="mt-3">
+            {owed ? (
+              <>
+                <p className="text-secondary text-[13px]">
+                  {myNet > 0 ? 'Te deben' : 'Debes'}
+                </p>
+                <p
+                  className={`mt-0.5 text-2xl font-bold tracking-tight tabular-nums ${myNet > 0 ? 'text-income' : 'text-expense'}`}
+                >
+                  ${formatCurrency(Math.abs(myNet))}
+                </p>
+              </>
+            ) : (
+              <p className="text-primary text-lg font-semibold">
+                {pairs.length === 0 ? 'Todo saldado' : 'No tienes deudas'}
+              </p>
+            )}
+            {owed && other && members.length === 2 && (
+              <p className="text-muted mt-0.5 text-xs">
+                {myNet > 0
+                  ? `${other.nickname} te debe`
+                  : `Le debes a ${other.nickname}`}
+              </p>
+            )}
+          </div>
+
+          <ul className="divide-border mt-3 divide-y text-sm">
+            {members.map((member) => (
+              <li
+                key={member.user_id}
+                className="flex items-center justify-between gap-3 py-2"
+              >
+                <span className="text-primary min-w-0 truncate font-medium">
+                  {member.nickname}
+                  {member.user_id === userId && (
+                    <span className="text-muted font-normal"> (tú)</span>
+                  )}
+                </span>
+                <span className="text-muted shrink-0 text-xs tabular-nums">
+                  Pagó{' '}
+                  <b className="text-secondary font-semibold">
+                    ${formatCurrency(member.total_paid)}
+                  </b>{' '}
+                  · Le toca{' '}
+                  <b className="text-secondary font-semibold">
+                    ${formatCurrency(member.total_share)}
+                  </b>
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {pairs.length > 0 && (
+            <div className="border-border mt-auto border-t pt-3">
+              <ul className="space-y-1 text-xs">
+                {pairs.map((pair, i) => (
+                  <li
+                    key={i}
+                    className="text-secondary flex items-center gap-1.5"
+                  >
+                    <span className="truncate">{pair.debtor}</span>
+                    <ArrowRight size={12} className="text-muted shrink-0" />
+                    <span className="truncate">{pair.creditor}</span>
+                    <span className="text-primary ml-auto font-semibold tabular-nums">
+                      ${formatCurrency(pair.amount)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => onSettle(pairs)}
+                disabled={!canSettle}
+                className="bg-primary text-card focus-ring mt-3 min-h-11 w-full rounded-xl px-4 text-sm font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pairs.length === 1
+                  ? 'Saldar deuda'
+                  : `Saldar ${pairs.length} deudas`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

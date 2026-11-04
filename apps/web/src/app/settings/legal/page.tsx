@@ -1,39 +1,24 @@
 import Link from 'next/link';
-import { ArrowLeft, Scale, FileText, ShieldCheck } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 const APP_NAME = 'Seva';
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '1.0.0';
 const EFFECTIVE_DATE = '1 de enero de 2026';
 
-type LegalSectionProps = {
-  icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  title: string;
-  children: React.ReactNode;
-};
-
 function LegalSection({
-  icon: Icon,
-  iconBg,
-  iconColor,
   title,
   children,
-}: LegalSectionProps) {
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="bg-card border-border rounded-3xl border p-5 shadow-sm">
-      <div className="mb-3 flex items-center gap-3">
-        <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
-        >
-          <Icon size={16} className={iconColor} />
-        </div>
-        <h2 className="text-primary text-sm font-bold">{title}</h2>
-      </div>
-      <div className="text-secondary space-y-2 text-xs leading-relaxed">
+    <section className="border-border border-t pt-5 first:border-t-0 first:pt-0">
+      <h2 className="text-primary text-base font-semibold">{title}</h2>
+      <div className="text-secondary mt-2 space-y-2 text-sm leading-relaxed">
         {children}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -41,36 +26,24 @@ export default function LegalPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto px-4 pb-10 sm:px-6">
-        <div className="mx-auto max-w-2xl">
-          {/* ── Header ── */}
-          <div className="flex items-center gap-3 pt-6 pb-5">
-            <Link
-              href="/settings"
-              className="bg-card border-border text-secondary hover:text-primary hover:bg-card-hover flex h-9 w-9 items-center justify-center rounded-xl border transition-colors"
-            >
-              <ArrowLeft size={17} />
-            </Link>
-            <div>
-              <h1 className="text-primary text-lg leading-tight font-bold">
-                Información legal
-              </h1>
-              <p className="text-muted text-xs">
-                Licencia y condiciones de uso
-              </p>
-            </div>
-          </div>
+        <div className="mx-auto max-w-2xl pt-5 sm:pt-6">
+          <Link
+            href="/settings"
+            className="text-secondary hover:text-primary focus-ring mb-4 -ml-1 inline-flex min-h-10 items-center gap-1 rounded-lg pr-2 text-sm font-medium transition-colors"
+          >
+            <ChevronLeft size={18} aria-hidden="true" />
+            Ajustes
+          </Link>
+          <h1 className="text-primary text-xl font-bold tracking-tight sm:text-3xl">
+            Información legal
+          </h1>
+          <p className="text-secondary mt-1 text-sm">
+            Licencia, condiciones de uso y privacidad · Vigente desde el{' '}
+            {EFFECTIVE_DATE}
+          </p>
 
-          {/* ── Licencia ── */}
-          <div className="mb-4">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Licencia
-            </p>
-            <LegalSection
-              icon={Scale}
-              iconBg="bg-indigo-500/10"
-              iconColor="text-indigo-500"
-              title="Licencia de uso"
-            >
+          <article className="bg-card border-border mt-6 space-y-5 rounded-3xl border p-5 shadow-sm sm:p-6">
+            <LegalSection title="Licencia de uso">
               <p>
                 Al usar <strong className="text-primary">{APP_NAME}</strong>{' '}
                 (versión {APP_VERSION}) aceptas los términos de esta licencia,
@@ -103,79 +76,46 @@ export default function LegalPage() {
                 </li>
               </ul>
             </LegalSection>
-          </div>
-
-          {/* ── Condiciones de Uso ── */}
-          <div className="mb-4">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Condiciones de uso
-            </p>
-            <div className="space-y-3">
-              <LegalSection
-                icon={FileText}
-                iconBg="bg-blue-500/10"
-                iconColor="text-blue-500"
-                title="Uso aceptable"
-              >
-                <p>
-                  {APP_NAME} está diseñada para el registro y seguimiento de
-                  gastos e ingresos personales. Al usarla, te comprometes a:
-                </p>
-                <ul className="list-inside list-disc space-y-1 pl-1">
-                  <li>
-                    Usar la aplicación únicamente para fines personales y
-                    lícitos.
-                  </li>
-                  <li>
-                    No intentar acceder a cuentas o datos de otros usuarios.
-                  </li>
-                  <li>
-                    No automatizar el uso de la aplicación de formas no
-                    previstas (bots, scrapers, etc.), excepto mediante las
-                    integraciones oficiales (API / Shortcuts).
-                  </li>
-                  <li>
-                    No introducir código malicioso ni intentar comprometer la
-                    seguridad del servicio.
-                  </li>
-                </ul>
-              </LegalSection>
-
-              <LegalSection
-                icon={FileText}
-                iconBg="bg-blue-500/10"
-                iconColor="text-blue-500"
-                title="Tu cuenta y tus datos"
-              >
-                <ul className="list-inside list-disc space-y-1 pl-1">
-                  <li>
-                    Eres responsable de mantener la confidencialidad de tus
-                    credenciales de acceso. No compartas tu cuenta con terceros.
-                  </li>
-                  <li>
-                    Eres el único responsable de la exactitud de los datos
-                    financieros que registres en la aplicación.
-                  </li>
-                  <li>
-                    Puedes solicitar la eliminación permanente de tu cuenta y
-                    todos tus datos en cualquier momento contactando al soporte.
-                  </li>
-                </ul>
-              </LegalSection>
-            </div>
-          </div>
-
-          {/* ── Privacidad ── */}
-          <div className="mb-4">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Privacidad y datos
-            </p>
-            <LegalSection
-              icon={ShieldCheck}
-              iconBg="bg-emerald-500/10"
-              iconColor="text-emerald-500"
-              title="Tratamiento de datos personales"
-            >
+            <LegalSection title="Uso aceptable">
+              <p>
+                {APP_NAME} está diseñada para el registro y seguimiento de
+                gastos e ingresos personales. Al usarla, te comprometes a:
+              </p>
+              <ul className="list-inside list-disc space-y-1 pl-1">
+                <li>
+                  Usar la aplicación únicamente para fines personales y lícitos.
+                </li>
+                <li>
+                  No intentar acceder a cuentas o datos de otros usuarios.
+                </li>
+                <li>
+                  No automatizar el uso de la aplicación de formas no previstas
+                  (bots, scrapers, etc.), excepto mediante las integraciones
+                  oficiales (API / Shortcuts).
+                </li>
+                <li>
+                  No introducir código malicioso ni intentar comprometer la
+                  seguridad del servicio.
+                </li>
+              </ul>
+            </LegalSection>
+            <LegalSection title="Tu cuenta y tus datos">
+              <ul className="list-inside list-disc space-y-1 pl-1">
+                <li>
+                  Eres responsable de mantener la confidencialidad de tus
+                  credenciales de acceso. No compartas tu cuenta con terceros.
+                </li>
+                <li>
+                  Eres el único responsable de la exactitud de los datos
+                  financieros que registres en la aplicación.
+                </li>
+                <li>
+                  Puedes solicitar la eliminación permanente de tu cuenta y
+                  todos tus datos en cualquier momento contactando al soporte.
+                </li>
+              </ul>
+            </LegalSection>
+            <LegalSection title="Tratamiento de datos personales">
               <p>{APP_NAME} almacena tus datos de forma segura.</p>
               <p>Los datos que almacenamos incluyen:</p>
               <ul className="list-inside list-disc space-y-1 pl-1">
@@ -192,11 +132,10 @@ export default function LegalPage() {
                 tus datos personales con terceros.
               </p>
             </LegalSection>
-          </div>
+          </article>
 
-          {/* Footer */}
-          <p className="text-muted pb-4 text-center text-xs">
-            {APP_NAME} · Versión {APP_VERSION} · Vigente desde {EFFECTIVE_DATE}
+          <p className="text-muted mt-6 px-1 text-xs">
+            {APP_NAME} · Versión {APP_VERSION}
           </p>
         </div>
       </div>

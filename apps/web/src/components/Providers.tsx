@@ -13,6 +13,8 @@ import { AuthProvider, useAuth } from '@/lib/AuthProvider';
 import { usePathname, useRouter } from 'next/navigation';
 import { applyTheme, useTheme } from '@/store/useTheme';
 import { supabase } from '@/lib/supabase';
+import { registerOfflineMutations } from '@/lib/offlineMutations';
+import api from '@/lib/api';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const QUERY_CACHE_KEY = 'SEVA_QUERY_CACHE';
@@ -78,7 +80,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         className="flex h-screen w-full items-center justify-center"
         style={{ background: 'var(--bg-base)' }}
       >
-        <div className="h-8 w-8 animate-spin rounded-full border-t-2 border-r-2 border-emerald-500 border-r-emerald-500/30" />
+        <div className="border-accent h-8 w-8 animate-spin rounded-full border-t-2 border-r-2 border-r-transparent" />
       </div>
     );
   }
@@ -91,18 +93,26 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // Data only changes through this app's own mutations (which invalidate) and the daily cron.
-            staleTime: 5 * 60 * 1000,
-            gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
-          },
+  const [queryClient] = useState(() => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          // Data only changes through this app's own mutations (which invalidate) and the daily cron.
+          staleTime: 5 * 60 * 1000,
+          gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
         },
-      }),
-  );
+        mutations: {
+          // Keep paused offline mutations long enough to be persisted and resumed.
+          gcTime: 1000 * 60 * 60 * 24,
+        },
+      },
+    });
+    registerOfflineMutations(
+      client,
+      async (payload) => (await api.post('/transactions', payload)).data,
+    );
+    return client;
+  });
 
   const [persister] = useState(() => {
     if (typeof window === 'undefined') return undefined;
@@ -122,6 +132,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             maxAge: 1000 * 60 * 60 * 24, // 24 horas
             buster: 'v1',
           }}
+          onSuccess={() => void queryClient.resumePausedMutations()}
         >
           <ClearCacheOnUserChange />
           <ThemeProvider>
