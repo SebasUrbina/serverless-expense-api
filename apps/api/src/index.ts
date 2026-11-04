@@ -39,7 +39,9 @@ import { GroupJoin } from './endpoints/groupJoin';
 import { GroupList } from './endpoints/groupList';
 import { GroupDelete } from './endpoints/groupDelete';
 import { GroupBalances } from './endpoints/groupBalances';
-import { GroupSettle } from './endpoints/groupSettle';
+import { GroupSettlementCreate } from './endpoints/groupSettlementCreate';
+import { GroupSettlementDelete } from './endpoints/groupSettlementDelete';
+import { GroupSettlementList } from './endpoints/groupSettlementList';
 import { GroupUpdate } from './endpoints/groupUpdate';
 import { ShortcutInit } from './endpoints/shortcuts/shortcutInit';
 import { ShortcutTransactionCreate } from './endpoints/shortcuts/shortcutTransactionCreate';
@@ -104,7 +106,9 @@ openapi.post('/api/groups/join', GroupJoin);
 openapi.delete('/api/groups/:id', GroupDelete);
 openapi.put('/api/groups/:id', GroupUpdate);
 openapi.get('/api/groups/balances', GroupBalances);
-openapi.post('/api/groups/:group_id/settle', GroupSettle);
+openapi.get('/api/groups/:group_id/settlements', GroupSettlementList);
+openapi.post('/api/groups/:group_id/settlements', GroupSettlementCreate);
+openapi.delete('/api/groups/:group_id/settlements/:id', GroupSettlementDelete);
 
 // ── Categories ──
 openapi.get('/api/categories', CategoryList);

@@ -6,10 +6,9 @@ import { useSearchParams } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, Plus } from 'lucide-react';
-import { useAccounts, useGroups } from '@/hooks/usePreferences';
-import { useGroupBalances, useSettleGroup } from '@/hooks/useGroupBalances';
+import { useGroups } from '@/hooks/usePreferences';
+import { useGroupBalances } from '@/hooks/useGroupBalances';
 import { useAuth } from '@/lib/AuthProvider';
-import { computeSettlements } from '@/lib/settlements';
 import { formatCurrency } from '@/lib/utils';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -19,13 +18,13 @@ import { MonthSelector } from '@/components/MonthSelector';
 import { GroupAddForm } from '@/components/GroupManager';
 import { MemberStack } from '@/components/MemberAvatar';
 import { SegmentedControl } from '@/components/settings/ui';
-import { SettleConfirmModal } from '@/components/SettleConfirmModal';
+import { SettlementModal } from '@/components/SettlementModal';
 import {
   GroupBalancesPanel,
   GroupLedger,
   GroupMembersPanel,
 } from '@/components/GroupPanels';
-import type { GroupBalance, SharedGroup } from '@/types/api';
+import type { GroupBalance, SettlementPair, SharedGroup } from '@/types/api';
 
 const money = (n: number) => `$${formatCurrency(Math.round(Math.abs(n)))}`;
 
@@ -75,17 +74,16 @@ function GroupsContent() {
   const myNet = (groupId: number) =>
     balances.get(groupId)?.members.find((m) => m.user_id === userId)?.net ?? 0;
   const selected = groups.find((g) => g.id === idParam) ?? groups[0];
-  const monthName = format(parseISO(`${month}-01`), 'MMMM', { locale: es });
 
   const total = Math.round(groups.reduce((sum, g) => sum + myNet(g.id), 0));
   const subtitle =
     !balancesData || groups.length === 0
       ? 'Lo que compartes y lo que falta saldar.'
       : total > 0
-        ? `En ${monthName} te deben ${money(total)}.`
+        ? `En total te deben ${money(total)}.`
         : total < 0
-          ? `En ${monthName} debes ${money(total)}.`
-          : `En ${monthName} estás al día.`;
+          ? `En total debes ${money(total)}.`
+          : 'Estás al día en todos tus grupos.';
 
   return (
     <div className="flex h-full flex-col">
@@ -251,13 +249,11 @@ function GroupDetail({
 }) {
   const [tab, setTab] = useState<Tab>('ledger');
   const [settling, setSettling] = useState(false);
-  const { data: accountsData } = useAccounts();
-  const accounts = accountsData?.accounts ?? [];
-  const settleMutation = useSettleGroup(() => setSettling(false));
 
-  const monthDate = parseISO(`${month}-01`);
-  const monthName = format(monthDate, 'MMMM', { locale: es });
-  const pairs = balance ? computeSettlements(balance.members) : [];
+  const monthName = format(parseISO(`${month}-01`), 'MMMM', { locale: es });
+  const myPairs = (balance?.pairs ?? []).filter(
+    (p) => p.from_user_id === userId || p.to_user_id === userId,
+  );
 
   return (
     <div>
@@ -279,10 +275,8 @@ function GroupDetail({
         <div className="space-y-3 lg:col-start-2 lg:row-start-1">
           <BalanceHero
             balance={balance}
-            pairs={pairs}
+            myPairs={myPairs}
             userId={userId}
-            monthName={monthName}
-            canSettle={accounts.length > 0}
             onSettle={() => setSettling(true)}
           />
           <button
@@ -314,7 +308,7 @@ function GroupDetail({
           <div className="mb-3 hidden lg:block">
             <CardHeader
               title={`Movimientos de ${monthName}`}
-              description="Lo que pagó cada uno y lo que significa para ti."
+              description="Lo que pagó cada uno, los pagos entre ustedes y lo que significa para ti."
             />
           </div>
           <GroupLedger group={group} month={month} userId={userId} />
@@ -327,10 +321,14 @@ function GroupDetail({
           <div className="mb-4">
             <CardHeader
               title="Saldos"
-              description={<span className="capitalize">{monthName}</span>}
+              description="Acumulado de todos los meses"
             />
           </div>
-          <GroupBalancesPanel balance={balance} userId={userId} />
+          <GroupBalancesPanel
+            balance={balance}
+            userId={userId}
+            monthName={monthName}
+          />
         </Card>
 
         <Card
@@ -344,24 +342,14 @@ function GroupDetail({
         </Card>
       </div>
 
-      {settling && balance && (
-        <SettleConfirmModal
+      {settling && myPairs.length > 0 && (
+        <SettlementModal
           isOpen={settling}
           onClose={() => setSettling(false)}
-          onConfirm={(accountId, selectedPairs) => {
-            if (settleMutation.isPending) return;
-            settleMutation.mutate({
-              groupId: group.id,
-              month,
-              accountId,
-              settlements: selectedPairs,
-            });
-          }}
+          groupId={group.id}
           groupName={group.name}
-          month={format(monthDate, 'MMMM yyyy', { locale: es })}
-          pairs={pairs}
-          accounts={accounts}
-          isPending={settleMutation.isPending}
+          pairs={myPairs}
+          userId={userId}
         />
       )}
     </div>
@@ -370,68 +358,51 @@ function GroupDetail({
 
 function BalanceHero({
   balance,
-  pairs,
+  myPairs,
   userId,
-  monthName,
-  canSettle,
   onSettle,
 }: {
   balance?: GroupBalance;
-  pairs: ReturnType<typeof computeSettlements>;
+  myPairs: SettlementPair[];
   userId?: string;
-  monthName: string;
-  canSettle: boolean;
   onSettle: () => void;
 }) {
-  const me = balance?.members.find((m) => m.user_id === userId);
-  const net = Math.round(me?.net ?? 0);
-  const empty = !balance || balance.transaction_count === 0;
-  const myPairs = pairs.filter(
-    (p) => p.debtor === me?.nickname || p.creditor === me?.nickname,
+  const net = Math.round(
+    balance?.members.find((m) => m.user_id === userId)?.net ?? 0,
   );
+  const othersOwe = (balance?.pairs.length ?? 0) > 0;
 
-  const detail = empty
-    ? 'Nadie ha registrado gastos compartidos este mes.'
-    : myPairs.length > 0
+  const detail =
+    myPairs.length > 0
       ? myPairs
           .map((p) =>
-            p.creditor === me?.nickname
-              ? `${p.debtor} te debe ${money(p.amount)}`
-              : `Le debes ${money(p.amount)} a ${p.creditor}`,
+            p.to_user_id === userId
+              ? `${p.from_nickname} te debe ${money(p.amount)}`
+              : `Le debes ${money(p.amount)} a ${p.to_nickname}`,
           )
           .join(' · ')
-      : pairs.length > 0
+      : othersOwe
         ? 'Tú no tienes deudas en este grupo.'
         : 'Nadie le debe a nadie.';
 
   return (
     <Card label="Tu saldo en el grupo" tone="hero">
       <p className="text-secondary text-[13px]">
-        {empty
-          ? 'Sin gastos'
-          : net > 0
-            ? 'Te deben'
-            : net < 0
-              ? 'Debes'
-              : 'Estás al día'}{' '}
-        en {monthName}
+        {net > 0 ? 'Te deben' : net < 0 ? 'Debes' : 'Estás al día'}
       </p>
-      {!empty && net !== 0 && (
+      {net !== 0 && (
         <p className="text-primary mt-1 text-4xl leading-none font-extrabold tracking-[-0.035em] tabular-nums">
           {money(net)}
         </p>
       )}
       <p className="text-secondary mt-2 text-[13px]">{detail}</p>
-      {pairs.length > 0 && (
+      {myPairs.length > 0 && (
         <button
           type="button"
           onClick={onSettle}
-          disabled={!canSettle}
-          className="bg-primary/15 hover:bg-primary/20 text-primary focus-ring mt-4 min-h-11 w-full rounded-xl px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+          className="bg-primary/15 hover:bg-primary/20 text-primary focus-ring mt-4 min-h-11 w-full rounded-xl px-4 text-sm font-semibold transition-colors"
         >
-          {pairs.length === 1
-            ? 'Saldar deuda'
-            : `Saldar ${pairs.length} deudas`}
+          Registrar pago
         </button>
       )}
     </Card>
