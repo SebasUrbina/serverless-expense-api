@@ -1,6 +1,6 @@
 import type { Transaction } from '@/types/api';
 
-/** Title prefix that `POST /groups/:id/settle` gives the debtor's movement. */
+/** Title prefix of the debtor's movement created by the removed `POST /groups/:id/settle`. */
 const SETTLEMENT_PREFIX = '💸 Saldo';
 
 export const isSettlement = (tx: Pick<Transaction, 'title'>) =>

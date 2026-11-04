@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS expenses;
+DROP TABLE IF EXISTS group_settlements;
 DROP TABLE IF EXISTS transaction_splits;
 DROP TABLE IF EXISTS shared_group_members;
 DROP TABLE IF EXISTS shared_groups;
@@ -130,6 +131,21 @@ CREATE TABLE IF NOT EXISTS transaction_splits (
     percentage INTEGER NOT NULL,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS group_settlements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    from_user_id TEXT NOT NULL,
+    to_user_id TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount > 0),
+    date DATE NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CHECK (from_user_id <> to_user_id),
+    FOREIGN KEY (group_id) REFERENCES shared_groups(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_group_settlements_group_date
+    ON group_settlements (group_id, date);
 
 CREATE TABLE IF NOT EXISTS budgets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

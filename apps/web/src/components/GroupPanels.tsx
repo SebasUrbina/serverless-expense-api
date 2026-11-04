@@ -8,15 +8,27 @@ import { es } from 'date-fns/locale';
 import { ArrowLeftRight, ArrowRight, Check, Copy, Share2 } from 'lucide-react';
 import api from '@/lib/api';
 import { transactionListOptions } from '@/lib/transactionList';
-import { isSettlement, ledgerEffect } from '@/lib/groupLedger';
-import { computeSettlements } from '@/lib/settlements';
+import {
+  isSettlement,
+  ledgerEffect,
+  type LedgerEffect,
+} from '@/lib/groupLedger';
 import { formatCurrency } from '@/lib/utils';
+import {
+  useDeleteSettlement,
+  useGroupSettlements,
+} from '@/hooks/useGroupBalances';
 import { usePendingDeleteIds } from '@/store/usePendingDeletes';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { CardNotice } from '@/components/ui/Card';
 import { MemberAvatar } from './MemberAvatar';
-import type { GroupBalance, SharedGroup, Transaction } from '@/types/api';
+import type {
+  GroupBalance,
+  GroupSettlement,
+  SharedGroup,
+  Transaction,
+} from '@/types/api';
 
 const money = (n: number) => `$${formatCurrency(Math.round(Math.abs(n)))}`;
 
@@ -43,7 +55,42 @@ const EFFECT_CLASS = {
   none: 'text-muted',
 } as const;
 
-/** The group's shared movements for the month, with what each one means for you. */
+const rowClass =
+  '-mx-2 grid min-h-14 w-[calc(100%+1rem)] grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-xl px-2 py-2.5 text-left';
+
+type LedgerItem =
+  | { kind: 'tx'; date: string; tx: Transaction }
+  | { kind: 'payment'; date: string; payment: GroupSettlement };
+
+function Effect({ effect }: { effect: LedgerEffect }) {
+  return (
+    <span className="text-right tabular-nums">
+      <span className="text-muted block text-[11px]">
+        {EFFECT_LABEL[effect.kind]}
+      </span>
+      {effect.kind !== 'none' && (
+        <span
+          className={`block text-sm font-bold ${EFFECT_CLASS[effect.kind]}`}
+        >
+          {money(effect.amount)}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function PaymentIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      className="bg-inset text-secondary flex h-8 w-8 items-center justify-center rounded-full"
+    >
+      <ArrowLeftRight size={15} />
+    </span>
+  );
+}
+
+/** The group's shared movements and payments for the month, with what each one means for you. */
 export function GroupLedger({
   group,
   month,
@@ -76,36 +123,152 @@ export function GroupLedger({
       async (url, signal) => (await api.get(url, { signal })).data,
     ),
   );
+  const settlementsQuery = useGroupSettlements(group.id, month);
+  const deleteSettlement = useDeleteSettlement();
 
   const hiddenIds = usePendingDeleteIds();
   const days = useMemo(() => {
-    const byDay = new Map<string, Transaction[]>();
-    for (const tx of data?.pages.flatMap((p) => p.transactions) ?? []) {
-      if (hiddenIds.has(tx.id)) continue;
-      const key = tx.date.slice(0, 10);
-      byDay.set(key, [...(byDay.get(key) ?? []), tx]);
+    const txs = (data?.pages.flatMap((p) => p.transactions) ?? []).filter(
+      (tx) => !hiddenIds.has(tx.id),
+    );
+    // While older movements are still unloaded, hold back older payments too,
+    // so they don't show up out of place at the end of the list.
+    const oldestLoaded = hasNextPage
+      ? txs.at(-1)?.date.slice(0, 10)
+      : undefined;
+    const payments = (settlementsQuery.data?.settlements ?? []).filter(
+      (p) => !oldestLoaded || p.date >= oldestLoaded,
+    );
+    const items: LedgerItem[] = [
+      ...txs.map((tx) => ({
+        kind: 'tx' as const,
+        date: tx.date.slice(0, 10),
+        tx,
+      })),
+      ...payments.map((payment) => ({
+        kind: 'payment' as const,
+        date: payment.date,
+        payment,
+      })),
+    ];
+    const byDay = new Map<string, LedgerItem[]>();
+    for (const item of items) {
+      byDay.set(item.date, [...(byDay.get(item.date) ?? []), item]);
     }
     return [...byDay.entries()].sort(([a], [b]) => b.localeCompare(a));
-  }, [data?.pages, hiddenIds]);
+  }, [data?.pages, hiddenIds, hasNextPage, settlementsQuery.data]);
 
   const memberById = new Map(group.members.map((m) => [m.user_id, m]));
+  const nameOf = (id: string) => memberById.get(id)?.nickname ?? 'Otro miembro';
 
-  if (isLoading) return <LoadingState minHeight="h-40" />;
-  if (isError && days.length === 0)
+  if (isLoading || settlementsQuery.isLoading)
+    return <LoadingState minHeight="h-40" />;
+  if ((isError || settlementsQuery.isError) && days.length === 0)
     return (
       <CardNotice
         title="No pudimos cargar los movimientos del grupo"
         description="Revisa tu conexión e intenta nuevamente."
-        action={{ label: 'Reintentar', onClick: () => void refetch() }}
+        action={{
+          label: 'Reintentar',
+          onClick: () => {
+            void refetch();
+            void settlementsQuery.refetch();
+          },
+        }}
       />
     );
   if (days.length === 0)
     return (
       <CardNotice
-        title="Sin gastos compartidos este mes"
-        description="Cuando alguien del grupo registre un gasto, aparecerá aquí con lo que te toca."
+        title="Sin movimientos este mes"
+        description="Cuando alguien del grupo registre un gasto o un pago, aparecerá aquí con lo que significa para ti."
       />
     );
+
+  const paymentRow = (payment: GroupSettlement) => {
+    const title =
+      payment.from_user_id === userId
+        ? `Le pagaste a ${nameOf(payment.to_user_id)}`
+        : payment.to_user_id === userId
+          ? `${nameOf(payment.from_user_id)} te pagó`
+          : `${nameOf(payment.from_user_id)} le pagó a ${nameOf(payment.to_user_id)}`;
+    const effect: LedgerEffect =
+      payment.from_user_id === userId
+        ? { kind: 'paid', amount: payment.amount }
+        : payment.to_user_id === userId
+          ? { kind: 'received', amount: payment.amount }
+          : { kind: 'none' };
+    const canUndo = payment.created_by === userId;
+    return (
+      <div className={rowClass}>
+        <PaymentIcon />
+        <span className="min-w-0">
+          <span className="text-primary block truncate text-sm font-semibold">
+            {title}
+          </span>
+          <span className="text-muted mt-0.5 flex min-w-0 items-center gap-1.5 text-xs">
+            <span className="truncate">Pago entre miembros</span>
+            {canUndo && (
+              <button
+                type="button"
+                onClick={() =>
+                  deleteSettlement.mutate({ groupId: group.id, id: payment.id })
+                }
+                disabled={deleteSettlement.isPending}
+                className="text-secondary hover:text-primary focus-ring shrink-0 rounded font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                · Deshacer
+              </button>
+            )}
+          </span>
+        </span>
+        <Effect effect={effect} />
+      </div>
+    );
+  };
+
+  const txRow = (tx: Transaction) => {
+    const legacyPayment = isSettlement(tx);
+    const payer = tx.user_id ? memberById.get(tx.user_id) : undefined;
+    const paidByMe = !!userId && tx.user_id === userId;
+    const detail = legacyPayment
+      ? 'Pago entre miembros'
+      : paidByMe
+        ? `Pagaste ${money(tx.amount)}`
+        : `Pagó ${payer?.nickname ?? 'otro miembro'} · ${money(tx.amount)}`;
+    const content = (
+      <>
+        {legacyPayment ? (
+          <PaymentIcon />
+        ) : (
+          <MemberAvatar
+            userId={tx.user_id ?? ''}
+            nickname={payer?.nickname ?? '?'}
+          />
+        )}
+        <span className="min-w-0">
+          <span className="text-primary block truncate text-sm font-semibold">
+            {legacyPayment ? 'Pago de deuda' : tx.title}
+          </span>
+          <span className="text-muted mt-0.5 block truncate text-xs tabular-nums">
+            {detail}
+          </span>
+        </span>
+        <Effect effect={ledgerEffect(tx, userId)} />
+      </>
+    );
+    if (tx.is_owner === false || legacyPayment)
+      return <div className={rowClass}>{content}</div>;
+    return (
+      <button
+        type="button"
+        onClick={() => openModal(tx)}
+        className={`${rowClass} hover:bg-inset focus-ring transition-colors`}
+      >
+        {content}
+      </button>
+    );
+  };
 
   return (
     <div>
@@ -115,74 +278,17 @@ export function GroupLedger({
             {dayLabel(date)}
           </h3>
           <ul className="divide-border divide-y">
-            {items.map((tx) => {
-              const effect = ledgerEffect(tx, userId);
-              const settlement = isSettlement(tx);
-              const payer = tx.user_id ? memberById.get(tx.user_id) : undefined;
-              const paidByMe = !!userId && tx.user_id === userId;
-              const detail = settlement
-                ? 'Pago entre miembros'
-                : paidByMe
-                  ? `Pagaste ${money(tx.amount)}`
-                  : `Pagó ${payer?.nickname ?? 'otro miembro'} · ${money(tx.amount)}`;
-              const editable = tx.is_owner !== false && !settlement;
-
-              const content = (
-                <>
-                  {settlement ? (
-                    <span
-                      aria-hidden="true"
-                      className="bg-inset text-secondary flex h-8 w-8 items-center justify-center rounded-full"
-                    >
-                      <ArrowLeftRight size={15} />
-                    </span>
-                  ) : (
-                    <MemberAvatar
-                      userId={tx.user_id ?? ''}
-                      nickname={payer?.nickname ?? '?'}
-                    />
-                  )}
-                  <span className="min-w-0">
-                    <span className="text-primary block truncate text-sm font-semibold">
-                      {settlement ? 'Pago de deuda' : tx.title}
-                    </span>
-                    <span className="text-muted mt-0.5 block truncate text-xs tabular-nums">
-                      {detail}
-                    </span>
-                  </span>
-                  <span className="text-right tabular-nums">
-                    <span className="text-muted block text-[11px]">
-                      {EFFECT_LABEL[effect.kind]}
-                    </span>
-                    {effect.kind !== 'none' && (
-                      <span
-                        className={`block text-sm font-bold ${EFFECT_CLASS[effect.kind]}`}
-                      >
-                        {money(effect.amount)}
-                      </span>
-                    )}
-                  </span>
-                </>
-              );
-              const rowClass =
-                '-mx-2 grid min-h-14 w-[calc(100%+1rem)] grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-xl px-2 py-2.5 text-left';
-
-              return (
-                <li key={tx.id}>
-                  {editable ? (
-                    <button
-                      type="button"
-                      onClick={() => openModal(tx)}
-                      className={`${rowClass} hover:bg-inset focus-ring transition-colors`}
-                    >
-                      {content}
-                    </button>
-                  ) : (
-                    <div className={rowClass}>{content}</div>
-                  )}
-                </li>
-              );
-            })}
+            {items.map((item) => (
+              <li
+                key={
+                  item.kind === 'tx'
+                    ? `tx-${item.tx.id}`
+                    : `pay-${item.payment.id}`
+                }
+              >
+                {item.kind === 'tx' ? txRow(item.tx) : paymentRow(item.payment)}
+              </li>
+            ))}
           </ul>
         </section>
       ))}
@@ -200,23 +306,19 @@ export function GroupLedger({
   );
 }
 
-/** Each member's net for the month and the transfers that even it out. */
+/** Each member's accumulated balance and the transfers that even it out. */
 export function GroupBalancesPanel({
   balance,
   userId,
+  monthName,
 }: {
   balance?: GroupBalance;
   userId?: string;
+  monthName: string;
 }) {
-  if (!balance || balance.transaction_count === 0)
-    return (
-      <p className="text-secondary text-sm">
-        No hay gastos compartidos este mes.
-      </p>
-    );
+  if (!balance) return null;
 
   const max = Math.max(...balance.members.map((m) => Math.abs(m.net)), 1);
-  const pairs = computeSettlements(balance.members);
 
   return (
     <div>
@@ -266,35 +368,40 @@ export function GroupBalancesPanel({
                 )}
               </div>
               <p className="text-muted mt-1 text-[11px] tabular-nums">
-                Pagó {money(m.total_paid)} · Le toca {money(m.total_share)}
+                En {monthName}: pagó {money(m.month_paid)} · le toca{' '}
+                {money(m.month_share)}
               </p>
             </li>
           );
         })}
       </ul>
 
-      {pairs.length > 0 && (
-        <div className="border-border mt-4 border-t pt-3">
-          <p className="text-secondary mb-1.5 text-xs font-semibold">
-            Para quedar a mano
-          </p>
-          <ul className="space-y-1 text-[13px]">
-            {pairs.map((pair) => (
-              <li
-                key={`${pair.debtor}-${pair.creditor}`}
-                className="text-secondary flex items-center gap-1.5"
-              >
-                <span className="truncate">{pair.debtor}</span>
-                <ArrowRight size={12} className="text-muted shrink-0" />
-                <span className="truncate">{pair.creditor}</span>
-                <span className="text-primary ml-auto font-semibold tabular-nums">
-                  {money(pair.amount)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="border-border mt-4 border-t pt-3">
+        {balance.pairs.length > 0 ? (
+          <>
+            <p className="text-secondary mb-1.5 text-xs font-semibold">
+              Para quedar a mano
+            </p>
+            <ul className="space-y-1 text-[13px]">
+              {balance.pairs.map((pair) => (
+                <li
+                  key={`${pair.from_user_id}-${pair.to_user_id}`}
+                  className="text-secondary flex items-center gap-1.5"
+                >
+                  <span className="truncate">{pair.from_nickname}</span>
+                  <ArrowRight size={12} className="text-muted shrink-0" />
+                  <span className="truncate">{pair.to_nickname}</span>
+                  <span className="text-primary ml-auto font-semibold tabular-nums">
+                    {money(pair.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="text-secondary text-[13px]">Todos están al día.</p>
+        )}
+      </div>
     </div>
   );
 }

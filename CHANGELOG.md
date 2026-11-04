@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Web: a "Grupos" section for shared expenses. The list shows what you are owed or owe in each group for the selected month. Each group shows its balance with the button to settle, the month's shared movements with what each one means for you ("Prestaste", "Te toca", "Pagaste", "Recibiste"), every member's net with a bar and the transfers that even it out, and the members with the invite code. On mobile, the movements, balances and members are tabs under the balance; on desktop, the group list, the movements and the balance sit side by side. Members get an initial and a color that stay the same in every group.
+- Web: a "Grupos" section for shared expenses. The list shows what you are owed or owe in each group. Each group shows your balance with "Registrar pago", the month's shared movements and payments with what each one means for you ("Prestaste", "Te toca", "Pagaste", "Recibiste"), every member's balance with a bar and the transfers that even it out, and the members with the invite code. On mobile, the movements, balances and members are tabs under the balance; on desktop, the group list, the movements and the balance sit side by side. Members get an initial and a color that stay the same in every group.
+- Web: "Registrar pago" records that a debt in a group was paid, in full or in part. It is a payment between members, not an expense or income: it no longer adds a fake expense and income to your categories and budget, and it no longer asks for an account. Payments show up in the group's movements, and whoever recorded one can undo it.
+- API: `GET`/`POST /api/groups/:group_id/settlements` and `DELETE /api/groups/:group_id/settlements/:id` list, record and undo payments between members. Only the payer or the receiver can record a payment and only whoever recorded it can undo it. Requires migration `0006_group_settlements`.
 - Web: "Gasto compartido" in a group opens the transaction dialog already shared with that group and split equally.
 - Web: "Invitar con un enlace" opens the device's share sheet (or copies the link) with a `/groups?join=CODE` link that opens "Unirme" with the code filled in.
 - API: `POST /api/transactions` accepts an optional `client_id`; repeating it returns the movement already created instead of a duplicate (including installment series). The web sends one per new movement, so a retried offline create is saved once. Requires migration `0005_transaction_client_id`.
@@ -18,7 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Web: "Grupos" replaces "Recurrentes" in the navigation. Recurring rules are a tab next to "Movimientos" at the top of the transactions page, and "Movimientos" stays highlighted on both. The shared expenses card on the home links to each group's page instead of the filtered transactions list.
+- Web/API: group balances accumulate across months instead of starting over every month, and count only what happened up to today (future installments wait for their date). `GET /api/groups/balances` returns that accumulated `net`, `total_paid` and `total_share`, the month's `month_paid`, `month_share`, `transaction_count` and `settlement_count`, and the `pairs` that settle it, identified by `user_id`.
 - Web: movements can also be edited and deleted offline, not only created. Changes are shown in the lists right away and sent in order when the connection returns.
+
+### Removed
+
+- API: `POST /api/groups/:group_id/settle` was removed. Record payments with `POST /api/groups/:group_id/settlements` instead. Settlements already made with it stay as they were and still count in the balance.
 
 ### Fixed
 

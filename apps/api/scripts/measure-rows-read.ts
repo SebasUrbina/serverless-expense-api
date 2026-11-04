@@ -151,6 +151,7 @@ async function main() {
       '/transactions/summary/category-trend?months=12',
       `/budgets?month=${month}`,
       `/groups/balances?month=${month}`,
+      `/groups/1/settlements?month=${month}`,
       '/recurring',
     ];
 

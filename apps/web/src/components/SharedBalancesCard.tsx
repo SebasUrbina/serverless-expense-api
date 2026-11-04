@@ -4,22 +4,18 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Card, CardHeader, CardLink } from '@/components/ui/Card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useAccounts } from '@/hooks/usePreferences';
-import { useGroupBalances, useSettleGroup } from '@/hooks/useGroupBalances';
+import { useGroupBalances } from '@/hooks/useGroupBalances';
 import { useAuth } from '@/lib/AuthProvider';
 import { formatCurrency } from '@/lib/utils';
-import { computeSettlements } from '@/lib/settlements';
 import { useState } from 'react';
-import { SettleConfirmModal } from './SettleConfirmModal';
+import { SettlementModal } from './SettlementModal';
 import type { GroupBalance, SettlementPair } from '@/types/api';
 
 export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
   const currentMonth = filterMonth || format(new Date(), 'yyyy-MM');
   const { data, isLoading } = useGroupBalances(currentMonth);
-  const { data: accountsData } = useAccounts();
   const { session } = useAuth();
 
-  const accounts = accountsData?.accounts || [];
   const balances = data?.balances || [];
   const userId = session?.user?.id;
 
@@ -28,24 +24,9 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
     pairs: SettlementPair[];
   } | null>(null);
 
-  const settleMutation = useSettleGroup(() => setSettleTarget(null));
-
   if (!isLoading && balances.length === 0) return null;
 
-  const handleConfirmSettle = (
-    accountId: number,
-    selectedPairs: SettlementPair[],
-  ) => {
-    if (!settleTarget || settleMutation.isPending) return;
-    settleMutation.mutate({
-      groupId: settleTarget.group.group_id,
-      month: currentMonth,
-      accountId,
-      settlements: selectedPairs,
-    });
-  };
-
-  const monthLabel = format(new Date(currentMonth + '-01'), 'MMMM yyyy', {
+  const monthName = format(new Date(currentMonth + '-01'), 'MMMM', {
     locale: es,
   });
 
@@ -54,7 +35,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
       <Card label="Gastos compartidos">
         <CardHeader
           title="Gastos compartidos"
-          description={<span className="capitalize">{monthLabel}</span>}
+          description="Saldo acumulado de tus grupos"
           link={{
             href: '/groups',
             label: 'Ver grupos',
@@ -72,8 +53,8 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
                 key={group.group_id}
                 group={group}
                 month={currentMonth}
+                monthName={monthName}
                 userId={userId}
-                canSettle={accounts.length > 0}
                 onSettle={(pairs) => setSettleTarget({ group, pairs })}
               />
             ))}
@@ -82,15 +63,13 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
       </Card>
 
       {settleTarget && (
-        <SettleConfirmModal
+        <SettlementModal
           isOpen={!!settleTarget}
           onClose={() => setSettleTarget(null)}
-          onConfirm={handleConfirmSettle}
+          groupId={settleTarget.group.group_id}
           groupName={settleTarget.group.group_name}
-          month={monthLabel}
           pairs={settleTarget.pairs}
-          accounts={accounts}
-          isPending={settleMutation.isPending}
+          userId={userId}
         />
       )}
     </>
@@ -100,23 +79,23 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
 function GroupBalanceBlock({
   group,
   month,
+  monthName,
   userId,
-  canSettle,
   onSettle,
 }: {
   group: GroupBalance;
   month: string;
+  monthName: string;
   userId?: string;
-  canSettle: boolean;
   onSettle: (pairs: SettlementPair[]) => void;
 }) {
-  const { members } = group;
+  const { members, pairs } = group;
   if (members.length < 2) return null;
 
-  const pairs = computeSettlements(members);
-  const myNet = members.find((m) => m.user_id === userId)?.net ?? 0;
-  const other = members.find((m) => m.user_id !== userId);
-  const owed = Math.round(myNet) !== 0 && pairs.length > 0;
+  const myNet = Math.round(members.find((m) => m.user_id === userId)?.net ?? 0);
+  const myPairs = pairs.filter(
+    (p) => p.from_user_id === userId || p.to_user_id === userId,
+  );
 
   return (
     <div className="bg-inset flex flex-col rounded-2xl p-4">
@@ -130,94 +109,80 @@ function GroupBalanceBlock({
         </CardLink>
       </div>
 
-      {group.transaction_count === 0 ? (
-        <p className="text-secondary mt-3 text-sm">
-          No hay gastos compartidos este mes.
-        </p>
-      ) : (
-        <>
-          <div className="mt-3">
-            {owed ? (
-              <>
-                <p className="text-secondary text-[13px]">
-                  {myNet > 0 ? 'Te deben' : 'Debes'}
-                </p>
-                <p
-                  className={`mt-0.5 text-2xl font-bold tracking-tight tabular-nums ${myNet > 0 ? 'text-income' : 'text-expense'}`}
-                >
-                  ${formatCurrency(Math.abs(myNet))}
-                </p>
-              </>
-            ) : (
-              <p className="text-primary text-lg font-semibold">
-                {pairs.length === 0 ? 'Todo saldado' : 'No tienes deudas'}
-              </p>
-            )}
-            {owed && other && members.length === 2 && (
-              <p className="text-muted mt-0.5 text-xs">
-                {myNet > 0
-                  ? `${other.nickname} te debe`
-                  : `Le debes a ${other.nickname}`}
-              </p>
-            )}
-          </div>
+      <div className="mt-3">
+        {myNet !== 0 ? (
+          <>
+            <p className="text-secondary text-[13px]">
+              {myNet > 0 ? 'Te deben' : 'Debes'}
+            </p>
+            <p
+              className={`mt-0.5 text-2xl font-bold tracking-tight tabular-nums ${myNet > 0 ? 'text-income' : 'text-expense'}`}
+            >
+              ${formatCurrency(Math.abs(myNet))}
+            </p>
+          </>
+        ) : (
+          <p className="text-primary text-lg font-semibold">
+            {pairs.length === 0 ? 'Todo saldado' : 'No tienes deudas'}
+          </p>
+        )}
+      </div>
 
-          <ul className="divide-border mt-3 divide-y text-sm">
-            {members.map((member) => (
+      {group.transaction_count > 0 && (
+        <ul className="divide-border mt-3 divide-y text-sm">
+          {members.map((member) => (
+            <li
+              key={member.user_id}
+              className="flex items-center justify-between gap-3 py-2"
+            >
+              <span className="text-primary min-w-0 truncate font-medium">
+                {member.nickname}
+                {member.user_id === userId && (
+                  <span className="text-muted font-normal"> (tú)</span>
+                )}
+              </span>
+              <span className="text-muted shrink-0 text-xs tabular-nums">
+                <span className="capitalize">{monthName}</span>: pagó{' '}
+                <b className="text-secondary font-semibold">
+                  ${formatCurrency(member.month_paid)}
+                </b>{' '}
+                · le toca{' '}
+                <b className="text-secondary font-semibold">
+                  ${formatCurrency(member.month_share)}
+                </b>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {pairs.length > 0 && (
+        <div className="border-border mt-auto border-t pt-3">
+          <ul className="space-y-1 text-xs">
+            {pairs.map((pair) => (
               <li
-                key={member.user_id}
-                className="flex items-center justify-between gap-3 py-2"
+                key={`${pair.from_user_id}-${pair.to_user_id}`}
+                className="text-secondary flex items-center gap-1.5"
               >
-                <span className="text-primary min-w-0 truncate font-medium">
-                  {member.nickname}
-                  {member.user_id === userId && (
-                    <span className="text-muted font-normal"> (tú)</span>
-                  )}
-                </span>
-                <span className="text-muted shrink-0 text-xs tabular-nums">
-                  Pagó{' '}
-                  <b className="text-secondary font-semibold">
-                    ${formatCurrency(member.total_paid)}
-                  </b>{' '}
-                  · Le toca{' '}
-                  <b className="text-secondary font-semibold">
-                    ${formatCurrency(member.total_share)}
-                  </b>
+                <span className="truncate">{pair.from_nickname}</span>
+                <ArrowRight size={12} className="text-muted shrink-0" />
+                <span className="truncate">{pair.to_nickname}</span>
+                <span className="text-primary ml-auto font-semibold tabular-nums">
+                  ${formatCurrency(pair.amount)}
                 </span>
               </li>
             ))}
           </ul>
-
-          {pairs.length > 0 && (
-            <div className="border-border mt-auto border-t pt-3">
-              <ul className="space-y-1 text-xs">
-                {pairs.map((pair, i) => (
-                  <li
-                    key={i}
-                    className="text-secondary flex items-center gap-1.5"
-                  >
-                    <span className="truncate">{pair.debtor}</span>
-                    <ArrowRight size={12} className="text-muted shrink-0" />
-                    <span className="truncate">{pair.creditor}</span>
-                    <span className="text-primary ml-auto font-semibold tabular-nums">
-                      ${formatCurrency(pair.amount)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={() => onSettle(pairs)}
-                disabled={!canSettle}
-                className="bg-primary text-card focus-ring mt-3 min-h-11 w-full rounded-xl px-4 text-sm font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {pairs.length === 1
-                  ? 'Saldar deuda'
-                  : `Saldar ${pairs.length} deudas`}
-              </button>
-            </div>
+          {myPairs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onSettle(myPairs)}
+              className="bg-primary text-card focus-ring mt-3 min-h-11 w-full rounded-xl px-4 text-sm font-semibold transition-opacity hover:opacity-90"
+            >
+              Registrar pago
+            </button>
           )}
-        </>
+        </div>
       )}
     </div>
   );
