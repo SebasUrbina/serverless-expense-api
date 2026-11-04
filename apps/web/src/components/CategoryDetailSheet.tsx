@@ -17,7 +17,7 @@ import api from '@/lib/api';
 import { formatMoney } from '@/lib/utils';
 import { useCategoryDetail } from '@/store/useCategoryDetail';
 import { useTransactionModal } from '@/store/useTransactionModal';
-import { usePendingDeletes } from '@/store/usePendingDeletes';
+import { usePendingDeleteIds } from '@/store/usePendingDeletes';
 import { useCategories } from '@/hooks/usePreferences';
 import { useCategoryColors } from '@/hooks/useCategoryColors';
 import type { CategoryTrendResponse, Transaction } from '@/types/api';
@@ -48,7 +48,7 @@ function CategoryDetail({
   onClose: () => void;
 }) {
   const { openModal } = useTransactionModal();
-  const pending = usePendingDeletes((s) => s.items);
+  const hidden = usePendingDeleteIds();
   const { data: categoriesData } = useCategories();
   const category = categoriesData?.categories.find((c) => c.id === categoryId);
   const color = useCategoryColors().get(categoryId) ?? 'var(--text-muted)';
@@ -102,7 +102,6 @@ function CategoryDetail({
     name: format(parseISO(`${m}-01`), 'MMM', { locale: es }).replace('.', ''),
     value: values[i] ?? 0,
   }));
-  const hidden = new Set(pending.map((p) => p.id));
   const movements = (list?.transactions ?? []).filter(
     (tx) => !hidden.has(tx.id),
   );

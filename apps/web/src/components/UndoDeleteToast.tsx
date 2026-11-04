@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
+import {
+  DELETE_TRANSACTION_KEY,
+  runTransactionMutation,
+  type DeletedTransaction,
+} from '@/lib/offlineMutations';
 import { usePendingDeletes } from '@/store/usePendingDeletes';
 
 const UNDO_MS = 5000;
@@ -17,17 +21,16 @@ export function UndoDeleteToast() {
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
   const [failed, setFailed] = useState<string | null>(null);
 
+  // Offline, the deletion pauses and is sent on reconnect; lists keep it hidden.
   const commit = useCallback(
-    async (id: number, title: string) => {
-      clearTimeout(timers.current.get(id));
-      timers.current.delete(id);
-      remove(id);
+    async (item: DeletedTransaction) => {
+      clearTimeout(timers.current.get(item.id));
+      timers.current.delete(item.id);
+      remove(item.id);
       try {
-        await api.delete(`/transactions/${id}`);
+        await runTransactionMutation(queryClient, DELETE_TRANSACTION_KEY, item);
       } catch {
-        setFailed(title);
-      } finally {
-        queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        setFailed(item.title);
       }
     },
     [queryClient, remove],
@@ -45,7 +48,7 @@ export function UndoDeleteToast() {
       if (!timers.current.has(item.id)) {
         timers.current.set(
           item.id,
-          setTimeout(() => void commit(item.id, item.title), UNDO_MS),
+          setTimeout(() => void commit(item), UNDO_MS),
         );
       }
     }
@@ -55,7 +58,7 @@ export function UndoDeleteToast() {
     const flush = () => {
       if (document.visibilityState !== 'hidden') return;
       for (const item of usePendingDeletes.getState().items) {
-        void commit(item.id, item.title);
+        void commit(item);
       }
     };
     document.addEventListener('visibilitychange', flush);

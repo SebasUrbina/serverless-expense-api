@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- API: `POST /api/transactions` accepts an optional `client_id`; repeating it returns the movement already created instead of a duplicate (including installment series). The web sends one per new movement, so a retried offline create is saved once. Requires migration `0005_transaction_client_id`.
+- Web: "Repetir hoy" in the edit dialog opens a new movement with the same details and today's date.
+
+### Changed
+
+- Web: movements can also be edited and deleted offline, not only created. Changes are shown in the lists right away and sent in order when the connection returns.
+
+### Fixed
+
+- Web: while a deleted movement can still be undone (or waits to sync), the home totals, category breakdown and budget no longer count it.
+- Web: the budget dialog shows the amount with thousands separators.
+
 ## [0.3.0] - 2026-11-03
 
 ### Added

@@ -5,13 +5,17 @@ import { onlineManager, useMutationState } from '@tanstack/react-query';
 import { CloudOff } from 'lucide-react';
 import {
   CREATE_TRANSACTION_KEY,
+  DELETE_TRANSACTION_KEY,
+  UPDATE_TRANSACTION_KEY,
   type CreateTransactionVariables,
+  type DeletedTransaction,
+  type UpdateTransactionVariables,
 } from '@/lib/offlineMutations';
 import { formatCurrency } from '@/lib/utils';
 
 const subscribe = (callback: () => void) => onlineManager.subscribe(callback);
 
-/** Shows when the app is offline and which new movements are waiting to sync. */
+/** Shows when the app is offline and which changes are waiting to sync. */
 export function SyncStatusBanner() {
   const online = useSyncExternalStore(
     subscribe,
@@ -20,21 +24,30 @@ export function SyncStatusBanner() {
   );
   const queued = useMutationState({
     filters: {
-      mutationKey: CREATE_TRANSACTION_KEY,
-      predicate: (mutation) => mutation.state.isPaused,
+      predicate: (mutation) =>
+        mutation.state.isPaused &&
+        mutation.options.scope?.id === 'transactions',
     },
-    select: (mutation) =>
-      mutation.state.variables as CreateTransactionVariables | undefined,
-  }).filter((v): v is CreateTransactionVariables => !!v);
+    select: (mutation) => {
+      const key = mutation.options.mutationKey?.[1];
+      if (key === CREATE_TRANSACTION_KEY[1]) {
+        const tx = mutation.state.variables as CreateTransactionVariables;
+        return `${tx.title} (${tx.type === 'income' ? '+' : '−'}$${formatCurrency(tx.amount)})`;
+      }
+      if (key === UPDATE_TRANSACTION_KEY[1]) {
+        const { payload } = mutation.state
+          .variables as UpdateTransactionVariables;
+        return `${payload.title} (editado)`;
+      }
+      if (key === DELETE_TRANSACTION_KEY[1]) {
+        const tx = mutation.state.variables as DeletedTransaction;
+        return `${tx.title} (eliminado)`;
+      }
+      return null;
+    },
+  }).filter((label): label is string => !!label);
 
   if (online && queued.length === 0) return null;
-
-  const names = queued
-    .map(
-      (tx) =>
-        `${tx.title} (${tx.type === 'income' ? '+' : '−'}$${formatCurrency(tx.amount)})`,
-    )
-    .join(', ');
 
   return (
     <div
@@ -50,12 +63,12 @@ export function SyncStatusBanner() {
       <p className="text-secondary min-w-0">
         <b className="text-primary font-semibold">
           {queued.length > 0
-            ? `${queued.length} ${queued.length === 1 ? 'movimiento' : 'movimientos'} sin sincronizar.`
+            ? `${queued.length} ${queued.length === 1 ? 'cambio' : 'cambios'} sin sincronizar.`
             : 'Sin conexión.'}
         </b>{' '}
         {queued.length > 0
-          ? `Se enviarán al recuperar la conexión: ${names}.`
-          : 'Puedes seguir registrando movimientos; se enviarán al reconectar.'}
+          ? `Se enviarán al recuperar la conexión: ${queued.join(', ')}.`
+          : 'Puedes seguir registrando, editando y borrando; se enviará al reconectar.'}
       </p>
     </div>
   );

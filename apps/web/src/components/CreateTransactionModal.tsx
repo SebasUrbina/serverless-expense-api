@@ -6,10 +6,16 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
-import api from '@/lib/api';
-import { CREATE_TRANSACTION_KEY } from '@/lib/offlineMutations';
+import {
+  CREATE_TRANSACTION_KEY,
+  UPDATE_TRANSACTION_KEY,
+  patchCachedTransaction,
+  type CreateTransactionVariables,
+  type UpdateTransactionVariables,
+} from '@/lib/offlineMutations';
 import { format } from 'date-fns';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Repeat2 } from 'lucide-react';
+import { useTransactionModal } from '@/store/useTransactionModal';
 import { usePendingDeletes } from '@/store/usePendingDeletes';
 import {
   useCategories,
@@ -47,6 +53,8 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   initialData?: Transaction | null;
+  /** Prefills a new movement from an earlier one; the date is today. */
+  template?: Transaction | null;
 };
 
 type TransactionPayload = {
@@ -140,7 +148,9 @@ export function CreateTransactionModal({
   isOpen,
   onClose,
   initialData,
+  template,
 }: Props) {
+  const source = initialData ?? template ?? null;
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } =
@@ -163,23 +173,21 @@ export function CreateTransactionModal({
 
   // Form State
   const [type, setType] = useState<'expense' | 'income'>(
-    initialData?.type ?? 'expense',
+    source?.type ?? 'expense',
   );
-  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [title, setTitle] = useState(source?.title ?? '');
   const [amount, setAmount] = useState(
-    initialData
-      ? new Intl.NumberFormat('es-CL').format(initialData.amount)
-      : '',
+    source ? new Intl.NumberFormat('es-CL').format(source.amount) : '',
   );
   const [categoryId, setCategoryId] = useState<number | ''>(
-    initialData?.category_id || '',
+    source?.category_id || '',
   );
   // '' means "not chosen in this form": new movements fall back to the last account used.
   const [accountId, setAccountId] = useState<number | ''>(
-    initialData?.account_id || '',
+    source?.account_id || '',
   );
   const [lastAccountId, setLastAccountId] = useState(readLastAccount);
-  const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
+  const [tagIds, setTagIds] = useState<number[]>(source?.tag_ids || []);
   const [date, setDate] = useState(
     // API dates are calendar dates (YYYY-MM-DD), not UTC timestamps.
     initialData?.date ?? format(new Date(), 'yyyy-MM-dd'),
@@ -192,13 +200,11 @@ export function CreateTransactionModal({
   } | null>(null);
 
   // Shared expense state
-  const [isShared, setIsShared] = useState(Boolean(initialData?.is_shared));
-  const [groupId, setGroupId] = useState<number | ''>(
-    initialData?.group_id || '',
-  );
+  const [isShared, setIsShared] = useState(Boolean(source?.is_shared));
+  const [groupId, setGroupId] = useState<number | ''>(source?.group_id || '');
   const [splitPercentages, setSplitPercentages] = useState<
     Record<string, number>
-  >(() => getInitialSplitPercentages(initialData));
+  >(() => getInitialSplitPercentages(source));
 
   // Installment (Cuotas) State
   const [isInstallments, setIsInstallments] = useState(false);
@@ -231,16 +237,17 @@ export function CreateTransactionModal({
     setError(null);
   };
 
-  // Its function comes from the defaults registered in Providers (works offline).
-  const createMutation = useMutation<unknown, Error, TransactionPayload>({
-    mutationKey: CREATE_TRANSACTION_KEY,
-  });
-  const updateMutation = useMutation({
-    mutationFn: async (newTx: TransactionPayload) =>
-      (await api.put(`/transactions/${initialData!.id}`, newTx)).data,
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-  });
+  // Their functions come from the defaults registered in Providers (work offline).
+  const createMutation = useMutation<
+    unknown,
+    Error,
+    CreateTransactionVariables
+  >({ mutationKey: CREATE_TRANSACTION_KEY });
+  const updateMutation = useMutation<
+    unknown,
+    Error,
+    UpdateTransactionVariables
+  >({ mutationKey: UPDATE_TRANSACTION_KEY });
 
   const rememberPayloadAccount = (payload: TransactionPayload) => {
     if (!payload.account_id) return;
@@ -249,8 +256,7 @@ export function CreateTransactionModal({
   };
 
   const callbacks = {
-    onSuccess: (_data: unknown, payload: TransactionPayload) => {
-      rememberPayloadAccount(payload);
+    onSuccess: () => {
       setSuccessSnapshot({ amount, type });
       setShowSuccess(true);
       setTimeout(() => {
@@ -268,10 +274,18 @@ export function CreateTransactionModal({
   };
 
   const scheduleDelete = usePendingDeletes((s) => s.add);
+  const openRepeat = useTransactionModal((s) => s.openRepeat);
 
   const handleDelete = () => {
     if (!initialData?.id) return;
-    scheduleDelete({ id: initialData.id, title: initialData.title });
+    scheduleDelete({
+      id: initialData.id,
+      title: initialData.title,
+      amount: initialData.amount,
+      type: initialData.type,
+      date: initialData.date,
+      category_id: initialData.category_id ?? null,
+    });
     resetAndClose();
   };
 
@@ -339,27 +353,36 @@ export function CreateTransactionModal({
       }));
     }
 
+    // Offline, mutations pause until the connection returns and the sync
+    // banner lists them; the dialog closes right away.
     const online = onlineManager.isOnline();
+    rememberPayloadAccount(payload);
+
     if (initialData) {
+      patchCachedTransaction(queryClient, initialData.id, {
+        ...payload,
+        category: selectedCategory.name,
+        category_icon: selectedCategory.icon,
+      });
+      const variables = { id: initialData.id, payload };
       if (!online) {
-        setError(
-          'Sin conexión. Para editar un movimiento necesitas estar en línea.',
-        );
+        updateMutation.mutate(variables);
+        resetAndClose();
         return;
       }
       setLoading(true);
-      updateMutation.mutate(payload, callbacks);
+      updateMutation.mutate(variables, callbacks);
       return;
     }
+
+    const variables = { ...payload, client_id: crypto.randomUUID() };
     if (!online) {
-      // Paused until the connection returns; the sync banner lists it meanwhile.
-      createMutation.mutate(payload);
-      rememberPayloadAccount(payload);
+      createMutation.mutate(variables);
       resetAndClose();
       return;
     }
     setLoading(true);
-    createMutation.mutate(payload, callbacks);
+    createMutation.mutate(variables, callbacks);
   };
 
   const resetAndClose = () => {
@@ -630,6 +653,18 @@ export function CreateTransactionModal({
               : `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`
           }
         />
+
+        {initialData && (
+          <button
+            type="button"
+            onClick={() => openRepeat(initialData)}
+            disabled={loading}
+            className="bg-inset text-primary hover:bg-border focus-ring flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <Repeat2 size={16} aria-hidden="true" />
+            Repetir hoy
+          </button>
+        )}
 
         {initialData && (
           <DeleteButton
