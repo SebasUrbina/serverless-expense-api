@@ -1,7 +1,7 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
-import { todayLocal } from '../utils/date';
+import { monthWindow } from '../utils/date';
 
 export class TransactionCategoryTrend extends OpenAPIRoute {
   schema = {
@@ -15,6 +15,20 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
           required: false,
           default: 12,
         }),
+        endMonth: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional()
+          .describe('Last month of the window (YYYY-MM). Defaults to now.'),
+        day: z.coerce
+          .number()
+          .int()
+          .min(1)
+          .max(31)
+          .optional()
+          .describe(
+            'Also return values_to_day: each month’s expenses from day 1 to this day of the month.',
+          ),
       }),
     },
     responses: {
@@ -31,6 +45,7 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
                   category: z.string().nullable(),
                   category_icon: z.string().nullable(),
                   values: z.array(z.number()),
+                  values_to_day: z.array(z.number()).optional(),
                 }),
               ),
             }),
@@ -42,20 +57,11 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 
   async handle(c: AppContext) {
     const data = await this.getValidatedData<typeof this.schema>();
-    const { months } = data.query;
+    const { months, endMonth, day } = data.query;
     const userId = c.get('userId');
 
     const safeMonths = Math.max(1, Math.min(24, months || 12));
-
-    // Build chronological list of YYYY-MM for the last N months (including current)
-    const monthsArr: string[] = [];
-    const today = todayLocal();
-    for (let i = safeMonths - 1; i >= 0; i--) {
-      const d = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
-      d.setUTCMonth(d.getUTCMonth() - i);
-      monthsArr.push(d.toISOString().slice(0, 7));
-    }
-    const startMonth = monthsArr[0] + '-01';
+    const { months: monthsArr, start, end } = monthWindow(safeMonths, endMonth);
 
     const { results } = await c.env.DB.prepare(
       `SELECT
@@ -63,9 +69,11 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 				c.name as category,
 				c.icon as category_icon,
 				s.month as month,
-				s.amount as amount
+				s.amount as amount,
+				s.amount_to_day as amount_to_day
 			 FROM (
-				SELECT category_id, strftime('%Y-%m', date) as month, SUM(amount) as amount
+				SELECT category_id, strftime('%Y-%m', date) as month, SUM(amount) as amount,
+					SUM(CASE WHEN CAST(strftime('%d', date) AS INTEGER) <= ? THEN amount ELSE 0 END) as amount_to_day
 				FROM transactions
 				WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ?
 				GROUP BY category_id, month
@@ -73,7 +81,7 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 			 LEFT JOIN categories c ON c.id = s.category_id
 			 ORDER BY month ASC, amount DESC`,
     )
-      .bind(userId, startMonth, today)
+      .bind(day ?? 31, userId, start, end)
       .all();
 
     // Aggregate into per-category arrays aligned with monthsArr
@@ -84,6 +92,7 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
         category: string | null;
         category_icon: string | null;
         values: number[];
+        values_to_day?: number[];
       }
     >();
     for (const row of results as any[]) {
@@ -94,11 +103,16 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
           category: row.category,
           category_icon: row.category_icon,
           values: new Array(safeMonths).fill(0),
+          ...(day ? { values_to_day: new Array(safeMonths).fill(0) } : {}),
         });
       }
       const idx = monthsArr.indexOf(row.month);
       if (idx >= 0) {
-        catMap.get(row.category_id)!.values[idx] = row.amount || 0;
+        const entry = catMap.get(row.category_id)!;
+        entry.values[idx] = row.amount || 0;
+        if (entry.values_to_day) {
+          entry.values_to_day[idx] = row.amount_to_day || 0;
+        }
       }
     }
 

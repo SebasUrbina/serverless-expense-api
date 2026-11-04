@@ -135,10 +135,15 @@ export function PWAController() {
   return (
     <>
       {!isOnline ? (
-        <div className="animate-seva-slide-up bg-card border-border fixed inset-x-3 top-3 z-[120] flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm shadow-2xl sm:top-4 sm:right-4 sm:left-auto sm:w-[360px]">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500">
-            <WifiOff size={18} />
-          </div>
+        <div
+          role="status"
+          className="animate-seva-slide-up bg-card border-border shadow-elevated fixed inset-x-3 top-3 z-[120] flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm sm:top-4 sm:right-4 sm:left-auto sm:w-[360px]"
+        >
+          <WifiOff
+            size={18}
+            className="text-secondary shrink-0"
+            aria-hidden="true"
+          />
           <div className="min-w-0 flex-1">
             <p className="text-primary font-semibold">Estás sin conexión</p>
             <p className="text-muted text-xs">
@@ -150,33 +155,28 @@ export function PWAController() {
 
       {canInstall ? (
         <div className="animate-seva-slide-up fixed inset-x-3 bottom-[6.2rem] z-[115] sm:right-4 sm:bottom-4 sm:left-auto sm:w-[360px]">
-          <div className="bg-card border-border rounded-3xl border p-5 shadow-2xl">
+          <div className="bg-card border-border shadow-elevated rounded-3xl border p-5">
             <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold tracking-wider text-emerald-500 uppercase">
-                  Instalar app
-                </p>
-                <h2 className="text-primary mt-1 text-base font-bold">
-                  Guarda Seva en tu pantalla de inicio
-                </h2>
-              </div>
+              <h2 className="text-primary text-base font-bold">
+                Guarda Seva en tu pantalla de inicio
+              </h2>
               <button
                 type="button"
                 onClick={() => setShowInstallCard(false)}
-                className="text-muted hover:text-primary hover:bg-card-hover inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors"
+                className="text-muted hover:text-primary hover:bg-card-hover focus-ring inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors"
                 aria-label="Cerrar recomendación de instalación"
               >
                 <X size={16} />
               </button>
             </div>
             <p className="text-secondary text-xs leading-relaxed">
-              Entra más rápido, disfruta experiencia de app nativa y accede a
-              tus datos sin conexión.
+              Ábrela más rápido, como una app, y consulta tus datos aunque no
+              tengas conexión.
             </p>
             <button
               type="button"
               onClick={() => void handleInstall()}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-600 active:scale-[0.98]"
+              className="bg-accent focus-ring text-on-accent hover:bg-accent-hover mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors"
             >
               <Download size={16} />
               Instalar Seva
@@ -187,11 +187,8 @@ export function PWAController() {
 
       {updateReady ? (
         <div className="animate-seva-slide-up fixed inset-x-3 bottom-[6.2rem] z-[115] sm:right-4 sm:bottom-4 sm:left-auto sm:w-[360px]">
-          <div className="bg-card border-border rounded-3xl border p-5 shadow-2xl">
-            <p className="text-muted text-[10px] font-bold tracking-wider uppercase">
-              Actualización lista
-            </p>
-            <h2 className="text-primary mt-1 text-base font-bold">
+          <div className="bg-card border-border shadow-elevated rounded-3xl border p-5">
+            <h2 className="text-primary text-base font-bold">
               Hay una nueva versión de Seva
             </h2>
             <p className="text-secondary mt-2 text-xs leading-relaxed">
@@ -201,7 +198,7 @@ export function PWAController() {
             <button
               type="button"
               onClick={handleApplyUpdate}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-600 active:scale-[0.98]"
+              className="bg-accent focus-ring text-on-accent hover:bg-accent-hover mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-colors"
             >
               <RefreshCcw size={16} />
               Actualizar ahora

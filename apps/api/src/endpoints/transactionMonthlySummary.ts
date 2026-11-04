@@ -1,7 +1,7 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
-import { todayLocal } from '../utils/date';
+import { monthWindow } from '../utils/date';
 
 export class TransactionMonthlySummary extends OpenAPIRoute {
   schema = {
@@ -15,6 +15,20 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
           required: false,
           default: 6,
         }),
+        endMonth: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional()
+          .describe('Last month of the window (YYYY-MM). Defaults to now.'),
+        day: z.coerce
+          .number()
+          .int()
+          .min(1)
+          .max(31)
+          .optional()
+          .describe(
+            'Also return expense_to_day: each month’s expenses from day 1 to this day of the month.',
+          ),
       }),
     },
     responses: {
@@ -29,6 +43,7 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
                   month: z.string(),
                   total_expense: z.number(),
                   total_income: z.number(),
+                  expense_to_day: z.number().optional(),
                 }),
               ),
             }),
@@ -40,22 +55,18 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
 
   async handle(c: AppContext) {
     const data = await this.getValidatedData<typeof this.schema>();
-    const { months } = data.query;
+    const { months, endMonth, day } = data.query;
     const userId = c.get('userId');
 
-    // We need to group by YYYY-MM
-    // strftime('%Y-%m', date) gives us the month string
     const safeMonths = Math.max(1, Math.min(12, months || 6));
-
-    const today = todayLocal();
-    const start = new Date(`${today.slice(0, 7)}-01T00:00:00Z`);
-    start.setUTCMonth(start.getUTCMonth() - (safeMonths - 1));
+    const { start, end } = monthWindow(safeMonths, endMonth);
 
     const query = `
 			SELECT 
 				strftime('%Y-%m', date) as month,
 				SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
-				SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income
+				SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
+				SUM(CASE WHEN type = 'expense' AND CAST(strftime('%d', date) AS INTEGER) <= ? THEN amount ELSE 0 END) as expense_to_day
 			FROM transactions
 			WHERE user_id = ? AND date >= ? AND date <= ?
 			GROUP BY month
@@ -64,7 +75,7 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
 		`;
 
     const result = await c.env.DB.prepare(query)
-      .bind(userId, start.toISOString().slice(0, 10), today, safeMonths)
+      .bind(day ?? 31, userId, start, end, safeMonths)
       .all();
 
     // Map the results and return them in chronological order
@@ -73,6 +84,7 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
         month: row.month as string,
         total_expense: row.total_expense as number,
         total_income: row.total_income as number,
+        ...(day ? { expense_to_day: row.expense_to_day as number } : {}),
       }))
       .reverse();
 

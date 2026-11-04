@@ -7,9 +7,12 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
+import { useDialog } from '@/hooks/useDialog';
 
 type BaseModalProps = {
   isOpen: boolean;
+  /** Accessible name of the dialog. */
+  label: string;
   onClose: () => void;
   children: ReactNode;
   /** Max width class for the sheet (default: 'max-w-lg') */
@@ -28,6 +31,7 @@ const DISMISS_THRESHOLD = 120;
 
 export function BaseModal({
   isOpen,
+  label,
   onClose,
   children,
   maxWidth = 'max-w-lg',
@@ -82,6 +86,8 @@ export function BaseModal({
     setIsVisible(false);
     setTimeout(() => onClose(), 400);
   }, [onClose]);
+
+  useDialog(isOpen, animateClose, sheetRef);
 
   // Drag-to-dismiss: touch start
   const onTouchStart = useCallback(
@@ -153,10 +159,14 @@ export function BaseModal({
     >
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         onClick={(e) => e.stopPropagation()}
-        className={`bg-card border-border w-full rounded-t-[2.5rem] border-t sm:rounded-3xl sm:border ${maxWidth} shadow-elevated modal-sheet pb-safe max-h-[95vh] overflow-y-auto sm:max-h-[90vh] sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
+        className={`bg-card border-border w-full rounded-t-[2.5rem] border-t sm:rounded-3xl sm:border ${maxWidth} shadow-elevated modal-sheet pb-safe max-h-[95vh] overflow-y-auto focus:outline-none sm:max-h-[90vh] sm:pb-0 ${isVisible ? 'modal-open' : ''}`}
         style={{
           maxHeight: sheetMaxHeight,
           ...(dragOffset > 0

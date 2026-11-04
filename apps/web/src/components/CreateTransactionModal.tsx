@@ -1,23 +1,42 @@
 'use client';
 
-import { useState } from 'react';
-import { isAxiosError } from 'axios';
-import type { AxiosError } from 'axios';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
+import {
+  onlineManager,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import api from '@/lib/api';
+import { CREATE_TRANSACTION_KEY } from '@/lib/offlineMutations';
 import { format } from 'date-fns';
-import { X, ChevronDown, Users, Calendar } from 'lucide-react';
-import { formatDateAbbreviated } from '@/lib/utils';
-import { useDeleteTransaction } from '@/hooks/useDashboardData';
+import { ChevronDown } from 'lucide-react';
+import { usePendingDeletes } from '@/store/usePendingDeletes';
 import {
   useCategories,
   useAccounts,
   useTags,
   useGroups,
 } from '@/hooks/usePreferences';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import {
+  AccountPicker,
+  AmountInput,
+  CategoryPicker,
+  FormModalHeader,
+  Switch,
+  TagPicker,
+  TypeToggle,
+  focusField,
+  formatAmountInput,
+  parseAmountInput,
+  readLastAccount,
+  rememberAccount,
+  resolveAccount,
+} from './TransactionFields';
+import { TitleField } from './TitleField';
+import type { TitleSuggestion } from '@/hooks/useTitleSuggestions';
 import { TransactionSuccessOverlay } from './TransactionSuccessOverlay';
 import { CustomSelect } from './CustomSelect';
+import { DateField } from './DateField';
 import { BaseModal } from './ui/BaseModal';
 import { SubmitButton } from './ui/SubmitButton';
 import { DeleteButton } from './ui/DeleteButton';
@@ -45,10 +64,6 @@ type TransactionPayload = {
     user_id: string;
     percentage: number;
   }>;
-};
-
-type ApiErrorResponse = {
-  error?: string;
 };
 
 function getInitialSplitPercentages(
@@ -85,6 +100,42 @@ function getEqualSplitPercentages(
   );
 }
 
+/** A collapsible row for optional settings, showing their current state. */
+function OptionRow({
+  label,
+  status,
+  defaultOpen = false,
+  children,
+}: {
+  label: string;
+  status: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [initiallyOpen] = useState(defaultOpen);
+  return (
+    <details
+      open={initiallyOpen}
+      className="group/option border-border border-b"
+    >
+      <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg py-3 [&::-webkit-details-marker]:hidden">
+        <span className="text-primary flex-1 text-sm font-semibold">
+          {label}
+        </span>
+        <span className="text-secondary max-w-[50%] truncate text-sm">
+          {status}
+        </span>
+        <ChevronDown
+          size={16}
+          aria-hidden="true"
+          className="text-muted shrink-0 transition-transform group-open/option:rotate-180"
+        />
+      </summary>
+      <div className="pb-4">{children}</div>
+    </details>
+  );
+}
+
 export function CreateTransactionModal({
   isOpen,
   onClose,
@@ -92,24 +143,23 @@ export function CreateTransactionModal({
 }: Props) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  // Fetch dynamic categories
   const { data: categoriesData, isLoading: isLoadingCategories } =
     useCategories();
   const categories = categoriesData?.categories || [];
 
-  // Fetch dynamic accounts
   const { data: accountsData, isLoading: isLoadingAccounts } = useAccounts();
   const accounts = accountsData?.accounts || [];
 
-  // Fetch dynamic tags
-  const { data: tagsData, isLoading: isLoadingTags } = useTags();
+  const { data: tagsData } = useTags();
   const tags = tagsData?.tags || [];
 
-  // Fetch shared groups
   const { data: groupsData } = useGroups();
   const groups = groupsData?.groups || [];
 
-  const initialSplitPercentages = getInitialSplitPercentages(initialData);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const sharedRef = useRef<HTMLDivElement>(null);
 
   // Form State
   const [type, setType] = useState<'expense' | 'income'>(
@@ -124,15 +174,16 @@ export function CreateTransactionModal({
   const [categoryId, setCategoryId] = useState<number | ''>(
     initialData?.category_id || '',
   );
+  // '' means "not chosen in this form": new movements fall back to the last account used.
   const [accountId, setAccountId] = useState<number | ''>(
     initialData?.account_id || '',
   );
+  const [lastAccountId, setLastAccountId] = useState(readLastAccount);
   const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
   const [date, setDate] = useState(
     // API dates are calendar dates (YYYY-MM-DD), not UTC timestamps.
     initialData?.date ?? format(new Date(), 'yyyy-MM-dd'),
   );
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successSnapshot, setSuccessSnapshot] = useState<{
@@ -147,11 +198,22 @@ export function CreateTransactionModal({
   );
   const [splitPercentages, setSplitPercentages] = useState<
     Record<string, number>
-  >(initialSplitPercentages);
+  >(() => getInitialSplitPercentages(initialData));
 
   // Installment (Cuotas) State
   const [isInstallments, setIsInstallments] = useState(false);
   const [installments, setInstallments] = useState(1);
+
+  const selectedGroup = groups.find((g) => g.id === groupId);
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const effectiveAccountId = resolveAccount(
+    accountId,
+    accounts,
+    lastAccountId,
+    !initialData,
+  );
+  const parsedAmount = parseAmountInput(amount);
+  const splitTotal = Object.values(splitPercentages).reduce((a, b) => a + b, 0);
 
   const resetForm = () => {
     setTitle('');
@@ -169,21 +231,26 @@ export function CreateTransactionModal({
     setError(null);
   };
 
-  // Get currently selected group
-  const selectedGroup = groups.find((g) => g.id === groupId);
+  // Its function comes from the defaults registered in Providers (works offline).
+  const createMutation = useMutation<unknown, Error, TransactionPayload>({
+    mutationKey: CREATE_TRANSACTION_KEY,
+  });
+  const updateMutation = useMutation({
+    mutationFn: async (newTx: TransactionPayload) =>
+      (await api.put(`/transactions/${initialData!.id}`, newTx)).data,
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+  });
 
-  const mutation = useMutation({
-    mutationFn: async (newTx: TransactionPayload) => {
-      if (initialData) {
-        const res = await api.put(`/transactions/${initialData.id}`, newTx);
-        return res.data;
-      } else {
-        const res = await api.post('/transactions', newTx);
-        return res.data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+  const rememberPayloadAccount = (payload: TransactionPayload) => {
+    if (!payload.account_id) return;
+    setLastAccountId(payload.account_id);
+    rememberAccount(payload.account_id);
+  };
+
+  const callbacks = {
+    onSuccess: (_data: unknown, payload: TransactionPayload) => {
+      rememberPayloadAccount(payload);
       setSuccessSnapshot({ amount, type });
       setShowSuccess(true);
       setTimeout(() => {
@@ -192,44 +259,68 @@ export function CreateTransactionModal({
         resetAndClose();
       }, 1500);
     },
-    onError: (err: AxiosError<ApiErrorResponse> | Error) => {
-      const msg = isAxiosError<ApiErrorResponse>(err)
-        ? err.response?.data?.error ||
-          err.message ||
-          'Failed to save transaction. Try again.'
-        : err.message || 'Failed to save transaction. Try again.';
-      setError(msg);
-      setLoading(false);
+    onError: () => {
+      setError(
+        'No pudimos guardar el movimiento. Revisa tu conexión e intenta nuevamente.',
+      );
     },
-  });
+    onSettled: () => setLoading(false),
+  };
 
-  const deleteMutation = useDeleteTransaction();
+  const scheduleDelete = usePendingDeletes((s) => s.add);
 
   const handleDelete = () => {
-    if (initialData?.id) {
-      deleteMutation.mutate(initialData.id, {
-        onSuccess: () => {
-          resetAndClose();
-        },
-      });
+    if (!initialData?.id) return;
+    scheduleDelete({ id: initialData.id, title: initialData.title });
+    resetAndClose();
+  };
+
+  const changeType = (next: 'expense' | 'income') => {
+    setType(next);
+    if (selectedCategory && selectedCategory.type !== next) setCategoryId('');
+    if (next === 'income') {
+      setIsInstallments(false);
+      setInstallments(1);
     }
+  };
+
+  const applySuggestion = (suggestion: TitleSuggestion) => {
+    setTitle(suggestion.title);
+    const category = categories.find((c) => c.id === suggestion.category_id);
+    if (category?.type === type) setCategoryId(category.id);
+    if (accounts.some((a) => a.id === suggestion.account_id)) {
+      setAccountId(suggestion.account_id!);
+    }
+    if (!parsedAmount) setAmount(formatAmountInput(String(suggestion.amount)));
+    setError(null);
+  };
+
+  const fail = (message: string, target: RefObject<HTMLElement | null>) => {
+    setError(message);
+    focusField(target);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-    const parsedAmount = parseInt(amount.replace(/\./g, ''), 10);
-    if (!parsedAmount || isNaN(parsedAmount)) {
-      setLoading(false);
-      return;
-    }
+    if (!parsedAmount) return fail('Ingresa un monto.', amountRef);
+    if (!selectedCategory || selectedCategory.type !== type)
+      return fail('Elige una categoría.', categoryRef);
+    if (effectiveAccountId === '') return fail('Elige una cuenta.', accountRef);
+    if (isShared && !selectedGroup)
+      return fail('Elige el grupo del gasto compartido.', sharedRef);
+    if (isShared && splitTotal !== 100)
+      return fail(
+        `La división debe sumar 100% (ahora suma ${splitTotal}%).`,
+        sharedRef,
+      );
+
     const payload: TransactionPayload = {
-      title,
+      title: title.trim() || selectedCategory.name,
       amount: parsedAmount,
-      category_id: categoryId !== '' ? categoryId : undefined,
+      category_id: selectedCategory.id,
       type,
-      account_id: accountId !== '' ? accountId : undefined,
+      account_id: effectiveAccountId,
       tag_ids: tagIds,
       date,
       is_shared: 0,
@@ -239,21 +330,36 @@ export function CreateTransactionModal({
       payload.installments = installments;
     }
 
-    if (isShared && groupId && selectedGroup) {
+    if (isShared && selectedGroup) {
       payload.is_shared = 1;
-      payload.group_id = groupId;
+      payload.group_id = selectedGroup.id;
       payload.splits = selectedGroup.members.map((m) => ({
         user_id: m.user_id,
         percentage: splitPercentages[m.user_id] || 0,
       }));
-    } else {
-      payload.is_shared = 0;
-      payload.group_id = undefined;
     }
 
-    mutation.mutate(payload, {
-      onSettled: () => setLoading(false),
-    });
+    const online = onlineManager.isOnline();
+    if (initialData) {
+      if (!online) {
+        setError(
+          'Sin conexión. Para editar un movimiento necesitas estar en línea.',
+        );
+        return;
+      }
+      setLoading(true);
+      updateMutation.mutate(payload, callbacks);
+      return;
+    }
+    if (!online) {
+      // Paused until the connection returns; the sync banner lists it meanwhile.
+      createMutation.mutate(payload);
+      rememberPayloadAccount(payload);
+      resetAndClose();
+      return;
+    }
+    setLoading(true);
+    createMutation.mutate(payload, callbacks);
   };
 
   const resetAndClose = () => {
@@ -272,443 +378,203 @@ export function CreateTransactionModal({
     );
   }
 
+  const heading = initialData
+    ? 'Editar movimiento'
+    : type === 'expense'
+      ? 'Agregar gasto'
+      : 'Agregar ingreso';
+  const installmentsAvailable = type === 'expense' && !initialData;
+
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={resetAndClose}
+      label={heading}
       draggable
       lockScroll
-      outerContent={
-        <ConfirmDeleteModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          onConfirm={handleDelete}
-          title="Eliminar movimiento"
-          message={`¿Estás seguro de que quieres eliminar "${title}"? Esta acción no se puede deshacer.`}
-        />
-      }
     >
-      <div className="bg-card/90 sticky top-0 z-30 flex items-center justify-between px-4 pt-5 pb-4 backdrop-blur sm:p-6">
-        <button
-          type="button"
-          onClick={resetAndClose}
-          className="bg-inset text-primary hover:bg-border rounded-full px-5 py-2.5 text-sm font-semibold transition-colors sm:hidden"
-        >
-          Cancelar
-        </button>
+      <FormModalHeader
+        title={initialData ? 'Editar' : heading}
+        formId="transaction-form"
+        saving={loading}
+        onClose={resetAndClose}
+      />
 
-        <h2 className="text-primary absolute left-1/2 -translate-x-1/2 text-lg font-bold sm:static sm:translate-x-0 sm:text-xl">
-          {initialData
-            ? 'Editar'
-            : type === 'expense'
-              ? 'Agregar gasto'
-              : 'Agregar ingreso'}
-        </h2>
+      <form
+        id="transaction-form"
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6 px-6 pb-6"
+      >
+        <TypeToggle value={type} onChange={changeType} />
 
-        <button
-          type="submit"
-          form="transaction-form"
-          disabled={
-            loading ||
-            !title ||
-            !amount ||
-            categoryId === '' ||
-            accountId === '' ||
-            (isShared &&
-              groupId !== '' &&
-              selectedGroup != null &&
-              Object.values(splitPercentages).reduce((a, b) => a + b, 0) !==
-                100)
-          }
-          className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-600 transition-colors disabled:opacity-50 sm:hidden dark:text-emerald-400"
-        >
-          Guardar
-        </button>
-
-        <button
-          onClick={resetAndClose}
-          className="bg-inset text-muted hover:bg-card-hover hidden rounded-full p-2 transition-colors hover:text-white sm:block"
-        >
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className="p-6">
-        {/* Type Toggle */}
-        <div className="bg-inset mb-6 flex rounded-xl p-1">
-          <button
-            onClick={() => setType('expense')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-          >
-            Gasto
-          </button>
-          <button
-            onClick={() => setType('income')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
-          >
-            Ingreso
-          </button>
+        <div className="flex flex-col items-center gap-4">
+          <AmountInput
+            inputRef={amountRef}
+            type={type}
+            autoFocus={!initialData}
+            value={amount}
+            onChange={(value) => {
+              setAmount(value);
+              setError(null);
+            }}
+          />
+          <DateField value={date} onChange={setDate} />
         </div>
 
-        <form
-          id="transaction-form"
-          onSubmit={handleSubmit}
-          className="space-y-6"
-        >
-          {/* Amount & Date - Ultra minimalist top */}
-          <div className="mt-4 mb-6 flex flex-col items-center justify-center">
-            <div className="relative mb-3 inline-flex items-baseline">
-              <span
-                className="mr-1 text-2xl font-bold"
-                style={{
-                  color:
-                    type === 'expense'
-                      ? 'var(--color-expense)'
-                      : 'var(--color-income)',
-                }}
-              >
-                $
+        <div>
+          <TitleField
+            id="transaction-title"
+            label={
+              <>
+                Detalle{' '}
+                <span className="text-muted font-normal">· opcional</span>
+              </>
+            }
+            type={type}
+            value={title}
+            onChange={setTitle}
+            onPick={applySuggestion}
+            placeholder={
+              selectedCategory?.name ?? '¿En qué fue? Ej.: Uber, supermercado'
+            }
+            hint={
+              !title.trim() &&
+              selectedCategory && (
+                <p className="text-muted mt-1.5 px-1 text-xs">
+                  Si lo dejas vacío, se guarda como “{selectedCategory.name}”.
+                </p>
+              )
+            }
+          />
+          {initialData && getInstallmentDetails(initialData) && (
+            <p className="text-accent mt-2 px-1 text-xs font-medium">
+              Cuota {initialData.installment_number}/
+              {initialData.installment_total}
+              {' · '}Editas solo este movimiento.
+            </p>
+          )}
+        </div>
+
+        <CategoryPicker
+          containerRef={categoryRef}
+          categories={categories.filter((cat) => cat.type === type)}
+          loading={isLoadingCategories}
+          value={categoryId}
+          onChange={(id) => {
+            setCategoryId(id);
+            setError(null);
+          }}
+        />
+
+        <AccountPicker
+          containerRef={accountRef}
+          accounts={accounts}
+          loading={isLoadingAccounts}
+          value={effectiveAccountId}
+          onChange={(id) => {
+            setAccountId(id);
+            setError(null);
+          }}
+        />
+
+        <TagPicker tags={tags} value={tagIds} onChange={setTagIds} />
+
+        {installmentsAvailable && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-secondary text-sm font-semibold">
+                Pagar en cuotas
               </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                required
-                value={amount}
-                onChange={(e) => {
-                  const rawValue = e.target.value.replace(/\D/g, '');
-                  if (!rawValue) {
-                    setAmount('');
-                    return;
-                  }
-                  setAmount(
-                    new Intl.NumberFormat('es-CL').format(
-                      parseInt(rawValue, 10),
-                    ),
-                  );
+              <Switch
+                label="Pagar en cuotas"
+                checked={isInstallments}
+                onChange={(on) => {
+                  setIsInstallments(on);
+                  setInstallments(on ? 3 : 1);
                 }}
-                className="placeholder:text-muted max-w-62.5 min-w-25 bg-transparent p-0 text-center text-2xl font-extrabold focus:outline-none"
-                style={{
-                  width: `${Math.max(amount.length, 1) * 1.1}ch`,
-                  color:
-                    type === 'expense'
-                      ? 'var(--color-expense)'
-                      : 'var(--color-income)',
-                }}
-                placeholder="0"
               />
             </div>
-
-            {/* Center Date Pill */}
-            <div className="relative inline-block">
-              <div className="flex cursor-pointer items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-80 dark:bg-white dark:text-black">
-                <Calendar size={14} />
-                <span>{formatDateAbbreviated(date)}</span>
-                <ChevronDown size={14} />
-              </div>
-              <input
-                type="date"
-                required
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-              />
-            </div>
-          </div>
-
-          {/* Detail */}
-          <div>
-            <label className="text-secondary mb-2 block text-sm font-semibold">
-              Detalle de la compra
-            </label>
-            <input
-              type="text"
-              required={false}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="bg-inset text-primary placeholder:text-muted focus:ring-border w-full rounded-full px-5 py-3.5 text-base font-medium transition-colors duration-200 focus:ring-1 focus:outline-none"
-              placeholder="Algún detalle para no olvidar?..."
-            />
-            {initialData && getInstallmentDetails(initialData) && (
-              <p className="text-accent mt-2 px-2 text-xs font-medium">
-                Cuota {initialData.installment_number}/
-                {initialData.installment_total}
-                {' · '}Editas solo este movimiento.
-              </p>
-            )}
-          </div>
-
-          {/* Category Bento Grid */}
-          <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
-              Categoría
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {isLoadingCategories
-                ? Array(6)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset aspect-square animate-pulse rounded-2xl"
-                      />
-                    ))
-                : categories
-                    .filter((cat) => cat.type === type)
-                    .map((cat) => {
-                      const isSelected = categoryId === cat.id;
-                      // Determine palette based on index to give colorful look like reference image
-                      // Using emerald as generic nice colorful look for now
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategoryId(cat.id)}
-                          className={`flex aspect-square flex-col items-center justify-center rounded-2xl border p-2 pt-4 pb-3 transition-all ${
-                            isSelected
-                              ? 'scale-[1.02] border-orange-400/50 bg-orange-500/10 shadow-sm'
-                              : 'bg-card border-border hover:bg-card-hover'
-                          }`}
-                        >
-                          <span className="mb-1 text-2xl">
-                            {cat.icon || '🏷️'}
-                          </span>
-                          <span
-                            className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}
-                          >
-                            {cat.name}
-                          </span>
-                        </button>
+            {isInstallments && (
+              <>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="number"
+                    min={2}
+                    max={36}
+                    aria-label="Cantidad de cuotas"
+                    value={installments}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setInstallments(
+                        isNaN(val) ? 2 : Math.max(2, Math.min(36, val)),
                       );
-                    })}
-            </div>
-          </div>
-
-          {/* Accounts Bento Grid */}
-          <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
-              Cuenta
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {isLoadingAccounts
-                ? Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset h-16 animate-pulse rounded-2xl"
-                      />
-                    ))
-                : accounts.map((acc) => {
-                    const isSelected = accountId === acc.id;
-                    const getIcon = (t: string) => {
-                      switch (t.toLowerCase()) {
-                        case 'cash':
-                          return '💵';
-                        case 'bank':
-                          return '🏦';
-                        case 'credit':
-                          return '💳';
-                        case 'investment':
-                          return '📈';
-                        default:
-                          return '💰';
-                      }
-                    };
-                    return (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => setAccountId(acc.id)}
-                        className={`flex flex-col items-center justify-center rounded-2xl border p-2 pt-3 pb-2 transition-all ${
-                          isSelected
-                            ? 'scale-[1.02] border-blue-400/50 bg-blue-500/10 shadow-sm'
-                            : 'bg-card border-border hover:bg-card-hover'
-                        }`}
-                      >
-                        <span className="mb-1 text-xl">
-                          {getIcon(acc.type)}
-                        </span>
-                        <span
-                          className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}
-                        >
-                          {acc.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase">
-              Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {isLoadingTags ? (
-                <div className="bg-inset h-8 w-full animate-pulse rounded-lg"></div>
-              ) : (
-                tags.map((tag) => {
-                  const isSelected = tagIds.includes(tag.id);
-                  return (
+                    }}
+                    className="bg-inset text-primary focus:ring-border w-16 rounded-xl px-3 py-2 text-center text-sm font-bold focus:ring-1 focus:outline-none"
+                  />
+                  {[3, 6, 12, 18, 24].map((num) => (
                     <button
-                      key={tag.id}
+                      key={num}
                       type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setTagIds(tagIds.filter((id) => id !== tag.id));
-                        } else {
-                          setTagIds([...tagIds, tag.id]);
-                        }
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-primary text-card border-primary scale-105 shadow-sm'
-                          : 'bg-inset text-muted border-border hover:border-border-subtle'
+                      aria-pressed={installments === num}
+                      onClick={() => setInstallments(num)}
+                      className={`focus-ring h-9 min-w-10 rounded-xl border px-3 text-xs font-bold transition-colors ${
+                        installments === num
+                          ? 'bg-accent-soft text-accent border-transparent'
+                          : 'border-border text-secondary hover:text-primary'
                       }`}
                     >
-                      {tag.name}
+                      {num}
                     </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Installments (Cuotas) Section */}
-          {type === 'expense' && !initialData && (
-            <div className="border-border mt-2 border-t pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <label className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
-                  <Calendar
-                    size={14}
-                    className={isInstallments ? 'text-orange-400' : ''}
-                  />
-                  Pagar en cuotas
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextVal = !isInstallments;
-                    setIsInstallments(nextVal);
-                    if (nextVal) {
-                      setInstallments(3); // default to 3 cuotas
-                    } else {
-                      setInstallments(1);
-                    }
-                  }}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    isInstallments ? 'bg-orange-500' : 'bg-border'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      isInstallments ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {isInstallments && (
-                <div className="animate-in fade-in space-y-3 duration-200">
-                  <div>
-                    <label className="text-secondary mb-2 block text-xs font-semibold uppercase">
-                      Cantidad de cuotas
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min={2}
-                        max={36}
-                        required
-                        value={installments}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          setInstallments(
-                            isNaN(val) ? 2 : Math.max(2, Math.min(36, val)),
-                          );
-                        }}
-                        className="bg-inset text-primary focus:ring-border w-20 rounded-full px-4 py-2.5 text-center text-sm font-bold transition-colors duration-200 focus:ring-1 focus:outline-none"
-                      />
-                      <div className="flex gap-1">
-                        {[3, 6, 12, 18, 24].map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => setInstallments(num)}
-                            className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-all ${
-                              installments === num
-                                ? 'border-orange-500 bg-orange-500 text-white'
-                                : 'bg-inset text-muted border-border hover:border-orange-500/50 hover:text-orange-300'
-                            }`}
-                          >
-                            {num}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  {(() => {
-                    const parsedAmt = amount
-                      ? parseInt(amount.replace(/\./g, ''), 10)
-                      : 0;
-                    if (parsedAmt > 0 && installments >= 2) {
-                      const baseAmt = Math.floor(parsedAmt / installments);
-                      const remainder = parsedAmt - baseAmt * installments;
-                      const firstAmt = baseAmt + remainder;
-                      const otherAmt = baseAmt;
-                      return (
-                        <p className="text-secondary text-xs italic">
-                          Se crearán {installments} transacciones mensuales de{' '}
-                          <span className="text-primary font-bold">
-                            ${firstAmt.toLocaleString('es-CL')}
-                          </span>{' '}
-                          (primera cuota) y{' '}
-                          <span className="text-primary font-bold">
-                            ${otherAmt.toLocaleString('es-CL')}
-                          </span>{' '}
-                          (restantes).
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+                {parsedAmount > 0 &&
+                  installments >= 2 &&
+                  (() => {
+                    const baseAmt = Math.floor(parsedAmount / installments);
+                    const firstAmt =
+                      baseAmt + (parsedAmount - baseAmt * installments);
+                    return (
+                      <p className="text-secondary text-xs">
+                        Se crearán {installments} movimientos mensuales:{' '}
+                        <b className="text-primary font-semibold">
+                          ${firstAmt.toLocaleString('es-CL')}
+                        </b>{' '}
+                        la primera cuota y{' '}
+                        <b className="text-primary font-semibold">
+                          ${baseAmt.toLocaleString('es-CL')}
+                        </b>{' '}
+                        las siguientes.
+                      </p>
+                    );
+                  })()}
+              </>
+            )}
+          </div>
+        )}
 
-          {/* Shared Expense Section */}
-          {groups.length > 0 && (
-            <div className="border-border mt-2 border-t pt-4">
-              <div className="mb-3 flex items-center justify-between">
-                <label className="text-secondary flex items-center gap-2 text-xs font-bold uppercase">
-                  <Users
-                    size={14}
-                    className={isShared ? 'text-violet-400' : ''}
+        {groups.length > 0 && (
+          <div className="border-border border-t">
+            <OptionRow
+              label="Gasto compartido"
+              status={
+                isShared ? (selectedGroup?.name ?? 'Elige un grupo') : 'No'
+              }
+              defaultOpen={isShared}
+            >
+              <div ref={sharedRef} className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-secondary text-sm">
+                    Dividir con un grupo
+                  </span>
+                  <Switch
+                    label="Gasto compartido"
+                    checked={isShared}
+                    onChange={setIsShared}
                   />
-                  Gasto Compartido
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsShared(!isShared)}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    isShared ? 'bg-violet-500' : 'bg-border'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      isShared ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {isShared && (
-                <div className="animate-in fade-in space-y-3 duration-200">
-                  <div>
-                    <label className="text-secondary mb-1 block text-xs font-semibold uppercase">
-                      Grupo
-                    </label>
+                </div>
+                {isShared && (
+                  <>
                     <CustomSelect
                       value={groupId}
                       onChange={(val) => {
@@ -723,224 +589,188 @@ export function CreateTransactionModal({
                             ? getEqualSplitPercentages(nextGroup.members)
                             : {},
                         );
+                        setError(null);
                       }}
-                      placeholder="Seleccionar grupo"
+                      placeholder="Elegir grupo"
                       options={groups.map((g) => ({
                         value: g.id,
                         label: `👥 ${g.name}`,
                       }))}
                     />
-                  </div>
+                    {selectedGroup && (
+                      <SplitEditor
+                        members={selectedGroup.members}
+                        amount={parsedAmount}
+                        percentages={splitPercentages}
+                        total={splitTotal}
+                        onChange={setSplitPercentages}
+                      />
+                    )}
+                  </>
+                )}
+              </div>
+            </OptionRow>
+          </div>
+        )}
 
-                  {selectedGroup &&
-                    (() => {
-                      const members = selectedGroup.members;
-                      const is2Members = members.length === 2;
-                      const parsedAmt = amount
-                        ? parseInt(amount.replace(/\./g, ''), 10)
-                        : 0;
-                      const firstPct =
-                        splitPercentages[members[0]?.user_id] || 0;
+        {error && (
+          <p
+            role="alert"
+            className="text-expense rounded-xl bg-[var(--red-soft)] px-4 py-3 text-sm font-medium"
+          >
+            {error}
+          </p>
+        )}
 
-                      // Preset buttons config
-                      const presets = is2Members
-                        ? [
-                            { label: '50 / 50', values: [50, 50] },
-                            { label: '60 / 40', values: [60, 40] },
-                            { label: '70 / 30', values: [70, 30] },
-                            { label: '80 / 20', values: [80, 20] },
-                            { label: '100 / 0', values: [100, 0] },
-                          ]
-                        : [
-                            {
-                              label: 'Igual',
-                              values: members.map(() =>
-                                Math.floor(100 / members.length),
-                              ),
-                            },
-                          ];
+        <SubmitButton
+          loading={loading}
+          text={
+            initialData
+              ? 'Guardar cambios'
+              : `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`
+          }
+        />
 
-                      const applyPreset = (values: number[]) => {
-                        const pcts: Record<string, number> = {};
-                        members.forEach((m, i) => {
-                          if (i < values.length) {
-                            pcts[m.user_id] = values[i];
-                          } else {
-                            // Distribute remainder for equal split
-                            pcts[m.user_id] = values[0];
-                          }
-                        });
-                        // Fix rounding: ensure total = 100
-                        const total = Object.values(pcts).reduce(
-                          (a, b) => a + b,
-                          0,
-                        );
-                        if (total !== 100 && members.length > 0) {
-                          pcts[members[0].user_id] += 100 - total;
-                        }
-                        setSplitPercentages(pcts);
-                      };
-
-                      const handleSliderChange = (value: number) => {
-                        if (is2Members) {
-                          setSplitPercentages({
-                            [members[0].user_id]: value,
-                            [members[1].user_id]: 100 - value,
-                          });
-                        }
-                      };
-
-                      return (
-                        <div className="space-y-3">
-                          <label className="text-secondary block text-xs font-semibold uppercase">
-                            División
-                          </label>
-
-                          {/* Preset Buttons */}
-                          <div className="flex flex-wrap gap-1.5">
-                            {presets.map((preset) => {
-                              const isActive = is2Members
-                                ? firstPct === preset.values[0]
-                                : false;
-                              return (
-                                <button
-                                  key={preset.label}
-                                  type="button"
-                                  onClick={() => applyPreset(preset.values)}
-                                  className={`rounded-lg border px-3 py-1 text-xs font-bold transition-all ${
-                                    isActive
-                                      ? 'border-violet-500 bg-violet-500 text-white'
-                                      : 'bg-inset text-muted border-border hover:border-violet-500/50 hover:text-violet-300'
-                                  }`}
-                                >
-                                  {preset.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {/* Slider for 2-member groups */}
-                          {is2Members && (
-                            <div className="space-y-2">
-                              <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                step={5}
-                                value={firstPct}
-                                onChange={(e) =>
-                                  handleSliderChange(parseInt(e.target.value))
-                                }
-                                className="h-2 w-full cursor-pointer appearance-none rounded-full"
-                                style={{
-                                  background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${firstPct}%, #3f3f46 ${firstPct}%, #3f3f46 100%)`,
-                                }}
-                              />
-                            </div>
-                          )}
-
-                          {/* Member breakdown */}
-                          {members.map((member) => {
-                            const pct = splitPercentages[member.user_id] || 0;
-                            const splitAmt = Math.round(
-                              (parsedAmt * pct) / 100,
-                            );
-                            return (
-                              <div
-                                key={member.user_id}
-                                className="bg-inset/50 flex items-center gap-3 rounded-xl px-3 py-2"
-                              >
-                                <span className="flex-1 truncate text-sm font-medium text-violet-400">
-                                  {member.nickname}
-                                </span>
-                                {!is2Members && (
-                                  <input
-                                    type="range"
-                                    min={0}
-                                    max={100}
-                                    step={5}
-                                    value={pct}
-                                    onChange={(e) => {
-                                      setSplitPercentages((prev) => ({
-                                        ...prev,
-                                        [member.user_id]:
-                                          parseInt(e.target.value) || 0,
-                                      }));
-                                    }}
-                                    className="h-1.5 w-20 cursor-pointer appearance-none rounded-full"
-                                    style={{
-                                      background: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${pct}%, #3f3f46 ${pct}%, #3f3f46 100%)`,
-                                    }}
-                                  />
-                                )}
-                                <span className="w-10 text-center text-sm font-bold text-white">
-                                  {pct}%
-                                </span>
-                                <span className="text-muted w-24 text-right font-mono text-sm">
-                                  ${splitAmt.toLocaleString('es-CL')}
-                                </span>
-                              </div>
-                            );
-                          })}
-
-                          {/* Validation */}
-                          {(() => {
-                            const total = Object.values(
-                              splitPercentages,
-                            ).reduce((a, b) => a + b, 0);
-                            return total !== 100 ? (
-                              <p className="text-xs text-red-400">
-                                Debe sumar 100% (actualmente {total}%)
-                              </p>
-                            ) : null;
-                          })()}
-                        </div>
-                      );
-                    })()}
-                </div>
-              )}
-            </div>
-          )}
-
-          {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              ⚠️ {error}
-            </div>
-          )}
-
-          <SubmitButton
-            loading={loading}
-            disabled={
-              loading ||
-              !title ||
-              !amount ||
-              categoryId === '' ||
-              accountId === '' ||
-              !!(
-                isShared &&
-                groupId &&
-                selectedGroup &&
-                Object.values(splitPercentages).reduce((a, b) => a + b, 0) !==
-                  100
-              )
-            }
-            variant={type}
-            text={
-              initialData
-                ? 'Guardar cambios'
-                : `Agregar ${type === 'expense' ? 'gasto' : 'ingreso'}`
-            }
+        {initialData && (
+          <DeleteButton
+            onClick={handleDelete}
+            disabled={loading}
+            text="Borrar movimiento"
           />
-
-          {initialData && (
-            <DeleteButton
-              onClick={() => setIsDeleteModalOpen(true)}
-              disabled={loading}
-              text="Borrar movimiento"
-            />
-          )}
-        </form>
-      </div>
+        )}
+      </form>
     </BaseModal>
+  );
+}
+
+function SplitEditor({
+  members,
+  amount,
+  percentages,
+  total,
+  onChange,
+}: {
+  members: Array<{ user_id: string; nickname?: string }>;
+  amount: number;
+  percentages: Record<string, number>;
+  total: number;
+  onChange: (next: Record<string, number>) => void;
+}) {
+  const is2Members = members.length === 2;
+  const firstPct = percentages[members[0]?.user_id ?? ''] || 0;
+  const presets = is2Members
+    ? [
+        [50, 50],
+        [60, 40],
+        [70, 30],
+        [80, 20],
+        [100, 0],
+      ]
+    : [];
+
+  return (
+    <div className="space-y-3">
+      <p className="text-secondary text-sm font-semibold">División</p>
+      {is2Members ? (
+        <>
+          <div className="flex flex-wrap gap-1.5">
+            {presets.map(([a, b]) => (
+              <button
+                key={a}
+                type="button"
+                aria-pressed={firstPct === a}
+                onClick={() =>
+                  onChange({
+                    [members[0]!.user_id]: a!,
+                    [members[1]!.user_id]: b!,
+                  })
+                }
+                className={`focus-ring h-8 rounded-xl border px-3 text-xs font-bold tabular-nums transition-colors ${
+                  firstPct === a
+                    ? 'bg-accent-soft text-accent border-transparent'
+                    : 'border-border text-secondary hover:text-primary'
+                }`}
+              >
+                {a} / {b}
+              </button>
+            ))}
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            aria-label={`Porcentaje de ${members[0]!.nickname ?? 'la primera persona'}`}
+            value={firstPct}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              onChange({
+                [members[0]!.user_id]: value,
+                [members[1]!.user_id]: 100 - value,
+              });
+            }}
+            className="h-2 w-full cursor-pointer appearance-none rounded-full"
+            style={{
+              background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${firstPct}%, var(--border) ${firstPct}%, var(--border) 100%)`,
+            }}
+          />
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onChange(getEqualSplitPercentages(members))}
+          className="focus-ring border-border text-secondary hover:text-primary h-8 rounded-xl border px-3 text-xs font-bold"
+        >
+          Partes iguales
+        </button>
+      )}
+
+      <ul className="space-y-1.5">
+        {members.map((member) => {
+          const pct = percentages[member.user_id] || 0;
+          return (
+            <li
+              key={member.user_id}
+              className="bg-inset flex items-center gap-3 rounded-xl px-3 py-2"
+            >
+              <span className="text-primary min-w-0 flex-1 truncate text-sm font-medium">
+                {member.nickname}
+              </span>
+              {!is2Members && (
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  aria-label={`Porcentaje de ${member.nickname ?? 'integrante'}`}
+                  value={pct}
+                  onChange={(e) =>
+                    onChange({
+                      ...percentages,
+                      [member.user_id]: parseInt(e.target.value, 10) || 0,
+                    })
+                  }
+                  className="h-1.5 w-20 cursor-pointer appearance-none rounded-full"
+                  style={{
+                    background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`,
+                  }}
+                />
+              )}
+              <span className="text-primary w-10 text-right text-sm font-bold tabular-nums">
+                {pct}%
+              </span>
+              <span className="text-secondary w-20 text-right text-sm tabular-nums">
+                ${Math.round((amount * pct) / 100).toLocaleString('es-CL')}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {total !== 100 && (
+        <p className="text-expense text-xs">
+          Debe sumar 100% (ahora suma {total}%).
+        </p>
+      )}
+    </div>
   );
 }

@@ -1,18 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { format, addMonths } from 'date-fns';
-import { X, ChevronDown, Calendar } from 'lucide-react';
-import { formatDateAbbreviated } from '@/lib/utils';
+import { addDays, addMonths, format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useCategories, useAccounts, useTags } from '@/hooks/usePreferences';
-import { CustomSelect } from './CustomSelect';
+import {
+  MAX_MONTH_DAY,
+  nextMonthlyRun,
+  nextWeekdayRun,
+  weekdayOf,
+} from '@/lib/recurring';
 import { BaseModal } from './ui/BaseModal';
 import { SubmitButton } from './ui/SubmitButton';
 import { DeleteButton } from './ui/DeleteButton';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { DateField, shortDayLabel } from './DateField';
+import { TitleField } from './TitleField';
+import {
+  AccountPicker,
+  AmountInput,
+  CategoryPicker,
+  FormModalHeader,
+  TagPicker,
+  TypeToggle,
+  focusField,
+  formatAmountInput,
+  parseAmountInput,
+  readLastAccount,
+  rememberAccount,
+  resolveAccount,
+} from './TransactionFields';
 import type { RecurringRule } from '@/types/api';
+
+type Frequency = RecurringRule['frequency'];
 
 type Props = {
   isOpen: boolean;
@@ -23,16 +45,71 @@ type Props = {
 type RecurringPayload = {
   title: string;
   amount: number;
-  category_id?: number;
+  category_id: number;
   type: 'expense' | 'income';
-  account_id?: number;
+  account_id: number;
   tag_ids: number[];
-  frequency: string;
-  day_of_month: number | null | undefined;
+  frequency: Frequency;
+  day_of_month?: number;
   next_run: string;
-  end_date?: string | null;
+  end_date: string | null;
   is_active: number;
 };
+
+const FREQUENCIES: { value: Frequency; label: string }[] = [
+  { value: 'monthly', label: 'Mensual' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'yearly', label: 'Anual' },
+  { value: 'daily', label: 'Diaria' },
+];
+
+const WEEKDAYS = [
+  { value: 1, short: 'L', name: 'lunes' },
+  { value: 2, short: 'M', name: 'martes' },
+  { value: 3, short: 'M', name: 'miércoles' },
+  { value: 4, short: 'J', name: 'jueves' },
+  { value: 5, short: 'V', name: 'viernes' },
+  { value: 6, short: 'S', name: 'sábado' },
+  { value: 7, short: 'D', name: 'domingo' },
+];
+
+const MONTH_DAYS = Array.from({ length: MAX_MONTH_DAY }, (_, i) => i + 1);
+
+const todayString = () => format(new Date(), 'yyyy-MM-dd');
+
+/** New rules start on today's day of the month, from next month on. */
+function defaultMonthlySchedule() {
+  const day = Math.min(new Date().getDate(), MAX_MONTH_DAY);
+  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+  return { day, nextRun: nextMonthlyRun(day, tomorrow) };
+}
+const longDate = (date: string) =>
+  format(parseISO(date), "EEEE d 'de' MMMM", { locale: es });
+
+function scheduleSummary(
+  frequency: Frequency,
+  nextRun: string,
+  dayOfMonth: number,
+  endDate: string,
+) {
+  const start = longDate(nextRun);
+  const base = {
+    daily: `Todos los días, desde el ${start}`,
+    weekly: `Cada ${WEEKDAYS[weekdayOf(nextRun) - 1]!.name}, desde el ${start}`,
+    monthly: `El día ${dayOfMonth} de cada mes. El próximo es el ${start}`,
+    yearly: `Cada año el ${format(parseISO(nextRun), "d 'de' MMMM", { locale: es })}, desde ${format(parseISO(nextRun), 'yyyy')}`,
+  }[frequency];
+  return endDate
+    ? `${base}, hasta el ${format(parseISO(endDate), "d 'de' MMMM yyyy", { locale: es })}.`
+    : `${base}.`;
+}
+
+const dayButtonClass = (selected: boolean) =>
+  `focus-ring h-9 rounded-xl text-[13px] font-semibold tabular-nums transition-colors ${
+    selected
+      ? 'bg-accent text-on-accent'
+      : 'bg-inset text-primary hover:bg-border'
+  }`;
 
 export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const queryClient = useQueryClient();
@@ -42,14 +119,18 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const { data: categoriesData, isLoading: isLoadingCategories } =
     useCategories();
   const categories = categoriesData?.categories || [];
-
   const { data: accountsData, isLoading: isLoadingAccounts } = useAccounts();
   const accounts = accountsData?.accounts || [];
-
-  const { data: tagsData, isLoading: isLoadingTags } = useTags();
+  const { data: tagsData } = useTags();
   const tags = tagsData?.tags || [];
 
-  // Form State
+  const amountRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  const [defaults] = useState(defaultMonthlySchedule);
+  const initialNextRun = initialData?.next_run ?? defaults.nextRun;
+
   const [type, setType] = useState<'expense' | 'income'>(
     initialData?.type ?? 'expense',
   );
@@ -65,44 +146,55 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
   const [accountId, setAccountId] = useState<number | ''>(
     initialData?.account_id || '',
   );
+  const [lastAccountId, setLastAccountId] = useState(readLastAccount);
   const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
-  const [frequency, setFrequency] = useState(
+  const [frequency, setFrequency] = useState<Frequency>(
     initialData?.frequency ?? 'monthly',
   );
   const [dayOfMonth, setDayOfMonth] = useState(
-    initialData?.day_of_month ? initialData.day_of_month.toString() : '1',
+    initialData
+      ? (initialData.day_of_month ??
+          Math.min(Number(initialNextRun.slice(8, 10)), MAX_MONTH_DAY))
+      : defaults.day,
   );
-  const [nextRun, setNextRun] = useState(
-    initialData?.next_run
-      ? initialData.next_run
-      : format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
+  const [nextRun, setNextRun] = useState(initialNextRun);
+  const [endDate, setEndDate] = useState(initialData?.end_date ?? '');
+
+  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const effectiveAccountId = resolveAccount(
+    accountId,
+    accounts,
+    lastAccountId,
+    !initialData,
   );
-  const [endDate, setEndDate] = useState(
-    initialData?.end_date
-      ? initialData.end_date
-      : '',
-  );
+  const today = todayString();
+  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+  const nextMonth = format(addMonths(new Date(), 1), 'yyyy-MM-dd');
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['recurring'] });
+    queryClient.invalidateQueries({
+      queryKey: ['transactions', 'availability'],
+    });
+  };
 
   const mutation = useMutation({
     mutationFn: async (ruleData: RecurringPayload) => {
-      if (initialData?.id) {
-        const res = await api.put(`/recurring/${initialData.id}`, ruleData);
-        return res.data;
-      } else {
-        const res = await api.post('/recurring', ruleData);
-        return res.data;
-      }
+      const res = initialData?.id
+        ? await api.put(`/recurring/${initialData.id}`, ruleData)
+        : await api.post('/recurring', ruleData);
+      return res.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring'] });
-      queryClient.invalidateQueries({
-        queryKey: ['transactions', 'availability'],
-      });
+    onSuccess: (_data, payload) => {
+      setLastAccountId(payload.account_id);
+      rememberAccount(payload.account_id);
+      invalidate();
       resetAndClose();
     },
-    onError: (err: Error) => {
-      setError(err.message || 'Error al guardar la regla. Intenta de nuevo.');
-      setLoading(false);
+    onError: () => {
+      setError(
+        'No pudimos guardar la regla. Revisa tu conexión e intenta nuevamente.',
+      );
     },
   });
 
@@ -112,15 +204,11 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
       await api.delete(`/recurring/${initialData.id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring'] });
-      queryClient.invalidateQueries({
-        queryKey: ['transactions', 'availability'],
-      });
+      invalidate();
       resetAndClose();
     },
-    onError: (err: Error) => {
-      setError(err.message || 'Error al eliminar la regla.');
-      setLoading(false);
+    onError: () => {
+      setError('No pudimos eliminar la regla. Intenta nuevamente.');
     },
   });
 
@@ -131,32 +219,61 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     });
   };
 
+  const changeType = (next: 'expense' | 'income') => {
+    setType(next);
+    if (selectedCategory && selectedCategory.type !== next) setCategoryId('');
+  };
+
+  const changeFrequency = (next: Frequency) => {
+    setFrequency(next);
+    if (next === 'monthly') setNextRun(nextMonthlyRun(dayOfMonth, today));
+    else if (next === 'weekly')
+      setNextRun(nextWeekdayRun(weekdayOf(nextRun), today));
+    else if (nextRun < today) setNextRun(today);
+  };
+
+  const fail = (
+    message: string,
+    target: React.RefObject<HTMLElement | null>,
+  ) => {
+    setError(message);
+    focusField(target);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const parsedAmount = parseAmountInput(amount);
+    if (!parsedAmount) return fail('Ingresa un monto.', amountRef);
+    if (!selectedCategory || selectedCategory.type !== type)
+      return fail('Elige una categoría.', categoryRef);
+    if (effectiveAccountId === '') return fail('Elige una cuenta.', accountRef);
+    if (endDate && endDate < nextRun) {
+      setError('La fecha de término debe ser posterior al próximo cobro.');
+      return;
+    }
+
     setLoading(true);
     mutation.mutate(
       {
-        title,
-        amount: parseInt(amount.replace(/\./g, ''), 10),
-        category_id: categoryId !== '' ? categoryId : undefined,
+        title: title.trim() || selectedCategory.name,
+        amount: parsedAmount,
+        category_id: selectedCategory.id,
         type,
-        account_id: accountId !== '' ? accountId : undefined,
+        account_id: effectiveAccountId,
         tag_ids: tagIds,
         frequency,
-        day_of_month:
-          frequency === 'monthly' ? parseInt(dayOfMonth, 10) : undefined,
+        day_of_month: frequency === 'monthly' ? dayOfMonth : undefined,
         next_run: nextRun,
-        end_date: endDate ? endDate : undefined,
+        end_date: endDate || null,
         is_active: initialData ? initialData.is_active : 1,
       },
-      {
-        onSettled: () => setLoading(false),
-      },
+      { onSettled: () => setLoading(false) },
     );
   };
 
   const resetAndClose = () => {
+    const fresh = defaultMonthlySchedule();
     setType('expense');
     setTitle('');
     setAmount('');
@@ -164,8 +281,8 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
     setAccountId('');
     setTagIds([]);
     setFrequency('monthly');
-    setDayOfMonth('1');
-    setNextRun(format(addMonths(new Date(), 1), 'yyyy-MM-dd'));
+    setDayOfMonth(fresh.day);
+    setNextRun(fresh.nextRun);
     setEndDate('');
     setError(null);
     onClose();
@@ -173,10 +290,15 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
 
   if (!isOpen) return null;
 
+  const heading = initialData ? 'Editar regla' : 'Nueva regla';
+
   return (
     <BaseModal
       isOpen={isOpen}
       onClose={resetAndClose}
+      label={heading}
+      draggable
+      lockScroll
       outerContent={
         <ConfirmDeleteModal
           isOpen={isDeleteModalOpen}
@@ -187,362 +309,250 @@ export function CreateRecurringModal({ isOpen, initialData, onClose }: Props) {
         />
       }
     >
-      <div className="bg-card/90 sticky top-0 z-10 flex items-center justify-between p-4 backdrop-blur sm:p-6">
-        <button
-          type="button"
-          onClick={resetAndClose}
-          className="bg-inset text-primary hover:bg-border rounded-full px-5 py-2.5 text-sm font-semibold transition-colors sm:hidden"
-        >
-          Cancelar
-        </button>
+      <FormModalHeader
+        title={initialData ? 'Editar' : heading}
+        formId="recurring-form"
+        saving={loading}
+        onClose={resetAndClose}
+      />
 
-        <h2 className="text-primary absolute left-1/2 -translate-x-1/2 text-lg font-bold sm:static sm:translate-x-0 sm:text-xl">
-          {initialData ? 'Editar' : 'Nueva regla'}
-        </h2>
+      <form
+        id="recurring-form"
+        onSubmit={handleSubmit}
+        noValidate
+        className="space-y-6 px-6 pb-6"
+      >
+        <TypeToggle value={type} onChange={changeType} />
 
-        <button
-          type="submit"
-          form="recurring-form"
-          disabled={loading || !title || !amount}
-          className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-5 py-2.5 text-sm font-bold text-emerald-600 transition-colors disabled:opacity-50 sm:hidden dark:text-emerald-400"
-        >
-          Guardar
-        </button>
-
-        <button
-          onClick={resetAndClose}
-          className="bg-inset text-muted hover:bg-card-hover hidden rounded-full p-2 transition-colors hover:text-white sm:block"
-        >
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className="p-6">
-        <div className="bg-inset mb-6 flex rounded-xl p-1">
-          <button
-            onClick={() => setType('expense')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'expense' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-zinc-300'}`}
-          >
-            Gasto
-          </button>
-          <button
-            onClick={() => setType('income')}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${type === 'income' ? 'bg-card-hover text-primary shadow-sm' : 'text-secondary hover:text-zinc-300'}`}
-          >
-            Ingreso
-          </button>
+        <div className="flex justify-center">
+          <AmountInput
+            inputRef={amountRef}
+            type={type}
+            autoFocus={!initialData}
+            value={amount}
+            onChange={(value) => {
+              setAmount(value);
+              setError(null);
+            }}
+          />
         </div>
 
-        <form id="recurring-form" onSubmit={handleSubmit} className="space-y-6">
-          {/* Amount - Ultra minimalist top */}
-          <div className="relative mt-4 mb-2 flex justify-center">
-            <div className="relative inline-flex items-baseline">
-              <span className="text-muted mr-1 text-2xl font-bold">$</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                required
-                value={amount}
-                onChange={(e) => {
-                  const rawValue = e.target.value.replace(/\D/g, '');
-                  if (!rawValue) {
-                    setAmount('');
-                    return;
-                  }
-                  setAmount(
-                    new Intl.NumberFormat('es-CL').format(
-                      parseInt(rawValue, 10),
-                    ),
-                  );
-                }}
-                className="text-primary max-w-[250px] min-w-[100px] bg-transparent p-0 text-center text-5xl font-extrabold focus:outline-none"
-                style={{ width: `${Math.max(amount.length, 1) * 1.1}ch` }}
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          {/* Rule Name - Detail */}
-          <div>
-            <label className="text-secondary mb-2 block text-sm font-semibold">
-              Nombre de la regla
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="bg-inset text-primary placeholder:text-muted focus:ring-border w-full rounded-full px-5 py-3.5 text-base font-medium transition-colors duration-200 focus:ring-1 focus:outline-none"
-              placeholder="e.g. Netflix Suscripción..."
-            />
-          </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row">
-            {/* First Date Pill */}
-            <div className="min-w-0 flex-1">
-              <label className="text-secondary mb-2 block text-sm font-semibold">
-                Próximo cobro
-              </label>
-              <div className="relative inline-block">
-                <div className="flex cursor-pointer items-center gap-2 rounded-full bg-black px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-80 dark:bg-white dark:text-black">
-                  <Calendar size={15} />
-                  <span>{formatDateAbbreviated(nextRun)}</span>
-                  <ChevronDown size={14} />
-                </div>
-                <input
-                  type="date"
-                  required
-                  value={nextRun}
-                  onChange={(e) => setNextRun(e.target.value)}
-                  className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                />
-              </div>
-            </div>
-
-            {/* Frequency Sub-Select */}
-            <div className="z-30 min-w-0 flex-1">
-              <label className="text-secondary mb-2 block text-sm font-semibold">
-                Frecuencia
-              </label>
-              <div className="relative">
-                <CustomSelect
-                  value={frequency}
-                  onChange={(value) =>
-                    setFrequency(
-                      String(value) as
-                        'daily' | 'weekly' | 'monthly' | 'yearly',
-                    )
-                  }
-                  options={[
-                    { value: 'daily', label: 'Diaria' },
-                    { value: 'weekly', label: 'Semanal' },
-                    { value: 'monthly', label: 'Mensual' },
-                    { value: 'yearly', label: 'Anual' },
-                  ]}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Optional End Date */}
-          <div>
-            <label className="text-secondary mb-2 block text-sm font-semibold">
-              Fecha de término (Opcional)
-            </label>
-            <div className="relative inline-block">
-              <div className="bg-inset flex cursor-pointer items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition-opacity hover:opacity-80">
-                <Calendar size={15} className="text-muted" />
-                <span className={endDate ? 'text-primary' : 'text-muted'}>
-                  {endDate
-                    ? formatDateAbbreviated(endDate)
-                    : 'Sin fecha de término'}
-                </span>
-                {endDate && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEndDate('');
-                    }}
-                    className="text-muted ml-2 hover:text-red-500"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-              />
-            </div>
+        <section aria-labelledby="schedule-label" className="space-y-4">
+          <p
+            id="schedule-label"
+            className="text-secondary text-sm font-semibold"
+          >
+            Se repite
+          </p>
+          <div
+            role="radiogroup"
+            aria-label="Frecuencia"
+            className="bg-inset -mt-2 flex rounded-xl p-1"
+          >
+            {FREQUENCIES.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                role="radio"
+                aria-checked={frequency === f.value}
+                onClick={() => changeFrequency(f.value)}
+                className={`focus-ring flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors ${frequency === f.value ? 'bg-card text-primary shadow-sm' : 'text-secondary hover:text-primary'}`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           {frequency === 'monthly' && (
             <div>
-              <div className="mb-2 flex items-center justify-between px-1">
-                <label className="text-secondary block text-sm font-semibold">
-                  Día del mes
-                </label>
-                <span className="text-sm font-bold text-emerald-400">
-                  {dayOfMonth}
-                </span>
-              </div>
-              <div className="bg-inset border-border flex items-center gap-4 rounded-xl border px-4 py-3">
-                <span className="text-secondary text-xs font-medium">1</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="30"
-                  required
-                  value={dayOfMonth}
-                  onChange={(e) => setDayOfMonth(e.target.value)}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-zinc-700 accent-emerald-500 focus:ring-2 focus:ring-emerald-500/50 focus:outline-none"
-                />
-                <span className="text-secondary text-xs font-medium">30</span>
+              <p
+                id="month-day-label"
+                className="text-secondary mb-2 text-xs font-medium"
+              >
+                Día del mes
+              </p>
+              <div
+                role="radiogroup"
+                aria-labelledby="month-day-label"
+                className="grid grid-cols-7 gap-1"
+              >
+                {MONTH_DAYS.map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    role="radio"
+                    aria-checked={dayOfMonth === day}
+                    onClick={() => {
+                      setDayOfMonth(day);
+                      setNextRun(nextMonthlyRun(day, today));
+                    }}
+                    className={dayButtonClass(dayOfMonth === day)}
+                  >
+                    {day}
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Category Bento Grid */}
-          <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
-              Categoría
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {isLoadingCategories
-                ? Array(6)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset aspect-square animate-pulse rounded-2xl"
-                      />
-                    ))
-                : categories
-                    .filter((cat) => cat.type === type)
-                    .map((cat) => {
-                      const isSelected = categoryId === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => setCategoryId(cat.id)}
-                          className={`flex aspect-square flex-col items-center justify-center rounded-2xl border p-2 pt-4 pb-3 transition-all ${
-                            isSelected
-                              ? 'scale-[1.02] border-orange-400/50 bg-orange-500/10 shadow-sm'
-                              : 'bg-card border-border hover:bg-card-hover'
-                          }`}
-                        >
-                          <span className="mb-1 text-2xl">
-                            {cat.icon || '🏷️'}
-                          </span>
-                          <span
-                            className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-orange-600 dark:text-orange-400' : 'text-primary'}`}
-                          >
-                            {cat.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-            </div>
-          </div>
-
-          {/* Accounts Bento Grid */}
-          <div>
-            <label className="text-secondary mb-3 block text-sm font-semibold">
-              Cuenta
-            </label>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {isLoadingAccounts
-                ? Array(3)
-                    .fill(0)
-                    .map((_, i) => (
-                      <div
-                        key={i}
-                        className="bg-inset h-16 animate-pulse rounded-2xl"
-                      />
-                    ))
-                : accounts.map((acc) => {
-                    const isSelected = accountId === acc.id;
-                    const getIcon = (t: string) => {
-                      switch (t.toLowerCase()) {
-                        case 'cash':
-                          return '💵';
-                        case 'bank':
-                          return '🏦';
-                        case 'credit':
-                          return '💳';
-                        case 'investment':
-                          return '📈';
-                        default:
-                          return '💰';
-                      }
-                    };
-                    return (
-                      <button
-                        key={acc.id}
-                        type="button"
-                        onClick={() => setAccountId(acc.id)}
-                        className={`flex flex-col items-center justify-center rounded-2xl border p-2 pt-3 pb-2 transition-all ${
-                          isSelected
-                            ? 'scale-[1.02] border-blue-400/50 bg-blue-500/10 shadow-sm'
-                            : 'bg-card border-border hover:bg-card-hover'
-                        }`}
-                      >
-                        <span className="mb-1 text-xl">
-                          {getIcon(acc.type)}
-                        </span>
-                        <span
-                          className={`px-1 text-center text-[9px] leading-tight font-bold tracking-wide uppercase sm:text-[10px] ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}
-                        >
-                          {acc.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-secondary mb-2 ml-1 block text-[10px] font-bold uppercase">
-              Tags
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {isLoadingTags ? (
-                <div className="bg-inset h-8 w-full animate-pulse rounded-lg"></div>
-              ) : (
-                tags.map((tag) => {
-                  const isSelected = tagIds.includes(tag.id);
+          {frequency === 'weekly' && (
+            <div>
+              <p
+                id="weekday-label"
+                className="text-secondary mb-2 text-xs font-medium"
+              >
+                Día de la semana
+              </p>
+              <div
+                role="radiogroup"
+                aria-labelledby="weekday-label"
+                className="grid grid-cols-7 gap-1"
+              >
+                {WEEKDAYS.map((day) => {
+                  const selected = weekdayOf(nextRun) === day.value;
                   return (
                     <button
-                      key={tag.id}
+                      key={day.value}
                       type="button"
-                      onClick={() => {
-                        if (isSelected) {
-                          setTagIds(tagIds.filter((id) => id !== tag.id));
-                        } else {
-                          setTagIds([...tagIds, tag.id]);
-                        }
-                      }}
-                      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                        isSelected
-                          ? 'bg-primary text-card border-primary scale-105 shadow-sm'
-                          : 'bg-inset text-muted border-border hover:border-border-subtle'
-                      }`}
+                      role="radio"
+                      aria-checked={selected}
+                      aria-label={day.name}
+                      onClick={() =>
+                        setNextRun(nextWeekdayRun(day.value, today))
+                      }
+                      className={dayButtonClass(selected)}
                     >
-                      {tag.name}
+                      {day.short}
                     </button>
                   );
-                })
-              )}
+                })}
+              </div>
             </div>
+          )}
+
+          {(frequency === 'daily' || frequency === 'yearly') && (
+            <div>
+              <p className="text-secondary mb-2 text-xs font-medium">
+                {frequency === 'daily' ? 'Desde' : 'Fecha del cobro'}
+              </p>
+              <DateField
+                label={frequency === 'daily' ? 'Desde' : 'Fecha del cobro'}
+                align="start"
+                value={nextRun}
+                onChange={setNextRun}
+                presets={[
+                  { value: today, label: 'Hoy' },
+                  { value: tomorrow, label: 'Mañana' },
+                  ...(frequency === 'yearly'
+                    ? [{ value: nextMonth, label: shortDayLabel(nextMonth) }]
+                    : []),
+                ]}
+              />
+            </div>
+          )}
+
+          <div>
+            <p className="text-secondary mb-2 text-xs font-medium">Termina</p>
+            <DateField
+              label="Fecha de término"
+              align="start"
+              value={endDate}
+              onChange={setEndDate}
+              emptyLabel="Nunca"
+              presets={[]}
+            />
           </div>
 
-          {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
+          <p
+            aria-live="polite"
+            className="bg-accent-soft text-primary rounded-xl px-4 py-3 text-sm"
+          >
+            {scheduleSummary(frequency, nextRun, dayOfMonth, endDate)}
+          </p>
+        </section>
 
-          <SubmitButton
-            loading={loading && !deleteMutation.isPending}
-            disabled={loading || !title || !amount}
-            variant="emerald"
-            text={initialData ? 'Guardar cambios' : 'Crear regla'}
+        <CategoryPicker
+          containerRef={categoryRef}
+          categories={categories.filter((cat) => cat.type === type)}
+          loading={isLoadingCategories}
+          value={categoryId}
+          onChange={(id) => {
+            setCategoryId(id);
+            setError(null);
+          }}
+        />
+
+        <TitleField
+          id="recurring-title"
+          label={
+            <>
+              Nombre <span className="text-muted font-normal">· opcional</span>
+            </>
+          }
+          type={type}
+          value={title}
+          onChange={setTitle}
+          onPick={(suggestion) => {
+            setTitle(suggestion.title);
+            const category = categories.find(
+              (c) => c.id === suggestion.category_id,
+            );
+            if (category?.type === type) setCategoryId(category.id);
+            if (accounts.some((a) => a.id === suggestion.account_id)) {
+              setAccountId(suggestion.account_id!);
+            }
+            if (!parseAmountInput(amount)) {
+              setAmount(formatAmountInput(String(suggestion.amount)));
+            }
+            setError(null);
+          }}
+          placeholder={selectedCategory?.name ?? 'Netflix, arriendo, sueldo…'}
+          hint={
+            !title.trim() &&
+            selectedCategory && (
+              <p className="text-muted mt-1.5 px-1 text-xs">
+                Si lo dejas vacío, se guarda como “{selectedCategory.name}”.
+              </p>
+            )
+          }
+        />
+
+        <AccountPicker
+          containerRef={accountRef}
+          accounts={accounts}
+          loading={isLoadingAccounts}
+          value={effectiveAccountId}
+          onChange={(id) => {
+            setAccountId(id);
+            setError(null);
+          }}
+        />
+
+        <TagPicker tags={tags} value={tagIds} onChange={setTagIds} />
+
+        {error && (
+          <p
+            role="alert"
+            className="text-expense rounded-xl bg-[var(--red-soft)] px-4 py-3 text-sm font-medium"
+          >
+            {error}
+          </p>
+        )}
+
+        <SubmitButton
+          loading={loading && !deleteMutation.isPending}
+          text={initialData ? 'Guardar cambios' : 'Crear regla'}
+        />
+
+        {initialData && (
+          <DeleteButton
+            onClick={() => setIsDeleteModalOpen(true)}
+            disabled={loading}
+            text="Eliminar regla"
+            className="mt-4 sm:mt-2"
           />
-
-          {initialData && (
-            <DeleteButton
-              onClick={() => setIsDeleteModalOpen(true)}
-              disabled={loading}
-              text="Eliminar regla"
-              className="mt-4 sm:mt-2"
-            />
-          )}
-        </form>
-      </div>
+        )}
+      </form>
     </BaseModal>
   );
 }

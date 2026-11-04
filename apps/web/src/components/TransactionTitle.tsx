@@ -9,12 +9,12 @@ type Props = { transaction: InstallmentTransaction };
 export function TransactionTitle({ transaction }: Props) {
   const installment = getInstallmentDetails(transaction);
   return (
-    <p
-      className="text-primary truncate text-sm leading-tight font-medium"
+    <span
+      className="text-primary block truncate text-sm leading-tight font-medium"
       title={transaction.title}
     >
       {installment?.title ?? transaction.title}
-    </p>
+    </span>
   );
 }
 

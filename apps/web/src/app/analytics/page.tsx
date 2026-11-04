@@ -3,36 +3,29 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import {
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  Legend,
   BarChart,
   Bar,
   Cell,
-  ComposedChart,
-  LabelList,
-  Line,
+  ReferenceLine,
 } from 'recharts';
-import { format, parseISO, isValid, addMonths, endOfMonth } from 'date-fns';
+import { format, parseISO, isValid, getDaysInMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthSelector } from '@/components/MonthSelector';
+import { CategoryBreakdownCard } from '@/components/CategoryBreakdownCard';
+import { CategoryDeviationsCard } from '@/components/CategoryDeviationsCard';
+import { formatCompactValue, formatMoney } from '@/lib/utils';
 import {
-  ArrowUpRight,
-  ArrowDownRight,
-  TrendingUp,
-  PiggyBank,
-  Calendar,
-  Target,
-  Activity,
-} from 'lucide-react';
-import { formatCompactValue, formatCurrency } from '@/lib/utils';
+  categoryDeviations,
+  compareWithNormal,
+  IN_LINE_PCT,
+} from '@/lib/analytics';
 import type {
   MonthlySummary,
   CategorySummary,
@@ -40,94 +33,125 @@ import type {
 } from '@/types/api';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
+import { Card, CardHeader, CardNotice, CardStat } from '@/components/ui/Card';
+import { useTransactionModal } from '@/store/useTransactionModal';
 
-const TREND_COLORS = [
-  '#6366f1',
-  '#8b5cf6',
-  '#ec4899',
-  '#f59e0b',
-  '#10b981',
-  '#0ea5e9',
-  '#f43f5e',
-  '#84cc16',
-  '#14b8a6',
-  '#a855f7',
-];
-
-type ChartDatum = {
-  name: string;
-  originalMonth: string;
-  Ingresos: number;
-  Gastos: number;
-  Balance: number;
-};
-
-type SavingsDatum = {
-  name: string;
-  Ahorro: number;
-  isProjection: boolean;
-};
-
-type TooltipEntry = {
-  color?: string;
-  name?: string;
-  value?: number | string;
-};
+const INCOME = 'var(--color-income)';
+const EXPENSE = 'var(--color-expense)';
+const WINDOW_MONTHS = 12;
 
 type TooltipProps = {
   active?: boolean;
-  payload?: TooltipEntry[];
+  payload?: { color?: string; name?: string; value?: number | string }[];
   label?: string;
 };
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-card border-border min-w-[140px] rounded-2xl border p-3 shadow-xl">
-        <p className="text-muted border-border mb-3 border-b pb-2 text-sm font-medium">
-          {label}
-        </p>
-        <div className="space-y-2">
-          {payload.map((entry, index) => {
-            let color = entry.color;
-            if (entry.name === 'Ingresos') color = '#10b981';
-            if (entry.name === 'Gastos') color = '#f43f5e';
-            return (
-              <div
-                key={index}
-                className="flex items-center justify-between gap-6"
-              >
-                <span className="text-sm font-medium" style={{ color }}>
-                  {entry.name}
-                </span>
-                <span className="text-sm font-bold" style={{ color }}>
-                  ${formatCurrency(Number(entry.value))}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
+function ChartTooltip({ active, payload, label }: TooltipProps) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-card border-border shadow-elevated min-w-[150px] rounded-xl border px-3 py-2.5">
+      <p className="text-secondary mb-1.5 text-xs font-medium capitalize">
+        {label}
+      </p>
+      <ul className="space-y-1">
+        {payload.map((entry) => (
+          <li
+            key={entry.name}
+            className="flex items-center justify-between gap-4 text-[13px]"
+          >
+            <span className="text-secondary flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 rounded-[2px]"
+                style={{ background: entry.color }}
+              />
+              {entry.name}
+            </span>
+            <span className="text-primary font-semibold tabular-nums">
+              {formatMoney(Number(entry.value))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
+  return (
+    <span className="flex flex-wrap gap-x-3 gap-y-1">
+      {items.map((item) => (
+        <span key={item.label} className="flex items-center gap-1.5">
+          <span
+            aria-hidden="true"
+            className="h-2 w-2 rounded-[2px]"
+            style={{ background: item.color }}
+          />
+          {item.label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+const axisProps = {
+  stroke: 'var(--text-muted)',
+  fontSize: 11,
+  tickLine: false,
+  axisLine: false,
+} as const;
+
+const timesFormat = new Intl.NumberFormat('es-CL', {
+  maximumFractionDigits: 1,
+});
+
+function headline({
+  pct,
+  inProgress,
+  monthsCompared,
+  notStarted,
+}: {
+  pct: number | null;
+  inProgress: boolean;
+  monthsCompared: number;
+  notStarted: boolean;
+}) {
+  if (notStarted) return 'Este mes aún no comienza';
+  if (monthsCompared === 0) return 'Aún no hay meses anteriores para comparar';
+  if (pct === null)
+    return inProgress
+      ? 'A esta altura del mes no sueles gastar'
+      : 'Aún no hay meses anteriores para comparar';
+  const habitual = inProgress ? 'lo habitual a esta altura' : 'lo habitual';
+  if (Math.abs(pct) < IN_LINE_PCT)
+    return inProgress ? 'Vas en línea con lo habitual' : 'Gastaste lo habitual';
+  if (pct >= 100)
+    return `${inProgress ? 'Llevas' : 'Gastaste'} ${timesFormat.format(1 + pct / 100)} veces ${habitual}`;
+  const abs = Math.abs(pct);
+  if (inProgress)
+    return `Vas ${abs}% ${pct < 0 ? 'bajo' : 'sobre'} ${habitual}`;
+  return `Gastaste ${abs}% ${pct < 0 ? 'menos' : 'más'} que ${habitual}`;
+}
 
 export default function AnalyticsPage() {
   const router = useRouter();
+  const { openModal } = useTransactionModal();
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const monthDate = parseISO(`${filterMonth}-01`);
+  const monthName = format(monthDate, 'MMMM', { locale: es });
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const currentMonth = today.slice(0, 7);
+  const dayQuery =
+    filterMonth === currentMonth ? `&day=${Number(today.slice(8, 10))}` : '';
 
   const { data: response, isLoading: isLoadingSummary } = useQuery<{
     summary: MonthlySummary[];
   }>({
-    queryKey: ['transactions', 'analytics', 'monthly', filterMonth],
+    queryKey: ['transactions', 'analytics', 'monthly', filterMonth, dayQuery],
     queryFn: async () => {
-      let url = '/transactions/summary/monthly?months=12';
-      if (filterMonth) {
-        const selectedMonth = parseISO(`${filterMonth}-01`);
-        url += `&endDate=${format(endOfMonth(selectedMonth), 'yyyy-MM-dd')}`;
-      }
-      const res = await api.get(url);
+      const res = await api.get(
+        `/transactions/summary/monthly?months=${WINDOW_MONTHS}&endMonth=${filterMonth}${dayQuery}`,
+      );
       return res.data;
     },
   });
@@ -137,709 +161,310 @@ export default function AnalyticsPage() {
   }>({
     queryKey: ['transactions', 'analytics', 'category', filterMonth],
     queryFn: async () => {
-      let url = '/transactions/summary/category?type=expense';
-      if (filterMonth) url += `&month=${filterMonth}`;
-      const res = await api.get(url);
+      const res = await api.get(
+        `/transactions/summary/category?type=expense&month=${filterMonth}`,
+      );
       return res.data;
     },
   });
 
   const { data: trendResponse, isLoading: isLoadingTrend } =
     useQuery<CategoryTrendResponse>({
-      queryKey: ['transactions', 'analytics', 'category-trend'],
+      queryKey: [
+        'transactions',
+        'analytics',
+        'category-trend',
+        filterMonth,
+        dayQuery,
+      ],
       queryFn: async () => {
         const res = await api.get(
-          '/transactions/summary/category-trend?months=12',
+          `/transactions/summary/category-trend?months=${WINDOW_MONTHS}&endMonth=${filterMonth}${dayQuery}`,
         );
         return res.data;
       },
     });
 
-  const isLoading = isLoadingSummary || isLoadingCategory || isLoadingTrend;
   const monthlySummary = response?.summary || [];
   const categorySummary = categoryResponse?.summary || [];
 
-  // Build stacked-bar trend data: months × (top categories + Otros)
-  const trendMonths = trendResponse?.months || [];
-  const trendCategories = trendResponse?.categories || [];
-  const topCategories = trendCategories.slice(0, 6);
-  const othersCategories = trendCategories.slice(6);
-  const trendData = trendMonths.map((month, idx) => {
+  const monthLabel = (month: string) => {
     const parsed = parseISO(`${month}-01`);
-    const datum: Record<string, number | string> = {
-      name: isValid(parsed) ? format(parsed, 'MMM', { locale: es }) : month,
-    };
-    for (const cat of topCategories) {
-      datum[cat.category ?? 'Sin categoría'] = cat.values[idx] || 0;
-    }
-    const othersSum = othersCategories.reduce(
-      (s, c) => s + (c.values[idx] || 0),
-      0,
-    );
-    if (othersSum > 0) datum['Otros'] = othersSum;
-    return datum;
-  });
-
-  const chartData: ChartDatum[] = monthlySummary
-    .filter((item) => item.month)
-    .map((item) => {
-      const parsedDate = parseISO(`${item.month}-01`);
-      return {
-        name: isValid(parsedDate)
-          ? format(parsedDate, 'MMM', { locale: es })
-          : item.month,
-        originalMonth: item.month,
-        Ingresos: item.total_income,
-        Gastos: item.total_expense,
-        Balance: Math.max(0, item.total_income - item.total_expense),
-      };
-    });
-
-  const savingsData: SavingsDatum[] = chartData.map((d) => ({
-    name: d.name,
-    Ahorro: d.Balance,
-    isProjection: false,
-  }));
-
-  if (!filterMonth && chartData.length > 0) {
-    const recentMonths = chartData.slice(-3);
-    const avgSavings =
-      recentMonths.reduce((sum, item) => sum + item.Balance, 0) /
-      recentMonths.length;
-    const lastMonthRaw = monthlySummary.filter((m) => m.month).pop()?.month;
-    if (lastMonthRaw) {
-      const lastDate = parseISO(`${lastMonthRaw}-01`);
-      if (isValid(lastDate)) {
-        const nextDate = addMonths(lastDate, 1);
-        savingsData.push({
-          name: format(nextDate, 'MMM', { locale: es }) + ' (est.)',
-          Ahorro: avgSavings,
-          isProjection: true,
-        });
-      }
-    }
-  }
-
-  const totalExpense = categorySummary.reduce(
-    (acc, curr) => acc + curr.amount,
-    0,
-  );
-
-  const openTransactionsForMonth = (data: unknown) => {
-    if (!data || typeof data !== 'object' || !('originalMonth' in data)) {
-      return;
-    }
-
-    const month = data.originalMonth;
-    if (typeof month === 'string' && month) {
-      router.push(`/transactions?month=${month}`);
-    }
+    return isValid(parsed) ? format(parsed, 'MMM', { locale: es }) : month;
   };
 
-  // Calculate KPIs for the selected month
-  const selectedMonthData = monthlySummary.find((m) => m.month === filterMonth);
-  const selectedIncome = selectedMonthData?.total_income ?? 0;
-  const selectedExpense = selectedMonthData?.total_expense ?? 0;
-  const selectedSavings = selectedIncome - selectedExpense;
-  const savingsRate =
-    selectedIncome > 0 ? (selectedSavings / selectedIncome) * 100 : 0;
+  const chartData = monthlySummary
+    .filter((item) => item.month)
+    .map((item) => ({
+      name: monthLabel(item.month),
+      month: item.month,
+      Ingresos: item.total_income,
+      Gastos: item.total_expense,
+    }));
 
-  // Calculate average daily spending
-  const daysInMonth = filterMonth
-    ? new Date(
-        Number(filterMonth.split('-')[0]),
-        Number(filterMonth.split('-')[1]),
-        0,
-      ).getDate()
-    : 30;
-  const dailyAverage = selectedExpense / daysInMonth;
+  const notStarted = filterMonth > currentMonth;
+  const normal = compareWithNormal(monthlySummary, filterMonth, today);
+  const deviations = trendResponse
+    ? categoryDeviations(trendResponse, filterMonth)
+    : [];
 
-  // Top category
-  const topCategory = categorySummary.length > 0 ? categorySummary[0] : null;
+  const selected = monthlySummary.find((m) => m.month === filterMonth);
+  const income = selected?.total_income ?? 0;
+  const expense = normal.expense;
+  const net = income - expense;
+  const savingsRate = income > 0 ? Math.round((net / income) * 100) : null;
+
+  const daysElapsed =
+    filterMonth === currentMonth
+      ? new Date().getDate()
+      : filterMonth < currentMonth
+        ? getDaysInMonth(monthDate)
+        : 0;
+
+  const selectMonth = (datum: unknown) => {
+    const month = (datum as { month?: unknown } | null)?.month;
+    if (typeof month === 'string') setFilterMonth(month);
+  };
+  const openMonth = (datum: unknown) => {
+    const month = (datum as { month?: unknown } | null)?.month;
+    if (typeof month === 'string') router.push(`/transactions?month=${month}`);
+  };
+
+  let comparison: ReactNode = null;
+  if (!notStarted && normal.expected !== null) {
+    comparison = normal.inProgress ? (
+      <>
+        {' '}
+        · a esta altura sueles llevar{' '}
+        <b className="text-primary font-semibold">
+          {formatMoney(normal.expected)}
+        </b>
+      </>
+    ) : (
+      <>
+        {' '}
+        · tu promedio es{' '}
+        <b className="text-primary font-semibold">
+          {formatMoney(normal.average)}
+        </b>
+      </>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col">
-      {/* ── Header ── */}
       <PageHeader
-        title="Tu dinero en perspectiva"
-        subtitle="Tendencias, categorías y ahorro a lo largo del tiempo."
+        title="Análisis"
+        subtitle="Cómo se compara tu mes con lo habitual."
         monthSelector={
-          <MonthSelector value={filterMonth} onChange={setFilterMonth} />
+          <MonthSelector
+            value={filterMonth}
+            onChange={setFilterMonth}
+            allowAll={false}
+          />
         }
       />
 
-      {/* ── Content ── */}
       <div className="flex-1 overflow-y-auto px-4 pb-8 sm:px-6">
-        <div className="mx-auto max-w-7xl space-y-6">
-          {/* KPI Cards Row */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            {/* Card 1: Ahorro Neto */}
-            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/20">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
-                  Ahorro Neto
-                </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shadow-inner">
-                  <PiggyBank size={16} />
-                </div>
-              </div>
-              <div>
-                <p
-                  className={`text-xl font-black tracking-tight sm:text-2xl ${selectedSavings >= 0 ? 'text-emerald-500' : 'text-red-500'}`}
-                >
-                  {selectedSavings >= 0 ? '+' : '−'}$
-                  {formatCurrency(Math.abs(selectedSavings))}
+        <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+          <Card label={`Tu ${monthName} contra tu promedio`} tone="hero">
+            {isLoadingSummary ? (
+              <LoadingState minHeight="h-48" />
+            ) : (
+              <>
+                <p className="text-secondary text-[13px] capitalize">
+                  {monthName}
+                  {normal.inProgress && ` · día ${daysElapsed}`}
                 </p>
-                <p className="text-muted mt-1 text-[11px] font-medium">
-                  Tasa de ahorro:{' '}
-                  <span className="font-bold text-emerald-500">
-                    {savingsRate.toFixed(0)}%
-                  </span>
+                <h2 className="text-primary mt-1 text-2xl leading-tight font-extrabold tracking-tight text-balance sm:text-3xl">
+                  {headline({ ...normal, notStarted })}
+                </h2>
+                <p className="text-secondary mt-2 text-[13px] tabular-nums">
+                  <b className="text-primary font-semibold">
+                    {formatMoney(expense)}
+                  </b>{' '}
+                  gastado{comparison}
                 </p>
-              </div>
+
+                {chartData.length > 1 && (
+                  <div
+                    className="mt-4 h-32 sm:h-40 [&_*:focus]:outline-none"
+                    role="img"
+                    aria-label={`Gasto de los últimos ${chartData.length} meses${normal.average !== null ? `; promedio ${formatMoney(normal.average)}` : ''}`}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        accessibilityLayer={false}
+                        margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
+                      >
+                        <XAxis
+                          dataKey="name"
+                          {...axisProps}
+                          stroke="var(--color-muted)"
+                          dy={6}
+                          interval="preserveStartEnd"
+                        />
+                        <Bar
+                          dataKey="Gastos"
+                          radius={[3, 3, 0, 0]}
+                          onClick={selectMonth}
+                          cursor="pointer"
+                        >
+                          {chartData.map((d) => (
+                            <Cell
+                              key={d.month}
+                              fill={
+                                d.month === filterMonth
+                                  ? 'var(--color-primary)'
+                                  : 'color-mix(in srgb, var(--color-primary) 30%, transparent)'
+                              }
+                            />
+                          ))}
+                        </Bar>
+                        {normal.average !== null && (
+                          <ReferenceLine
+                            y={normal.average}
+                            stroke="var(--color-primary)"
+                            strokeOpacity={0.7}
+                            strokeDasharray="4 4"
+                          />
+                        )}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                {chartData.length > 1 && normal.average !== null && (
+                  <p className="text-secondary mt-3 flex items-center gap-2 text-xs tabular-nums">
+                    <span
+                      aria-hidden="true"
+                      className="border-primary w-4 border-t border-dashed"
+                    />
+                    Promedio mensual {formatMoney(normal.average)}
+                  </p>
+                )}
+
+                <dl className="border-border mt-5 grid grid-cols-3 gap-3 border-t pt-4">
+                  <CardStat label="Ingresos" className="text-income">
+                    {formatMoney(income)}
+                  </CardStat>
+                  <CardStat
+                    label="Neto del mes"
+                    className={net < 0 ? 'text-expense' : ''}
+                    detail={
+                      savingsRate === null
+                        ? 'Sin ingresos este mes'
+                        : savingsRate >= 0
+                          ? `Ahorras el ${savingsRate}%`
+                          : `Gastas ${Math.abs(savingsRate)}% más de lo que ganas`
+                    }
+                  >
+                    {formatMoney(net)}
+                  </CardStat>
+                  <CardStat
+                    label="Gasto diario"
+                    detail={
+                      daysElapsed > 0
+                        ? `Promedio en ${daysElapsed} ${daysElapsed === 1 ? 'día' : 'días'}`
+                        : 'El mes aún no comienza'
+                    }
+                  >
+                    {daysElapsed > 0 ? formatMoney(expense / daysElapsed) : '—'}
+                  </CardStat>
+                </dl>
+              </>
+            )}
+          </Card>
+
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-5">
+            <div className="min-w-0 lg:col-span-3">
+              {isLoadingTrend ? (
+                <Card>
+                  <LoadingState minHeight="h-64" />
+                </Card>
+              ) : (
+                <CategoryDeviationsCard
+                  deviations={deviations}
+                  month={filterMonth}
+                  inProgress={normal.inProgress}
+                  monthsCompared={normal.monthsCompared}
+                />
+              )}
             </div>
 
-            {/* Card 2: Gasto Diario */}
-            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-red-500/20">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
-                  Gasto Diario
-                </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-500/10 text-red-500 shadow-inner">
-                  <Calendar size={16} />
-                </div>
-              </div>
-              <div>
-                <p className="text-primary text-xl font-black tracking-tight sm:text-2xl">
-                  ${formatCurrency(dailyAverage)}
-                </p>
-                <p className="text-muted mt-1 text-[11px] font-medium">
-                  Promedio en {daysInMonth} días
-                </p>
-              </div>
-            </div>
-
-            {/* Card 3: Categoría Principal */}
-            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-violet-500/20">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
-                  Mayor Categoría
-                </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/10 text-violet-500 shadow-inner">
-                  <Target size={16} />
-                </div>
-              </div>
-              <div>
-                <p
-                  className="text-primary truncate text-xl font-black tracking-tight sm:text-2xl"
-                  title={topCategory ? topCategory.category : 'Ninguna'}
-                >
-                  {topCategory
-                    ? `${topCategory.category_icon || ''} ${topCategory.category}`
-                    : 'Ninguna'}
-                </p>
-                <p className="text-muted mt-1 text-[11px] font-medium">
-                  {topCategory
-                    ? `Gasto: $${formatCurrency(topCategory.amount)}`
-                    : 'Sin gastos'}
-                </p>
-              </div>
-            </div>
-
-            {/* Card 4: Eficiencia */}
-            <div className="bg-card border-border flex flex-col justify-between rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:border-blue-500/20">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
-                  Eficiencia
-                </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 shadow-inner">
-                  <Activity size={16} />
-                </div>
-              </div>
-              <div>
-                <p className="text-primary text-xl font-black tracking-tight sm:text-2xl">
-                  {selectedIncome > 0
-                    ? ((selectedExpense / selectedIncome) * 100).toFixed(0) +
-                      '%'
-                    : '0%'}
-                </p>
-                <p className="text-muted mt-1 text-[11px] font-medium">
-                  De tus ingresos gastados
-                </p>
-              </div>
+            <div className="min-w-0 lg:col-span-2">
+              {isLoadingCategory ? (
+                <Card>
+                  <LoadingState minHeight="h-64" />
+                </Card>
+              ) : (
+                <CategoryBreakdownCard
+                  categories={categorySummary}
+                  month={filterMonth}
+                  onAdd={() => openModal()}
+                />
+              )}
             </div>
           </div>
 
-          {/* Cashflow Chart */}
-          <div className="bg-card border-border flex h-[320px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[400px]">
-            <p className="text-primary mb-1 text-sm font-bold">
-              Flujo de dinero
-            </p>
-            <p className="text-muted mb-4 text-xs">
-              Ingresos, gastos y ahorro mes a mes
-            </p>
-            {isLoading ? (
-              <LoadingState minHeight="h-full" />
-            ) : chartData.length > 0 ? (
-              <div className="min-h-0 flex-1">
+          <Card label="Ingresos y gastos">
+            <CardHeader
+              title="Ingresos y gastos"
+              description={
+                <ChartLegend
+                  items={[
+                    { label: 'Ingresos', color: INCOME },
+                    { label: 'Gastos', color: EXPENSE },
+                  ]}
+                />
+              }
+            />
+            {isLoadingSummary ? (
+              <LoadingState minHeight="h-64" />
+            ) : chartData.length === 0 ? (
+              <CardNotice
+                className="mt-5"
+                title="Aún no hay suficientes datos"
+                description="El gráfico aparecerá cuando registres movimientos en más meses."
+              />
+            ) : (
+              <div className="mt-5 h-64 sm:h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
+                  <BarChart
                     data={chartData}
-                    margin={{ top: 24, right: 10, left: 0, bottom: 0 }}
+                    barGap={2}
+                    margin={{ top: 4, right: 0, left: -8, bottom: 0 }}
                   >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="var(--text-muted)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      dy={8}
-                    />
+                    <CartesianGrid stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="name" {...axisProps} dy={8} />
                     <YAxis
-                      stroke="var(--text-muted)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
+                      {...axisProps}
                       tickFormatter={formatCompactValue}
-                      width={50}
-                      domain={[0, 'auto']}
+                      width={56}
                     />
                     <Tooltip
-                      cursor={{ fill: 'var(--border)', opacity: 0.4 }}
-                      content={<CustomTooltip />}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        paddingTop: '16px',
-                        fontSize: '12px',
-                        color: 'var(--text-secondary)',
-                      }}
+                      cursor={{ fill: 'var(--bg-inset)' }}
+                      content={<ChartTooltip />}
                     />
                     <Bar
                       dataKey="Ingresos"
-                      fill="#10b981"
-                      radius={[4, 4, 0, 0]}
-                      onClick={openTransactionsForMonth}
+                      fill={INCOME}
+                      radius={[3, 3, 0, 0]}
+                      onClick={openMonth}
                       cursor="pointer"
-                    >
-                      <LabelList
-                        dataKey="Ingresos"
-                        position="top"
-                        fill="var(--text-muted)"
-                        fontSize={9}
-                        className="hidden sm:block"
-                        formatter={(val) =>
-                          val ? formatCompactValue(Number(val)) : ''
-                        }
-                      />
-                    </Bar>
+                    />
                     <Bar
                       dataKey="Gastos"
-                      fill="#f43f5e"
-                      radius={[4, 4, 0, 0]}
-                      onClick={openTransactionsForMonth}
+                      fill={EXPENSE}
+                      radius={[3, 3, 0, 0]}
+                      onClick={openMonth}
                       cursor="pointer"
-                    >
-                      <LabelList
-                        dataKey="Gastos"
-                        position="top"
-                        fill="var(--text-muted)"
-                        fontSize={9}
-                        className="hidden sm:block"
-                        formatter={(val) =>
-                          val ? formatCompactValue(Number(val)) : ''
-                        }
-                      />
-                    </Bar>
-                    <Line
-                      type="monotone"
-                      dataKey="Balance"
-                      name="Ahorro"
-                      stroke="#a855f7"
-                      strokeWidth={2.5}
-                      dot={{ fill: '#a855f7', strokeWidth: 2, r: 3 }}
-                      activeDot={{ r: 5, fill: '#c084fc' }}
                     />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="text-muted flex flex-1 items-center justify-center text-sm">
-                Aún no hay datos para mostrar.
-              </div>
-            )}
-          </div>
-
-          {/* Row 1: Area Chart + Category Breakdown */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 xl:grid-cols-4">
-            {/* Area Chart */}
-            <div className="bg-card border-border flex h-[320px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[400px] lg:col-span-2 xl:col-span-3">
-              <p className="text-primary mb-1 text-sm font-bold">
-                Flujo anual de dinero
-              </p>
-              <p className="text-muted mb-4 text-xs">
-                Ingresos y gastos de los últimos 12 meses
-              </p>
-              {isLoading ? (
-                <LoadingState minHeight="h-full" />
-              ) : chartData.length > 0 ? (
-                <div className="min-h-0 flex-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="colorIncome"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#10b981"
-                            stopOpacity={0.25}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#10b981"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                        <linearGradient
-                          id="colorExpense"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#f43f5e"
-                            stopOpacity={0.25}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#f43f5e"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--border)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="name"
-                        stroke="var(--text-muted)"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        dy={8}
-                      />
-                      <YAxis
-                        stroke="var(--text-muted)"
-                        fontSize={11}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={formatCompactValue}
-                        width={60}
-                      />
-                      <Tooltip
-                        cursor={{ fill: 'var(--border)', opacity: 0.4 }}
-                        content={<CustomTooltip />}
-                      />
-                      <Legend
-                        wrapperStyle={{ paddingTop: '16px', fontSize: '12px' }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="Ingresos"
-                        stroke="#10b981"
-                        strokeWidth={2.5}
-                        fillOpacity={1}
-                        fill="url(#colorIncome)"
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="Gastos"
-                        stroke="#f43f5e"
-                        strokeWidth={2.5}
-                        fillOpacity={1}
-                        fill="url(#colorExpense)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="text-muted flex flex-1 items-center justify-center text-sm">
-                  Aún no hay suficientes datos.
-                </div>
-              )}
-            </div>
-
-            {/* Category Breakdown */}
-            <div className="bg-card border-border flex h-[320px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[400px] lg:col-span-1 xl:col-span-1">
-              <p className="text-primary mb-1 text-sm font-bold">
-                ¿En qué se va el dinero?
-              </p>
-              <p className="text-muted mb-4 text-xs">Por categoría este mes</p>
-              {isLoading ? (
-                <LoadingState minHeight="h-full" />
-              ) : categorySummary.length > 0 ? (
-                <div className="flex-1 space-y-4 overflow-y-auto pr-1">
-                  {categorySummary.map((cat, idx) => {
-                    const percentage =
-                      totalExpense > 0
-                        ? ((cat.amount / totalExpense) * 100).toFixed(1)
-                        : '0.0';
-                    const delta =
-                      cat.previous_amount !== undefined
-                        ? cat.amount - cat.previous_amount!
-                        : 0;
-                    const isIncrease = delta > 0;
-
-                    return (
-                      <div key={idx}>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-primary flex items-center gap-1.5 text-sm font-medium">
-                            {cat.category_icon && (
-                              <span>{cat.category_icon}</span>
-                            )}
-                            {cat.category}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {delta !== 0 &&
-                              cat.previous_amount !== undefined && (
-                                <span
-                                  className={`flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold ${isIncrease ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'}`}
-                                >
-                                  {isIncrease ? (
-                                    <ArrowUpRight
-                                      size={10}
-                                      className="mr-0.5"
-                                    />
-                                  ) : (
-                                    <ArrowDownRight
-                                      size={10}
-                                      className="mr-0.5"
-                                    />
-                                  )}
-                                  ${formatCurrency(Math.abs(delta))}
-                                </span>
-                              )}
-                            <span className="text-primary text-sm font-semibold">
-                              ${formatCurrency(cat.amount)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="bg-inset h-1.5 flex-1 rounded-full">
-                            <div
-                              className="h-1.5 rounded-full bg-emerald-500 transition-all duration-700 ease-out"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                          <span className="w-10 text-right text-[11px] font-bold text-emerald-500">
-                            {percentage}%
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-muted flex flex-1 items-center justify-center text-sm">
-                  Sin datos de categorías.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Row 2: Savings */}
-          <div className="bg-card border-border flex h-[260px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[340px]">
-            <div className="mb-1 flex items-center gap-2">
-              <TrendingUp size={16} className="text-emerald-500" />
-              <p className="text-primary text-sm font-bold">
-                Tu ahorro mes a mes
-              </p>
-            </div>
-            <p className="text-muted mb-4 text-xs">
-              Lo que te sobra después de gastos
-            </p>
-            {isLoading ? (
-              <LoadingState minHeight="h-full" />
-            ) : savingsData.length > 0 ? (
-              <div className="min-h-0 flex-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={savingsData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="var(--text-muted)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      dy={8}
-                    />
-                    <YAxis
-                      stroke="var(--text-muted)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={formatCompactValue}
-                      width={60}
-                    />
-                    <Tooltip
-                      formatter={(value, _name, item) => {
-                        const payload = item?.payload as
-                          SavingsDatum | undefined;
-                        return [
-                          `$${formatCurrency(Number(value ?? 0))}`,
-                          payload?.isProjection ? 'Ahorro estimado' : 'Ahorro',
-                        ];
-                      }}
-                      contentStyle={{
-                        backgroundColor: 'var(--bg-card)',
-                        borderColor: 'var(--border)',
-                        borderRadius: '12px',
-                        color: 'var(--text-primary)',
-                        fontSize: '13px',
-                      }}
-                      itemStyle={{ color: 'var(--text-primary)' }}
-                      cursor={{ fill: 'var(--border)', opacity: 0.4 }}
-                    />
-                    <Bar dataKey="Ahorro" radius={[4, 4, 0, 0]}>
-                      {savingsData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.Ahorro >= 0 ? '#10b981' : '#f43f5e'}
-                          fillOpacity={entry.isProjection ? 0.3 : 1}
-                          stroke={
-                            entry.isProjection
-                              ? entry.Ahorro >= 0
-                                ? '#10b981'
-                                : '#f43f5e'
-                              : 'none'
-                          }
-                          strokeDasharray={entry.isProjection ? '4 4' : 'none'}
-                          strokeWidth={entry.isProjection ? 2 : 0}
-                        />
-                      ))}
-                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <div className="text-muted flex flex-1 items-center justify-center text-sm">
-                Aún no hay datos de ahorro.
-              </div>
             )}
-          </div>
-
-          {/* Row 3: Category trend */}
-          <div className="bg-card border-border flex h-[360px] flex-col rounded-3xl border p-5 shadow-sm sm:h-[440px]">
-            <p className="text-primary mb-1 text-sm font-bold">
-              Tendencia por categoría
-            </p>
-            <p className="text-muted mb-4 text-xs">
-              Cómo cambia tu gasto por categoría en los últimos 12 meses
-            </p>
-            {isLoadingTrend ? (
-              <LoadingState minHeight="h-full" />
-            ) : trendData.length > 0 && topCategories.length > 0 ? (
-              <div className="min-h-0 flex-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={trendData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="name"
-                      stroke="var(--text-muted)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      dy={8}
-                    />
-                    <YAxis
-                      stroke="var(--text-muted)"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={formatCompactValue}
-                      width={60}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'var(--border)', opacity: 0.3 }}
-                      contentStyle={{
-                        backgroundColor: 'var(--bg-card)',
-                        borderColor: 'var(--border)',
-                        borderRadius: '12px',
-                        color: 'var(--text-primary)',
-                        fontSize: '13px',
-                      }}
-                      itemStyle={{ color: 'var(--text-primary)' }}
-                      formatter={(value, name) => [
-                        `$${formatCurrency(Number(value ?? 0))}`,
-                        String(name),
-                      ]}
-                    />
-                    <Legend
-                      wrapperStyle={{
-                        paddingTop: '16px',
-                        fontSize: '12px',
-                        color: 'var(--text-secondary)',
-                      }}
-                    />
-                    {topCategories.map((cat, i) => (
-                      <Bar
-                        key={cat.category_id ?? i}
-                        dataKey={cat.category ?? 'Sin categoría'}
-                        stackId="trend"
-                        fill={TREND_COLORS[i % TREND_COLORS.length]}
-                        radius={
-                          i === topCategories.length - 1 ? [4, 4, 0, 0] : 0
-                        }
-                      />
-                    ))}
-                    {othersCategories.length > 0 && (
-                      <Bar
-                        dataKey="Otros"
-                        stackId="trend"
-                        fill="#71717a"
-                        radius={[0, 0, 0, 0]}
-                      />
-                    )}
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="text-muted flex flex-1 items-center justify-center text-sm">
-                Aún no hay suficientes datos.
-              </div>
-            )}
-          </div>
+          </Card>
         </div>
       </div>
     </div>

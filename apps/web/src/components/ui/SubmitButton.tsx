@@ -3,34 +3,29 @@ import React from 'react';
 type SubmitButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean;
   text: string;
-  variant?: 'emerald' | 'red' | 'income' | 'expense';
 };
 
+/** Desktop submit button; on mobile the modal header has "Guardar". */
 export function SubmitButton({
   loading,
   text,
-  variant = 'emerald',
   className = '',
   disabled,
   ...props
 }: SubmitButtonProps) {
-  const baseClasses =
-    'hidden sm:flex w-full py-4 rounded-xl font-bold items-center justify-center transition-colors mt-6';
-
-  const isRed = variant === 'expense' || variant === 'red';
-  const variantClasses = isRed
-    ? 'bg-red-500 hover:bg-red-400 text-white disabled:bg-red-500/50 disabled:cursor-not-allowed'
-    : 'bg-emerald-500 hover:bg-emerald-400 text-white disabled:bg-emerald-500/50 disabled:cursor-not-allowed';
-
   return (
     <button
       type="submit"
       disabled={disabled || loading}
-      className={`${baseClasses} ${variantClasses} ${className}`}
+      className={`bg-accent focus-ring text-on-accent hover:bg-accent-hover mt-6 hidden min-h-12 w-full items-center justify-center rounded-xl font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:flex ${className}`}
       {...props}
     >
       {loading ? (
-        <div className="h-5 w-5 animate-spin rounded-full border-t-2 border-r-2 border-white/80 border-r-white/20"></div>
+        <span
+          role="status"
+          aria-label="Guardando"
+          className="h-5 w-5 animate-spin rounded-full border-2 border-current/30 border-t-current"
+        />
       ) : (
         text
       )}

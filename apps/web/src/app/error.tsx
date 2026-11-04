@@ -42,7 +42,7 @@ export default function Error({
       </p>
       <button
         onClick={reset}
-        className="flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white transition-colors hover:bg-emerald-400"
+        className="bg-accent text-on-accent hover:bg-accent-hover focus-ring flex items-center gap-2 rounded-xl px-6 py-3 font-semibold transition-colors"
       >
         <RotateCcw size={16} />
         Reintentar

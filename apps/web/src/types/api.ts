@@ -157,6 +157,8 @@ export type MonthlySummary = {
   month: string;
   total_expense: number;
   total_income: number;
+  /** Expenses from day 1 to the requested `day` of the month. */
+  expense_to_day?: number;
 };
 
 export type CategorySummary = {
@@ -196,6 +198,8 @@ export type CategoryTrend = {
   category: string | null;
   category_icon?: string | null;
   values: number[];
+  /** Expenses from day 1 to the requested `day` of each month. */
+  values_to_day?: number[];
 };
 
 export type CategoryTrendResponse = {

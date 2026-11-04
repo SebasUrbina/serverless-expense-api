@@ -2,23 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Receipt,
-  Repeat,
-  Settings,
-  PieChart,
-} from 'lucide-react';
 import { useAuth } from '@/lib/AuthProvider';
+import {
+  isActivePath,
+  mainNavigation,
+  settingsNavigation,
+} from '@/lib/navigation';
 import { ThemeToggle } from './ThemeToggle';
-
-const navigation = [
-  { name: 'Inicio', href: '/', icon: LayoutDashboard },
-  { name: 'Movimientos', href: '/transactions', icon: Receipt },
-  { name: 'Recurrentes', href: '/recurring', icon: Repeat },
-  { name: 'Análisis', href: '/analytics', icon: PieChart },
-  { name: 'Ajustes', href: '/settings', icon: Settings },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -40,35 +30,34 @@ export function Sidebar() {
 
   return (
     <div className="hidden lg:flex lg:shrink-0">
-      <div className="theme-card flex h-screen w-64 flex-col border-r">
-        {/* Logo */}
-        <div className="theme-border flex h-16 items-center border-b px-6">
-          <span className="theme-text text-xl font-black tracking-tighter">
+      <div className="bg-card border-border flex h-screen w-60 flex-col border-r">
+        <div className="flex h-16 items-center px-6">
+          <span className="text-primary text-xl font-black tracking-tighter">
             Seva
-          </span>
-          <span className="bg-accent-soft text-accent border-accent/20 ml-2 rounded-full border px-2 py-0.5 text-[9px] font-bold tracking-widest">
-            WEB
           </span>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
+        <nav
+          aria-label="Navegación principal"
+          className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2"
+        >
+          {[...mainNavigation, settingsNavigation].map((item) => {
+            const active = isActivePath(pathname, item.href);
             return (
               <Link
-                key={item.name}
+                key={item.href}
                 href={item.href}
-                className={`group flex items-center rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all duration-300 ${
-                  isActive
-                    ? 'theme-inset theme-text theme-border border'
-                    : 'theme-muted hover:theme-inset hover:theme-text border border-transparent'
+                aria-current={active ? 'page' : undefined}
+                className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-accent-soft text-accent'
+                    : 'text-secondary hover:bg-inset hover:text-primary'
                 }`}
               >
                 <item.icon
-                  className={`mr-3 h-4 w-4 flex-shrink-0 transition-colors duration-300 ${isActive ? 'text-accent' : 'theme-subtle group-hover:theme-muted'}`}
+                  className="h-4 w-4 shrink-0"
                   aria-hidden="true"
-                  strokeWidth={isActive ? 2.5 : 2}
+                  strokeWidth={active ? 2.5 : 2}
                 />
                 {item.name}
               </Link>
@@ -76,40 +65,28 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer: theme toggle + user */}
-        <div className="theme-border shrink-0 space-y-2 border-t p-3">
-          <div className="flex items-center justify-between px-1">
-            <span className="theme-subtle text-xs font-semibold tracking-widest uppercase">
-              Apariencia
-            </span>
-            <ThemeToggle compact />
-          </div>
-
+        <div className="border-border flex shrink-0 items-center gap-2 border-t p-3">
           <Link
             href="/settings"
-            className="hover:theme-inset group hover:theme-border flex items-center gap-3 rounded-2xl border border-transparent p-2 transition-all"
+            className="hover:bg-inset focus-ring flex min-w-0 flex-1 items-center gap-3 rounded-xl p-2 transition-colors"
           >
             {user?.user_metadata?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.user_metadata.avatar_url}
-                alt="Avatar"
-                className="ring-border h-9 w-9 shrink-0 rounded-full object-cover ring-2"
+                alt=""
+                className="h-8 w-8 shrink-0 rounded-full object-cover"
               />
             ) : (
-              <div className="theme-inset theme-muted theme-border flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-black">
+              <span className="bg-inset text-secondary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                 {initials}
-              </div>
+              </span>
             )}
-            <div className="min-w-0 flex-1">
-              <p className="theme-text truncate text-sm font-bold">
-                {displayName}
-              </p>
-              <p className="text-accent/80 truncate text-[11px] font-semibold tracking-wide uppercase">
-                Ver perfil
-              </p>
-            </div>
+            <span className="text-primary min-w-0 truncate text-sm font-semibold">
+              {displayName}
+            </span>
           </Link>
+          <ThemeToggle compact />
         </div>
       </div>
     </div>

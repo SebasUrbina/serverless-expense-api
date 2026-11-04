@@ -10,6 +10,7 @@ import {
 const filters: TransactionFilters = {
   search: 'Compra & café',
   month: '2026-01',
+  type: 'expense',
   category: 1,
   tag: 2,
   shared: true,
@@ -47,6 +48,7 @@ test('loads successive pages with all filters, stops at the end and resets for a
       for (const [key, value] of Object.entries({
         limit: '50',
         search: filters.search,
+        type: 'expense',
         category_id: '1',
         tag_id: '2',
         is_shared: '1',

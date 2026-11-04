@@ -1,305 +1,464 @@
 'use client';
 
+import { Suspense, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Hash,
+  LayoutGrid,
+  LogOut,
+  Scale,
+  Settings2,
+  Smartphone,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import {
-  LogOut,
-  Wallet,
-  Users,
-  Code2,
-  LayoutGrid,
-  Sun,
-  CheckCircle2,
-  Hash,
-  Scale,
-  ChevronRight,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useState } from 'react';
+  useAccounts,
+  useCategories,
+  useGroups,
+  useTags,
+} from '@/hooks/usePreferences';
+import { AccountManager } from '@/components/AccountManager';
 import { CategoryManager } from '@/components/CategoryManager';
 import { TagManager } from '@/components/TagManager';
-import { AccountManager } from '@/components/AccountManager';
 import { GroupManager } from '@/components/GroupManager';
 import { ApiKeyManager } from '@/components/ApiKeyManager';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { SettingsAccordionSection } from '@/components/settings/SettingsAccordionSection';
+import { LoadingState } from '@/components/ui/LoadingSpinner';
 
-type SectionId = 'accounts' | 'categories' | 'tags' | 'groups' | 'integration';
+type Section = {
+  id: string;
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  Content: () => React.ReactNode;
+};
+
+const SECTIONS: Section[] = [
+  {
+    id: 'cuentas',
+    title: 'Cuentas',
+    description:
+      'Efectivo, tarjetas y cuentas bancarias donde registras tus movimientos.',
+    icon: Wallet,
+    Content: AccountManager,
+  },
+  {
+    id: 'categorias',
+    title: 'Categorías',
+    description: 'Cómo clasificas tus gastos e ingresos.',
+    icon: LayoutGrid,
+    Content: CategoryManager,
+  },
+  {
+    id: 'etiquetas',
+    title: 'Etiquetas',
+    description:
+      'Agrupa movimientos de distintas categorías, como un viaje o un proyecto.',
+    icon: Hash,
+    Content: TagManager,
+  },
+  {
+    id: 'grupos',
+    title: 'Grupos compartidos',
+    description: 'Divide gastos con tu pareja, amigos o familia.',
+    icon: Users,
+    Content: GroupManager,
+  },
+  {
+    id: 'atajos',
+    title: 'Atajos de iOS',
+    description: 'Registra tus pagos con Apple Pay sin abrir la app.',
+    icon: Smartphone,
+    Content: ApiKeyManager,
+  },
+];
+
+const plural = (n: number, one: string, many: string) =>
+  `${n} ${n === 1 ? one : many}`;
+
+/** One-line status shown next to each section in the index. */
+function useSectionSummaries(): Record<string, string | undefined> {
+  const { data: accounts } = useAccounts();
+  const { data: categories } = useCategories();
+  const { data: tags } = useTags();
+  const { data: groups } = useGroups();
+  return {
+    cuentas: accounts && plural(accounts.accounts.length, 'cuenta', 'cuentas'),
+    categorias:
+      categories &&
+      plural(categories.categories.length, 'categoría', 'categorías'),
+    etiquetas: tags && plural(tags.tags.length, 'etiqueta', 'etiquetas'),
+    grupos: groups && plural(groups.groups.length, 'grupo', 'grupos'),
+    atajos: 'Apple Pay',
+  };
+}
+
+const sectionHref = (id: string) => `/settings?section=${id}`;
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<LoadingState minHeight="h-dvh" />}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
+  const sectionId = useSearchParams().get('section');
+  const section = SECTIONS.find((s) => s.id === sectionId);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+    document.querySelector('main')?.scrollTo({ top: 0 });
+  }, [sectionId]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 pb-10 sm:px-6"
+      >
+        <div className="mx-auto max-w-5xl pt-5 sm:pt-6 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:items-start lg:gap-10">
+          <aside className={section ? 'hidden lg:block' : ''}>
+            <h1 className="text-primary text-xl font-bold tracking-tight sm:text-3xl">
+              Ajustes
+            </h1>
+            <MobileIndex />
+            <DesktopNav activeId={section?.id ?? 'general'} />
+          </aside>
+
+          <div className={section ? '' : 'hidden lg:block'}>
+            {section ? <SectionPanel section={section} /> : <GeneralPanel />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Profile() {
   const { session } = useAuth();
-  const router = useRouter();
-  const [openSection, setOpenSection] = useState<SectionId | null>(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
-  const toggleSection = (id: SectionId) => {
-    setOpenSection((prev) => (prev === id ? null : id));
-  };
-
   const user = session?.user;
-  const displayName =
+  const displayName: string =
     user?.user_metadata?.full_name ||
     user?.user_metadata?.display_name ||
     user?.email ||
     'Usuario';
-  const email = user?.email || '';
-  const avatarUrl = user?.user_metadata?.avatar_url;
   const initials = displayName
     .split(' ')
-    .map((w: string) => w[0])
+    .map((w) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase();
-
-  // Accordion section definitions
-  const financeSections: {
-    id: SectionId;
-    icon: React.ElementType;
-    iconBg: string;
-    iconColor: string;
-    accentBorder: string;
-    accentBg: string;
-    title: string;
-    subtitle: string;
-    content: React.ReactNode;
-  }[] = [
-    {
-      id: 'accounts',
-      icon: Wallet,
-      iconBg: 'bg-blue-500/10',
-      iconColor: 'text-blue-500',
-      accentBorder: 'rgba(59,130,246,0.28)',
-      accentBg: 'rgba(59,130,246,0.08)',
-      title: 'Mis cuentas',
-      subtitle: 'Efectivo, tarjetas, billeteras…',
-      content: <AccountManager />,
-    },
-    {
-      id: 'categories',
-      icon: LayoutGrid,
-      iconBg: 'bg-violet-500/10',
-      iconColor: 'text-violet-500',
-      accentBorder: 'rgba(139,92,246,0.28)',
-      accentBg: 'rgba(139,92,246,0.08)',
-      title: 'Categorías',
-      subtitle: 'Organiza tus gastos e ingresos',
-      content: <CategoryManager />,
-    },
-    {
-      id: 'tags',
-      icon: Hash,
-      iconBg: 'bg-amber-500/10',
-      iconColor: 'text-amber-500',
-      accentBorder: 'rgba(245,158,11,0.3)',
-      accentBg: 'rgba(245,158,11,0.08)',
-      title: 'Etiquetas',
-      subtitle: 'Agrega contexto a tus movimientos',
-      content: <TagManager />,
-    },
-    {
-      id: 'groups',
-      icon: Users,
-      iconBg: 'bg-emerald-500/10',
-      iconColor: 'text-emerald-500',
-      accentBorder: 'rgba(16,185,129,0.28)',
-      accentBg: 'rgba(16,185,129,0.08)',
-      title: 'Grupos compartidos',
-      subtitle: 'Divide gastos con otras personas',
-      content: <GroupManager />,
-    },
-  ];
-
-  const integrationSection = {
-    id: 'integration' as SectionId,
-    icon: Code2,
-    iconBg: 'bg-sky-500/10',
-    iconColor: 'text-sky-500',
-    accentBorder: 'rgba(14,165,233,0.28)',
-    accentBg: 'rgba(14,165,233,0.08)',
-    title: 'API / iOS Shortcuts',
-    subtitle: 'Conecta con apps externas',
-    content: <ApiKeyManager />,
-  };
-  const IntegrationIcon = integrationSection.icon;
+  const avatarUrl = user?.user_metadata?.avatar_url;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-y-auto px-4 pb-10 sm:px-6">
-        <div className="mx-auto max-w-2xl">
-          {/* ── Profile Header ── */}
-          <div className="flex flex-col items-center pt-8 pb-6 text-center">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt="Avatar"
-                className="ring-border mb-3 h-20 w-20 rounded-full object-cover shadow-sm ring-2"
-              />
-            ) : (
-              <div className="bg-card text-secondary border-border mb-3 flex h-20 w-20 items-center justify-center rounded-full border text-2xl font-bold shadow-sm">
-                {initials}
-              </div>
-            )}
-            <h1 className="text-primary text-xl font-bold">{displayName}</h1>
-            <div className="mt-1 flex items-center gap-1.5">
-              <p className="text-muted text-sm">{email}</p>
-              <span className="flex items-center gap-0.5 text-xs font-semibold text-emerald-500">
-                <CheckCircle2 size={12} />
-                Verificado
-              </span>
-            </div>
-          </div>
-
-          {/* ── Apariencia ── */}
-          <div className="mb-5">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Apariencia
-            </p>
-            <div className="bg-card border-border flex items-center justify-between rounded-3xl border p-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
-                  <Sun size={17} className="text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-primary text-sm font-semibold">
-                    Modo de pantalla
-                  </p>
-                  <p className="text-muted text-xs">
-                    Claro, oscuro o automático
-                  </p>
-                </div>
-              </div>
-              <ThemeToggle />
-            </div>
-          </div>
-
-          {/* ── Finanzas (Accordion) ── */}
-          <div className="mb-5">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Finanzas
-            </p>
-            <div className="space-y-3">
-              {financeSections.map((section) => (
-                <SettingsAccordionSection
-                  key={section.id}
-                  title={section.title}
-                  subtitle={section.subtitle}
-                  icon={section.icon}
-                  iconBg={section.iconBg}
-                  iconColor={section.iconColor}
-                  accentBorder={section.accentBorder}
-                  accentBg={section.accentBg}
-                  isOpen={openSection === section.id}
-                  onToggle={() => toggleSection(section.id)}
-                >
-                  {section.content}
-                </SettingsAccordionSection>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Integraciones ── */}
-          <div className="mb-5">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Integraciones
-            </p>
-            <SettingsAccordionSection
-              title={integrationSection.title}
-              subtitle={integrationSection.subtitle}
-              icon={IntegrationIcon}
-              iconBg={integrationSection.iconBg}
-              iconColor={integrationSection.iconColor}
-              accentBorder={integrationSection.accentBorder}
-              accentBg={integrationSection.accentBg}
-              isOpen={openSection === 'integration'}
-              onToggle={() => toggleSection('integration')}
-            >
-              {integrationSection.content}
-            </SettingsAccordionSection>
-          </div>
-
-          {/* ── Legal ── */}
-          <div className="mb-5">
-            <p className="text-muted mb-2 px-1 text-[11px] font-bold tracking-widest uppercase">
-              Legal
-            </p>
-            <Link
-              href="/settings/legal"
-              className="bg-card border-border hover:bg-card-hover flex w-full items-center gap-3.5 rounded-3xl border p-4 shadow-sm transition-colors"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10">
-                <Scale size={17} className="text-indigo-500" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-primary text-sm font-semibold">
-                  Información legal
-                </p>
-                <p className="text-muted text-xs">
-                  Licencia, términos y privacidad
-                </p>
-              </div>
-              <ChevronRight size={16} className="text-muted shrink-0" />
-            </Link>
-          </div>
-
-          {/* ── Cerrar sesión ── */}
-          <div className="mb-6">
-            {!showLogoutConfirm ? (
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                className="bg-card border-border hover:bg-card-hover flex w-full items-center gap-3.5 rounded-3xl border p-4 shadow-sm transition-colors"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10">
-                  <LogOut size={17} className="text-red-500" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-red-500">
-                    Cerrar sesión
-                  </p>
-                  <p className="text-muted text-xs">
-                    Salir de tu cuenta en este dispositivo
-                  </p>
-                </div>
-              </button>
-            ) : (
-              <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-4">
-                <p className="mb-1 text-sm font-semibold text-red-500">
-                  ¿Seguro que quieres salir?
-                </p>
-                <p className="text-muted mb-4 text-xs">
-                  Tendrás que iniciar sesión otra vez para acceder a tu cuenta.
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowLogoutConfirm(false)}
-                    className="bg-inset text-secondary border-border hover:bg-card flex-1 rounded-xl border py-2 text-sm font-medium transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="flex-1 rounded-xl bg-red-500 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600"
-                  >
-                    Sí, cerrar sesión
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <p className="text-muted pb-4 text-center text-xs">
-            Seva Web · Tus finanzas, tu control · Versión{' '}
-            {process.env.NEXT_PUBLIC_APP_VERSION}
-          </p>
-        </div>
+    <div className="flex min-w-0 items-center gap-3.5">
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt=""
+          className="h-14 w-14 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <span className="bg-inset text-secondary flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-lg font-bold">
+          {initials}
+        </span>
+      )}
+      <div className="min-w-0">
+        <p className="text-primary truncate text-base font-semibold">
+          {displayName}
+        </p>
+        <p className="text-secondary truncate text-[13px]">
+          {user?.email}
+          {user?.email_confirmed_at && (
+            <span className="text-muted"> · verificado</span>
+          )}
+        </p>
       </div>
+    </div>
+  );
+}
+
+const rowClass =
+  'hover:bg-inset focus-ring flex min-h-14 w-full items-center gap-3.5 px-4 py-3 text-left transition-colors';
+
+function Row({
+  href,
+  icon: Icon,
+  title,
+  detail,
+}: {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  detail?: string;
+}) {
+  return (
+    <li>
+      <Link href={href} className={rowClass}>
+        <Icon
+          size={18}
+          className="text-secondary shrink-0"
+          aria-hidden="true"
+        />
+        <span className="text-primary min-w-0 flex-1 truncate text-[15px] font-medium">
+          {title}
+        </span>
+        {detail && (
+          <span className="text-muted shrink-0 text-[13px] tabular-nums">
+            {detail}
+          </span>
+        )}
+        <ChevronRight
+          size={16}
+          className="text-muted shrink-0"
+          aria-hidden="true"
+        />
+      </Link>
+    </li>
+  );
+}
+
+function Group({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-label={title} className="mt-6">
+      <h2 className="text-secondary mb-2 px-1 text-[13px] font-medium">
+        {title}
+      </h2>
+      <ul className="bg-card border-border divide-border divide-y overflow-hidden rounded-2xl border shadow-sm">
+        {children}
+      </ul>
+    </section>
+  );
+}
+
+function ThemeRow() {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <span>
+        <span className="text-primary block text-[15px] font-medium">Tema</span>
+        <span className="text-muted block text-[13px]">
+          Auto sigue la configuración de tu dispositivo.
+        </span>
+      </span>
+      <ThemeToggle />
+    </li>
+  );
+}
+
+function LogoutRow() {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const logout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
+  if (!confirming)
+    return (
+      <li>
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className={rowClass}
+        >
+          <LogOut
+            size={18}
+            className="text-expense shrink-0"
+            aria-hidden="true"
+          />
+          <span className="text-expense text-[15px] font-medium">
+            Cerrar sesión
+          </span>
+        </button>
+      </li>
+    );
+
+  return (
+    <li role="alert" className="px-4 py-4">
+      <p className="text-primary text-[15px] font-semibold">
+        ¿Cerrar sesión en este dispositivo?
+      </p>
+      <p className="text-secondary mt-1 text-[13px]">
+        Tus datos quedan guardados; solo tendrás que volver a ingresar.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="bg-inset text-primary hover:bg-card-hover focus-ring min-h-11 flex-1 rounded-xl text-sm font-semibold transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={logout}
+          className="focus-ring min-h-11 flex-1 rounded-xl bg-red-600 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+        >
+          Cerrar sesión
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function AppVersion() {
+  return (
+    <p className="text-muted mt-6 px-1 text-xs">
+      Seva {process.env.NEXT_PUBLIC_APP_VERSION}
+    </p>
+  );
+}
+
+function MobileIndex() {
+  const summaries = useSectionSummaries();
+  return (
+    <div className="lg:hidden">
+      <div className="bg-card border-border mt-5 rounded-2xl border p-4 shadow-sm">
+        <Profile />
+      </div>
+      <Group title="Finanzas">
+        {SECTIONS.slice(0, 4).map((s) => (
+          <Row
+            key={s.id}
+            href={sectionHref(s.id)}
+            icon={s.icon}
+            title={s.title}
+            detail={summaries[s.id]}
+          />
+        ))}
+      </Group>
+      <Group title="Integraciones">
+        {SECTIONS.slice(4).map((s) => (
+          <Row
+            key={s.id}
+            href={sectionHref(s.id)}
+            icon={s.icon}
+            title={s.title}
+            detail={summaries[s.id]}
+          />
+        ))}
+      </Group>
+      <Group title="Preferencias">
+        <ThemeRow />
+      </Group>
+      <Group title="Tu cuenta">
+        <Row href="/settings/legal" icon={Scale} title="Información legal" />
+        <LogoutRow />
+      </Group>
+      <AppVersion />
+    </div>
+  );
+}
+
+function DesktopNav({ activeId }: { activeId: string }) {
+  const items = [
+    { id: 'general', title: 'General', icon: Settings2, href: '/settings' },
+    ...SECTIONS.map((s) => ({ ...s, href: sectionHref(s.id) })),
+  ];
+  return (
+    <nav aria-label="Secciones de ajustes" className="mt-6 hidden lg:block">
+      <ul className="space-y-0.5">
+        {items.map((item) => {
+          const active = item.id === activeId;
+          return (
+            <li key={item.id}>
+              <Link
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-card text-primary border-border border shadow-sm'
+                    : 'text-secondary hover:text-primary hover:bg-card border border-transparent'
+                }`}
+              >
+                <item.icon
+                  size={16}
+                  aria-hidden="true"
+                  className={active ? 'text-accent' : ''}
+                />
+                {item.title}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+function PanelHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-primary text-xl font-bold tracking-tight lg:text-2xl">
+        {title}
+      </h2>
+      <p className="text-secondary mt-1 text-sm">{description}</p>
+    </div>
+  );
+}
+
+function SectionPanel({ section }: { section: Section }) {
+  const { Content } = section;
+  return (
+    <div>
+      <Link
+        href="/settings"
+        className="text-secondary hover:text-primary focus-ring mb-4 -ml-1 inline-flex min-h-10 items-center gap-1 rounded-lg pr-2 text-sm font-medium transition-colors lg:hidden"
+      >
+        <ChevronLeft size={18} aria-hidden="true" />
+        Ajustes
+      </Link>
+      <section
+        aria-label={section.title}
+        className="bg-card border-border rounded-3xl border p-5 shadow-sm sm:p-6 lg:mt-1"
+      >
+        <PanelHeader title={section.title} description={section.description} />
+        <Content />
+      </section>
+    </div>
+  );
+}
+
+function GeneralPanel() {
+  return (
+    <div className="lg:mt-1">
+      <section
+        aria-label="Perfil"
+        className="bg-card border-border rounded-3xl border p-5 shadow-sm sm:p-6"
+      >
+        <Profile />
+      </section>
+      <Group title="Preferencias">
+        <ThemeRow />
+      </Group>
+      <Group title="Tu cuenta">
+        <Row href="/settings/legal" icon={Scale} title="Información legal" />
+        <LogoutRow />
+      </Group>
+      <AppVersion />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useDialog } from '@/hooks/useDialog';
 import {
   X,
   ChevronLeft,
@@ -31,6 +32,15 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
   const { data, isLoading } = useApiKey();
   const generateMutation = useGenerateApiKey();
   const apiKey = data?.key || '';
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = () => {
+    setStep(0);
+    setShowKey(false);
+    setCopied(false);
+    onClose();
+  };
+  useDialog(isOpen, handleClose, dialogRef);
 
   if (!isOpen) return null;
 
@@ -41,20 +51,18 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleClose = () => {
-    setStep(0);
-    setShowKey(false);
-    setCopied(false);
-    onClose();
-  };
-
   const canGoBack = step > 0;
   const isLastStep = step === TOTAL_STEPS - 1;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--backdrop-bg)] p-4 backdrop-blur-sm">
       <div
-        className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl shadow-2xl"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Configurar Atajos de iOS, paso ${step + 1} de ${TOTAL_STEPS}`}
+        tabIndex={-1}
+        className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl shadow-2xl focus:outline-none"
         style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
@@ -63,8 +71,10 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
       >
         {/* Close button */}
         <button
+          type="button"
+          aria-label="Cerrar"
           onClick={handleClose}
-          className="text-muted hover:text-primary hover:bg-card-hover absolute top-4 right-4 z-10 rounded-xl p-2 transition-colors"
+          className="text-muted hover:text-primary hover:bg-card-hover focus-ring absolute top-4 right-4 z-10 rounded-xl p-2 transition-colors"
         >
           <X size={20} />
         </button>
@@ -76,10 +86,7 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
               key={i}
               className="h-2 w-2 rounded-full transition-all duration-300"
               style={{
-                background:
-                  i <= step
-                    ? 'var(--color-brand-500, #0d9488)'
-                    : 'var(--border)',
+                background: i <= step ? 'var(--accent)' : 'var(--border)',
                 width: i === step ? 10 : 8,
                 height: i === step ? 10 : 8,
               }}
@@ -112,8 +119,9 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
         <div className="flex gap-3 px-6 pt-2 pb-6">
           {canGoBack && (
             <button
+              type="button"
               onClick={() => setStep(step - 1)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-colors"
+              className="focus-ring flex flex-1 items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-colors"
               style={{
                 background: 'var(--bg-inset)',
                 color: 'var(--text-primary)',
@@ -125,8 +133,9 @@ export function ShortcutsSetupModal({ isOpen, onClose }: Props) {
             </button>
           )}
           <button
+            type="button"
             onClick={isLastStep ? handleClose : () => setStep(step + 1)}
-            className="text-primary flex flex-[1.5] items-center justify-center gap-2 rounded-xl bg-teal-700 py-3.5 text-sm font-semibold transition-colors hover:bg-teal-600"
+            className="bg-accent focus-ring text-on-accent hover:bg-accent-hover flex flex-[1.5] items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition-colors"
           >
             {isLastStep ? (
               'Cerrar'
@@ -338,7 +347,7 @@ function StepConfigureExecution() {
       {/* Card icon */}
       <div
         className="mb-6 flex h-14 w-20 items-center justify-center rounded-xl"
-        style={{ background: 'var(--color-brand-500, #0d9488)' }}
+        style={{ background: 'var(--accent)' }}
       >
         <div className="flex h-8 w-12 items-end rounded-md border-2 border-white/60 pb-1 pl-1.5">
           <div className="h-3 w-4 rounded-sm bg-[var(--text-primary)]/80" />
@@ -410,7 +419,7 @@ function StepAddShortcut({
         }}
       >
         <p
-          className="mb-3 text-xs font-bold tracking-widest uppercase"
+          className="mb-3 text-sm font-semibold"
           style={{ color: 'var(--text-muted)' }}
         >
           Tu API Key (la necesitarás al importar)
@@ -427,7 +436,7 @@ function StepAddShortcut({
                 border: '1px solid var(--border)',
               }}
             >
-              <span className="flex-1 truncate text-left font-mono text-xs text-emerald-400">
+              <span className="text-primary flex-1 truncate text-left font-mono text-xs">
                 {showKey ? apiKey : '••••••••••••••••••••••••'}
               </span>
             </div>
@@ -446,7 +455,7 @@ function StepAddShortcut({
               </button>
               <button
                 onClick={onCopy}
-                className="text-primary flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2 text-xs font-semibold transition-colors hover:bg-emerald-400"
+                className="bg-accent focus-ring text-on-accent hover:bg-accent-hover flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? '¡Copiada!' : 'Copiar Key'}
@@ -464,7 +473,7 @@ function StepAddShortcut({
             <button
               onClick={onGenerate}
               disabled={isGenerating}
-              className="text-primary flex items-center justify-center gap-2 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold transition-colors hover:bg-emerald-400"
+              className="bg-accent focus-ring text-on-accent hover:bg-accent-hover flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
             >
               <RefreshCw
                 size={14}
@@ -480,7 +489,7 @@ function StepAddShortcut({
       <div className="flex w-full gap-3">
         <div className="text-primary flex-1 rounded-xl bg-cyan-500 p-3 text-center">
           <div className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--text-primary)]/20">
-            <span className="text-xs font-bold">m</span>
+            <span className="text-xs font-bold">S</span>
           </div>
           <p className="text-[10px] leading-tight font-semibold">
             Enviar gastos a Seva
@@ -505,14 +514,14 @@ function StepAddShortcut({
               className="text-xs font-bold"
               style={{ color: 'var(--text-muted)' }}
             >
-              m
+              S
             </span>
           </div>
           <p
             className="text-[10px] leading-tight font-semibold"
             style={{ color: 'var(--text-muted)' }}
           >
-            Enviar emails de gastos a Miga
+            Enviar emails de gastos a Seva
           </p>
         </div>
       </div>
@@ -524,8 +533,8 @@ function StepDone() {
   return (
     <div className="flex flex-col items-center py-4 text-center">
       {/* Checkmark */}
-      <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-teal-700 shadow-lg shadow-teal-700/30">
-        <Check size={40} className="text-primary" strokeWidth={3} />
+      <div className="bg-accent-soft mb-6 flex h-20 w-20 items-center justify-center rounded-full">
+        <Check size={40} className="text-accent" strokeWidth={3} />
       </div>
 
       <h2
@@ -540,7 +549,7 @@ function StepDone() {
         style={{ color: 'var(--text-muted)' }}
       >
         Toca &apos;Listo&apos; para guardar. Ahora cada vez que pagues con Apple
-        Pay, el gasto se agregará automáticamente a Miga. La primera vez que
+        Pay, el gasto se agregará automáticamente a Seva. La primera vez que
         hagas un pago, iOS puede mostrar un aviso preguntando si permites el
         acceso. Selecciona &apos;Permitir siempre&apos; para que no vuelva a
         preguntar.
@@ -555,15 +564,15 @@ function StepDone() {
         }}
       >
         <div className="mb-4 flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-500/15">
-            <Sparkles size={18} className="text-teal-500" />
+          <div className="bg-card mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+            <Sparkles size={18} className="text-secondary" />
           </div>
           <div className="text-left">
             <p
               className="text-sm font-bold"
               style={{ color: 'var(--text-primary)' }}
             >
-              Detección automatica de gastos
+              Detección automática de gastos
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               El sistema detecta automáticamente las compras con tus tarjetas
@@ -572,8 +581,8 @@ function StepDone() {
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
-            <Clock size={18} className="text-blue-500" />
+          <div className="bg-card mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+            <Clock size={18} className="text-secondary" />
           </div>
           <div className="text-left">
             <p
