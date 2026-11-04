@@ -21,7 +21,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   const { mutate: runSetup } = useUserSetup();
   const setupRan = useRef(false);
-  const { isOpen, initialData, template, session, closeModal } =
+  const { isOpen, initialData, template, groupId, session, closeModal } =
     useTransactionModal();
   const {
     isOpen: isRecurringOpen,
@@ -72,6 +72,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
           isOpen={isOpen}
           initialData={initialData}
           template={template}
+          presetGroupId={groupId}
           onClose={closeModal}
         />
       ) : null}

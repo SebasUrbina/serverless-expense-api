@@ -55,6 +55,8 @@ type Props = {
   initialData?: Transaction | null;
   /** Prefills a new movement from an earlier one; the date is today. */
   template?: Transaction | null;
+  /** Starts a new movement shared with this group, split equally. */
+  presetGroupId?: number | null;
 };
 
 type TransactionPayload = {
@@ -149,6 +151,7 @@ export function CreateTransactionModal({
   onClose,
   initialData,
   template,
+  presetGroupId,
 }: Props) {
   const source = initialData ?? template ?? null;
   const queryClient = useQueryClient();
@@ -200,11 +203,22 @@ export function CreateTransactionModal({
   } | null>(null);
 
   // Shared expense state
-  const [isShared, setIsShared] = useState(Boolean(source?.is_shared));
-  const [groupId, setGroupId] = useState<number | ''>(source?.group_id || '');
+  const presetGroup = source
+    ? undefined
+    : groups.find((g) => g.id === presetGroupId);
+  const [isShared, setIsShared] = useState(
+    Boolean(source?.is_shared) || !!presetGroup,
+  );
+  const [groupId, setGroupId] = useState<number | ''>(
+    source?.group_id || presetGroup?.id || '',
+  );
   const [splitPercentages, setSplitPercentages] = useState<
     Record<string, number>
-  >(() => getInitialSplitPercentages(source));
+  >(() =>
+    presetGroup
+      ? getEqualSplitPercentages(presetGroup.members)
+      : getInitialSplitPercentages(source),
+  );
 
   // Installment (Cuotas) State
   const [isInstallments, setIsInstallments] = useState(false);

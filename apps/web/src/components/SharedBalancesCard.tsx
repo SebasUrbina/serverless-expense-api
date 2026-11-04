@@ -1,39 +1,23 @@
 'use client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
 import { ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Card, CardHeader, CardLink } from '@/components/ui/Card';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAccounts } from '@/hooks/usePreferences';
+import { useGroupBalances, useSettleGroup } from '@/hooks/useGroupBalances';
 import { useAuth } from '@/lib/AuthProvider';
 import { formatCurrency } from '@/lib/utils';
 import { computeSettlements } from '@/lib/settlements';
 import { useState } from 'react';
 import { SettleConfirmModal } from './SettleConfirmModal';
-import type {
-  GroupBalance,
-  SettlementPair,
-  GroupBalancesResponse,
-} from '@/types/api';
-
-function useGroupBalances(month: string) {
-  return useQuery<GroupBalancesResponse>({
-    queryKey: ['group-balances', month],
-    queryFn: async () => {
-      const res = await api.get(`/groups/balances?month=${month}`);
-      return res.data;
-    },
-  });
-}
+import type { GroupBalance, SettlementPair } from '@/types/api';
 
 export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
   const currentMonth = filterMonth || format(new Date(), 'yyyy-MM');
   const { data, isLoading } = useGroupBalances(currentMonth);
   const { data: accountsData } = useAccounts();
   const { session } = useAuth();
-  const queryClient = useQueryClient();
 
   const accounts = accountsData?.accounts || [];
   const balances = data?.balances || [];
@@ -44,32 +28,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
     pairs: SettlementPair[];
   } | null>(null);
 
-  const settleMutation = useMutation({
-    mutationFn: async ({
-      groupId,
-      month,
-      accountId,
-      settlements,
-    }: {
-      groupId: number;
-      month: string;
-      accountId: number;
-      settlements?: SettlementPair[];
-    }) => {
-      const res = await api.post(`/groups/${groupId}/settle`, {
-        month,
-        account_id: accountId,
-        ...(settlements ? { settlements } : {}),
-      });
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      setSettleTarget(null);
-    },
-  });
+  const settleMutation = useSettleGroup(() => setSettleTarget(null));
 
   if (!isLoading && balances.length === 0) return null;
 
@@ -97,8 +56,8 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
           title="Gastos compartidos"
           description={<span className="capitalize">{monthLabel}</span>}
           link={{
-            href: `/transactions?shared=1&month=${currentMonth}`,
-            label: 'Ver movimientos',
+            href: '/groups',
+            label: 'Ver grupos',
           }}
         />
 
@@ -165,9 +124,7 @@ function GroupBalanceBlock({
         <p className="text-primary truncate text-sm font-semibold">
           {group.group_name}
         </p>
-        <CardLink
-          href={`/transactions?shared=1&group_id=${group.group_id}&month=${month}`}
-        >
+        <CardLink href={`/groups?id=${group.group_id}&month=${month}`}>
           {group.transaction_count}{' '}
           {group.transaction_count === 1 ? 'movimiento' : 'movimientos'}
         </CardLink>

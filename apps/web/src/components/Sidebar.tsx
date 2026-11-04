@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/AuthProvider';
 import {
-  isActivePath,
+  isActiveItem,
   mainNavigation,
   settingsNavigation,
 } from '@/lib/navigation';
@@ -42,7 +42,7 @@ export function Sidebar() {
           className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2"
         >
           {[...mainNavigation, settingsNavigation].map((item) => {
-            const active = isActivePath(pathname, item.href);
+            const active = isActiveItem(pathname, item);
             return (
               <Link
                 key={item.href}

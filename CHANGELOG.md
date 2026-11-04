@@ -9,11 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Web: a "Grupos" section for shared expenses. The list shows what you are owed or owe in each group for the selected month. Each group shows its balance with the button to settle, the month's shared movements with what each one means for you ("Prestaste", "Te toca", "Pagaste", "Recibiste"), every member's net with a bar and the transfers that even it out, and the members with the invite code. On mobile, the movements, balances and members are tabs under the balance; on desktop, the group list, the movements and the balance sit side by side. Members get an initial and a color that stay the same in every group.
+- Web: "Gasto compartido" in a group opens the transaction dialog already shared with that group and split equally.
+- Web: "Invitar con un enlace" opens the device's share sheet (or copies the link) with a `/groups?join=CODE` link that opens "Unirme" with the code filled in.
 - API: `POST /api/transactions` accepts an optional `client_id`; repeating it returns the movement already created instead of a duplicate (including installment series). The web sends one per new movement, so a retried offline create is saved once. Requires migration `0005_transaction_client_id`.
 - Web: "Repetir hoy" in the edit dialog opens a new movement with the same details and today's date.
 
 ### Changed
 
+- Web: "Grupos" replaces "Recurrentes" in the navigation. Recurring rules are a tab next to "Movimientos" at the top of the transactions page, and "Movimientos" stays highlighted on both. The shared expenses card on the home links to each group's page instead of the filtered transactions list.
 - Web: movements can also be edited and deleted offline, not only created. Changes are shown in the lists right away and sent in order when the connection returns.
 
 ### Fixed
