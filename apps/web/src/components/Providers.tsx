@@ -107,10 +107,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       },
     });
-    registerOfflineMutations(
-      client,
-      async (payload) => (await api.post('/transactions', payload)).data,
-    );
+    registerOfflineMutations(client, {
+      create: async (payload) =>
+        (await api.post('/transactions', payload)).data,
+      update: async (id, payload) =>
+        (await api.put(`/transactions/${id}`, payload)).data,
+      remove: async (id) => (await api.delete(`/transactions/${id}`)).data,
+    });
     return client;
   });
 

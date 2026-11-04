@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS transactions (
        typeof(installment_total) = 'integer' AND installment_total >= 2 AND
        installment_number <= installment_total)),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    client_id TEXT, -- idempotency key sent by the client on create
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES shared_groups(id) ON DELETE SET NULL
@@ -142,6 +143,8 @@ CREATE TABLE IF NOT EXISTS budgets (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 -- Un presupuesto 'general' por usuario+mes (category_id es NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_user_client
+    ON transactions (user_id, client_id) WHERE client_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_general
     ON budgets(user_id, month) WHERE scope = 'general';
 -- Un presupuesto por categoría en cada mes

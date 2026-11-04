@@ -13,7 +13,7 @@ import { useCategoryColors } from '@/hooks/useCategoryColors';
 import { useState, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTransactionModal } from '@/store/useTransactionModal';
-import { usePendingDeletes } from '@/store/usePendingDeletes';
+import { usePendingDeleteIds } from '@/store/usePendingDeletes';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types/api';
 import { transactionListOptions } from '@/lib/transactionList';
@@ -152,9 +152,11 @@ function TransactionsContent() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetching, isError, fetchNextPage]);
 
-  const pendingDeletes = usePendingDeletes((s) => s.items);
+  const hiddenIds = [...usePendingDeleteIds()].join(',');
   const transactions = useMemo(() => {
-    const seen = new Set<number>(pendingDeletes.map((item) => item.id));
+    const seen = new Set<number>(
+      hiddenIds ? hiddenIds.split(',').map(Number) : [],
+    );
     return (response?.pages.flatMap((page) => page.transactions) ?? []).filter(
       (tx) => {
         if (seen.has(tx.id)) return false;
@@ -162,7 +164,7 @@ function TransactionsContent() {
         return true;
       },
     );
-  }, [response?.pages, pendingDeletes]);
+  }, [response?.pages, hiddenIds]);
   const grouped = useMemo(
     () => groupTransactionsByDate(transactions),
     [transactions],

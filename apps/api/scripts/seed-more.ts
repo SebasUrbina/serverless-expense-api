@@ -151,36 +151,49 @@ const MERCHANT_TEMPLATES: Record<
   },
 };
 
+const sql = (value: string) => `'${value.replace(/'/g, "''")}'`;
+
+function byId<T extends { id: number }>(items: T[], id: number): T {
+  const item = items.find((i) => i.id === id);
+  if (!item) throw new Error(`Seed reference ${id} not found`);
+  return item;
+}
+
+// IDs in CATEGORIES/ACCOUNTS/TAGS are local keys only: real rows are resolved
+// by (user_id, name) because other users may already own those primary keys.
 function generateSqlStatements(): string[] {
   const statements: string[] = ['PRAGMA foreign_keys = ON;'];
 
-  // API Keys
   statements.push(
-    "INSERT OR IGNORE INTO api_keys (id, key, user_id) VALUES (1, 'local-dev-api-key', 'local_user');",
+    "INSERT OR IGNORE INTO api_keys (key, user_id) VALUES ('local-dev-api-key', 'local_user');",
   );
 
-  let globalTransactionId = 1;
-  let globalBudgetId = 1;
-
   for (const userId of TARGET_USERS) {
-    // Accounts
+    const user = sql(userId);
+    const categoryRef = (id: number) => {
+      const cat = byId(CATEGORIES, id);
+      return `(SELECT id FROM categories WHERE user_id = ${user} AND name = ${sql(cat.name)} AND type = '${cat.type}')`;
+    };
+    const accountRef = (id: number) =>
+      `(SELECT id FROM accounts WHERE user_id = ${user} AND name = ${sql(byId(ACCOUNTS, id).name)})`;
+    const tagRef = (id: number) =>
+      `(SELECT id FROM tags WHERE user_id = ${user} AND name = ${sql(byId(TAGS, id).name)})`;
+
     for (const acc of ACCOUNTS) {
       statements.push(
-        `INSERT OR IGNORE INTO accounts (id, user_id, name, type, balance) VALUES (${acc.id}, '${userId}', '${acc.name.replace(/'/g, "''")}', '${acc.type}', ${acc.initialBalance});`,
+        `INSERT OR IGNORE INTO accounts (user_id, name, type, balance) VALUES (${user}, ${sql(acc.name)}, '${acc.type}', ${acc.initialBalance});`,
       );
     }
 
-    // Categories
     for (const cat of CATEGORIES) {
       statements.push(
-        `INSERT OR IGNORE INTO categories (id, user_id, name, type, icon) VALUES (${cat.id}, '${userId}', '${cat.name.replace(/'/g, "''")}', '${cat.type}', '${cat.icon}');`,
+        `INSERT OR IGNORE INTO categories (user_id, name, type, icon) VALUES (${user}, ${sql(cat.name)}, '${cat.type}', ${sql(cat.icon)});`,
       );
     }
 
-    // Tags
     for (const tag of TAGS) {
       statements.push(
-        `INSERT OR IGNORE INTO tags (id, user_id, name) VALUES (${tag.id}, '${userId}', '${tag.name.replace(/'/g, "''")}');`,
+        `INSERT OR IGNORE INTO tags (user_id, name) VALUES (${user}, ${sql(tag.name)});`,
       );
     }
 
@@ -200,10 +213,9 @@ function generateSqlStatements(): string[] {
       const incomeDate = `${monthStr}-01`;
       const incomeAmount = faker.number.int({ min: 1800000, max: 2400000 });
       statements.push(
-        `INSERT OR IGNORE INTO transactions (id, title, amount, category_id, type, account_id, user_id, date) VALUES ` +
-          `(${globalTransactionId}, 'Sueldo Mensual Empresa', ${incomeAmount}, 5, 'income', 1, '${userId}', '${incomeDate}');`,
+        `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date) VALUES ` +
+          `('Sueldo Mensual Empresa', ${incomeAmount}, ${categoryRef(5)}, 'income', ${accountRef(1)}, ${user}, '${incomeDate}');`,
       );
-      globalTransactionId++;
 
       // 2. Gastos variados
       const daysInMonth = new Date(year, monthNum, 0).getDate();
@@ -224,9 +236,7 @@ function generateSqlStatements(): string[] {
           1, 1, 1, 2, 2, 3, 4, 4, 6, 7, 8,
         ]);
         const template = MERCHANT_TEMPLATES[categoryId];
-        const title = faker.helpers
-          .arrayElement(template.titles)
-          .replace(/'/g, "''");
+        const title = faker.helpers.arrayElement(template.titles);
 
         const rawAmount = faker.number.int({
           min: template.minAmount,
@@ -241,33 +251,31 @@ function generateSqlStatements(): string[] {
               : faker.helpers.arrayElement([1, 2]);
 
         statements.push(
-          `INSERT OR IGNORE INTO transactions (id, title, amount, category_id, type, account_id, user_id, date) VALUES ` +
-            `(${globalTransactionId}, '${title}', ${amount}, ${categoryId}, 'expense', ${accountId}, '${userId}', '${dateStr}');`,
+          `INSERT INTO transactions (title, amount, category_id, type, account_id, user_id, date) VALUES ` +
+            `(${sql(title)}, ${amount}, ${categoryRef(categoryId)}, 'expense', ${accountRef(accountId)}, ${user}, '${dateStr}');`,
         );
 
         if (template.tagId || faker.datatype.boolean(0.3)) {
           const tagId =
             template.tagId || faker.helpers.arrayElement([1, 2, 3, 4, 5, 6]);
           statements.push(
-            `INSERT OR IGNORE INTO transaction_tags (transaction_id, tag_id) VALUES (${globalTransactionId}, ${tagId});`,
+            `INSERT OR IGNORE INTO transaction_tags (transaction_id, tag_id) VALUES (last_insert_rowid(), ${tagRef(tagId)});`,
           );
         }
-
-        globalTransactionId++;
       }
 
       // 3. Presupuestos del mes
       statements.push(
-        `INSERT OR IGNORE INTO budgets (id, user_id, month, scope, category_id, amount) VALUES ` +
-          `(${globalBudgetId++}, '${userId}', '${monthStr}', 'general', NULL, 1500000);`,
+        `INSERT OR IGNORE INTO budgets (user_id, month, scope, category_id, amount) VALUES ` +
+          `(${user}, '${monthStr}', 'general', NULL, 1500000);`,
       );
       statements.push(
-        `INSERT OR IGNORE INTO budgets (id, user_id, month, scope, category_id, amount) VALUES ` +
-          `(${globalBudgetId++}, '${userId}', '${monthStr}', 'category', 1, 400000);`,
+        `INSERT OR IGNORE INTO budgets (user_id, month, scope, category_id, amount) VALUES ` +
+          `(${user}, '${monthStr}', 'category', ${categoryRef(1)}, 400000);`,
       );
       statements.push(
-        `INSERT OR IGNORE INTO budgets (id, user_id, month, scope, category_id, amount) VALUES ` +
-          `(${globalBudgetId++}, '${userId}', '${monthStr}', 'category', 4, 150000);`,
+        `INSERT OR IGNORE INTO budgets (user_id, month, scope, category_id, amount) VALUES ` +
+          `(${user}, '${monthStr}', 'category', ${categoryRef(4)}, 150000);`,
       );
     }
   }

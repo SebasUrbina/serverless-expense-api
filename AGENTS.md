@@ -51,6 +51,16 @@ CI (`.github/workflows/deploy.yml`) runs lint, typecheck and tests before deploy
 
 **State (Web):** TanStack Query for server state (persisted to `localStorage`, cleared on sign-out); Zustand for modal/UI state.
 
+## Changelog
+
+Use the local [maintain-changelog skill](.agents/skills/maintain-changelog/SKILL.md) when implementing user-facing changes, changing the API contract, or preparing a release.
+
+- Update the root `CHANGELOG.md` in the same PR as each notable change, under `## [Unreleased]`.
+- Describe the observable effect in plain language. Group entries under `Added`, `Changed`, `Fixed`, `Deprecated`, `Removed`, or `Security`, omitting empty categories. Use `Web:` or `API:` prefixes when helpful.
+- Internal refactors, formatting, tests, and contributor-only documentation do not require an entry unless they have a meaningful user or API-consumer impact.
+- Breaking changes must explain the required migration action.
+- When preparing an authorized release, move the included entries into a versioned section dated `YYYY-MM-DD` and retain `Unreleased` for future work. Do not mark unreleased work as shipped.
+
 ## Cloudflare Workers
 
 STOP. Your knowledge of Cloudflare Workers APIs and limits may be outdated. Always retrieve current documentation before any Workers, KV, R2, D1, Durable Objects, Queues, Vectorize, AI, or Agents SDK task.
