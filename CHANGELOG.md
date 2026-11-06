@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Web: a shared expense is divided with "Partes iguales", "Todo para …" (with two members, when you paid for the other person), "Montos" (whole pesos per member, with how much is left to assign) or "%". The parts always add up to the exact amount: $20.000 between three is $6.667, $6.667 and $6.666. Editing a movement keeps how it was divided.
+- API: splits of `POST` and `PUT /api/transactions` accept `amount` in whole pesos (adding up to the movement amount; for installments, to the full purchase) as well as `percentage`; every part must use the same kind. Stored parts add up exactly to each movement and installment. Editing only the amount spreads it with the same proportions, and a movement that stops being shared loses its parts and its group.
 - Web/API: your monthly totals, budget, categories, analytics and largest expense count only your share of shared expenses, including the share of expenses another member paid. If Seba pays $42.000 split in three, Seba, Vale and Tomás each see $14.000. A share paid by someone else goes to your category with the same name as the payer's, or to a new "Compartidos" category that every group member gets (migration `0007_shared_category`, also needed for the faster lookup of your groups). Filtering transactions by category includes those shares too. Movements left by the removed settle endpoint ("💸 Saldo…") no longer count as expenses or income.
 - Web: "Grupos" replaces "Recurrentes" in the navigation. Recurring rules are a tab next to "Movimientos" at the top of the transactions page, and "Movimientos" stays highlighted on both. The shared expenses card on the home links to each group's page instead of the filtered transactions list.
 - Web/API: group balances accumulate across months instead of starting over every month, and count only what happened up to today (future installments wait for their date). `GET /api/groups/balances` returns that accumulated `net`, `total_paid` and `total_share`, the month's `month_paid`, `month_share`, `transaction_count` and `settlement_count`, and the `pairs` that settle it, identified by `user_id`.
@@ -30,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- API: editing a shared movement now checks that the parts add up and that everyone is a member of the group, and saves the movement, its tags and its parts together.
 - Web: while a deleted movement can still be undone (or waits to sync), the home totals, category breakdown and budget no longer count it.
 - Web: the budget dialog shows the amount with thousands separators.
 

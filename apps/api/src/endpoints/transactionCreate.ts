@@ -1,6 +1,7 @@
 import { Bool, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext, Transaction } from '../types';
+import { type SplitInput, splitRows, splitWeights } from '../utils/splits';
 
 function addMonths(baseDate: string, count: number): string {
   const [yearStr, monthStr, dayStr] = baseDate.split('-');
@@ -29,8 +30,6 @@ function splitIntoInstallments(amount: number, count: number): number[] {
   amounts[0] = amounts[0]! + (amount - base * count);
   return amounts;
 }
-
-const SPLIT_TOTAL_TOLERANCE = 0.5;
 
 async function findByClientId(
   db: D1Database,
@@ -165,18 +164,15 @@ export class TransactionCreate extends OpenAPIRoute {
       }
     }
 
+    let weights: number[] = [];
     if (splits.length > 0) {
-      const total = splits.reduce((sum, s) => sum + s.percentage, 0);
-      if (
-        splits.some((s) => s.percentage < 0) ||
-        Math.abs(total - 100) > SPLIT_TOTAL_TOLERANCE
-      ) {
-        return c.json(
-          { success: false, error: 'Split percentages must add up to 100' },
-          400,
-        );
+      const resolved = splitWeights(t.amount, splits as SplitInput[]);
+      if ('error' in resolved) {
+        return c.json({ success: false, error: resolved.error }, 400);
       }
+      weights = resolved.weights;
     }
+    const splitUserIds = splits.map((s) => s.user_id);
 
     // D1 runs a batch as a single serialized transaction, so MAX(id) is the row inserted just before.
     const lastTransactionId = `(SELECT MAX(id) FROM transactions)`;
@@ -221,18 +217,14 @@ export class TransactionCreate extends OpenAPIRoute {
         );
       }
 
-      for (const split of splits) {
+      for (const split of splitRows(amount, splitUserIds, weights)) {
         statements.push(
           db
             .prepare(
               `INSERT INTO transaction_splits (transaction_id, user_id, amount, percentage)
                VALUES (${lastTransactionId}, ?, ?, ?)`,
             )
-            .bind(
-              split.user_id,
-              Math.round((amount * split.percentage) / 100),
-              split.percentage,
-            ),
+            .bind(split.user_id, split.amount, split.percentage),
         );
       }
     });
