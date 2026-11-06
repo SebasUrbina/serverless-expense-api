@@ -9,6 +9,7 @@ type Props = {
   onConfirm: () => void;
   title: string;
   message: string;
+  confirmLabel?: string;
 };
 
 export function ConfirmDeleteModal({
@@ -17,6 +18,7 @@ export function ConfirmDeleteModal({
   onConfirm,
   title,
   message,
+  confirmLabel = 'Eliminar',
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -66,7 +68,7 @@ export function ConfirmDeleteModal({
             }}
             className="focus-ring min-h-11 flex-1 rounded-xl bg-red-600 px-4 font-semibold text-white transition-colors hover:bg-red-700"
           >
-            Eliminar
+            {confirmLabel}
           </button>
         </div>
       </div>

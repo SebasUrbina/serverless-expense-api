@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { nextFromLocation } from '@/lib/loginRedirect';
 
 const benefits = [
   {
@@ -64,7 +65,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/');
+      router.push(nextFromLocation());
       router.refresh();
     }
   };
@@ -107,7 +108,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}${nextFromLocation()}`,
       },
     });
 
