@@ -193,3 +193,62 @@ test('only whoever recorded a payment can undo it', async () => {
     0,
   );
 });
+
+test('leaving needs a settled balance and hands the group to the next member', async () => {
+  const db = database();
+  sharedExpense(db, 'vale', 30000, '2026-10-02');
+  const api = client(db);
+
+  const blocked = await api('DELETE', '/groups/1/members/me');
+  assert.equal(blocked.status, 409);
+  assert.equal(blocked.body.net, -10000);
+
+  await api('POST', '/groups/1/settlements', {
+    body: { from_user_id: ME, to_user_id: 'vale', amount: 10000 },
+  });
+  const left = await api('DELETE', '/groups/1/members/me');
+  assert.equal(left.status, 200);
+  assert.equal(left.body.group_deleted, false);
+  const group = db
+    .prepare('SELECT created_by FROM shared_groups WHERE id = 1')
+    .get() as any;
+  assert.equal(group.created_by, 'vale');
+  assert.equal(
+    (
+      db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM shared_group_members WHERE user_id = '${ME}'`,
+        )
+        .get() as any
+    ).n,
+    0,
+  );
+});
+
+test('a group is deleted only when everyone is settled, leaving personal movements', async () => {
+  const db = database();
+  sharedExpense(db, ME, 30000, '2026-10-02');
+  const api = client(db);
+
+  assert.equal((await api('DELETE', '/groups/1')).status, 409);
+
+  for (const member of ['vale', 'tomas']) {
+    db.exec(`
+      INSERT INTO group_settlements(group_id,from_user_id,to_user_id,amount,date,created_by)
+      VALUES(1,'${member}','${ME}',10000,'2026-10-03','${member}');
+    `);
+  }
+  assert.equal((await api('DELETE', '/groups/1')).status, 200);
+  assert.deepEqual(
+    { ...db.prepare('SELECT is_shared, group_id FROM transactions').get() },
+    { is_shared: 0, group_id: null },
+  );
+  assert.equal(
+    (db.prepare('SELECT COUNT(*) AS n FROM transaction_splits').get() as any).n,
+    0,
+  );
+  assert.equal(
+    (db.prepare('SELECT COUNT(*) AS n FROM group_settlements').get() as any).n,
+    0,
+  );
+});

@@ -8,13 +8,13 @@ const TABS = [
   { href: '/recurring', label: 'Recurrentes' },
 ];
 
-/** Switches between the two pages under "Movimientos" in the navigation. */
+/** Switches between the two pages under "Movimientos"; the desktop sidebar lists both instead. */
 export function MovementsTabs() {
   const pathname = usePathname();
   return (
     <nav
       aria-label="Secciones de movimientos"
-      className="bg-inset flex h-11 gap-0.5 rounded-xl p-1 sm:max-w-xs"
+      className="bg-inset flex h-11 gap-0.5 rounded-xl p-1 sm:max-w-xs lg:hidden"
     >
       {TABS.map((tab) => {
         const active = pathname.startsWith(tab.href);

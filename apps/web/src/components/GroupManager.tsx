@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isAxiosError } from 'axios';
 import {
   useGroups,
   useCreateGroup,
@@ -149,6 +150,15 @@ export function GroupManager() {
         </SettingsListEmpty>
       )}
 
+      {deleteMutation.isError && (
+        <p role="alert" className="text-expense text-sm">
+          {isAxiosError(deleteMutation.error) &&
+          deleteMutation.error.response?.status === 409
+            ? 'No se puede eliminar todavía: alguien del grupo tiene deudas pendientes. Registren los pagos y vuelve a intentarlo.'
+            : 'No pudimos eliminar el grupo. Intenta nuevamente.'}
+        </p>
+      )}
+
       <GroupAddForm />
 
       <ConfirmDeleteModal
@@ -158,7 +168,7 @@ export function GroupManager() {
           if (groupToDelete !== null) deleteMutation.mutate(groupToDelete);
         }}
         title="Eliminar grupo"
-        message="Todos los miembros saldrán del grupo. Los gastos compartidos que ya existen mantienen su división."
+        message="Solo se puede con todos al día. Todos los miembros salen del grupo y sus gastos quedan como gastos personales de quien los pagó."
       />
     </div>
   );

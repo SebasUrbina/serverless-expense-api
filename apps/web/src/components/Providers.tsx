@@ -15,6 +15,7 @@ import { applyTheme, useTheme } from '@/store/useTheme';
 import { supabase } from '@/lib/supabase';
 import { registerOfflineMutations } from '@/lib/offlineMutations';
 import api from '@/lib/api';
+import { loginHref, nextFromLocation } from '@/lib/loginRedirect';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const QUERY_CACHE_KEY = 'SEVA_QUERY_CACHE';
@@ -68,9 +69,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !session && pathname !== '/login') {
-      router.push('/login');
+      router.push(loginHref(pathname + window.location.search));
     } else if (!loading && session && pathname === '/login') {
-      router.push('/');
+      router.push(nextFromLocation());
     }
   }, [session, loading, pathname, router]);
 

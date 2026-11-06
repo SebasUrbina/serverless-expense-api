@@ -338,7 +338,7 @@ function GroupDetail({
           <div className="mb-3">
             <CardHeader title="Miembros" />
           </div>
-          <GroupMembersPanel group={group} userId={userId} />
+          <GroupMembersPanel group={group} userId={userId} balance={balance} />
         </Card>
       </div>
 

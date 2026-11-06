@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -23,6 +24,8 @@ import { useTransactionModal } from '@/store/useTransactionModal';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { CardNotice } from '@/components/ui/Card';
 import { MemberAvatar } from './MemberAvatar';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { useLeaveGroup } from '@/hooks/usePreferences';
 import type {
   GroupBalance,
   GroupSettlement,
@@ -125,6 +128,7 @@ export function GroupLedger({
   );
   const settlementsQuery = useGroupSettlements(group.id, month);
   const deleteSettlement = useDeleteSettlement();
+  const [show, setShow] = useState<'all' | 'expenses' | 'payments'>('all');
 
   const hiddenIds = usePendingDeleteIds();
   const days = useMemo(() => {
@@ -150,13 +154,17 @@ export function GroupLedger({
         date: payment.date,
         payment,
       })),
-    ];
+    ].filter((item) => {
+      if (show === 'all') return true;
+      const isPayment = item.kind === 'payment' || isSettlement(item.tx);
+      return show === 'payments' ? isPayment : !isPayment;
+    });
     const byDay = new Map<string, LedgerItem[]>();
     for (const item of items) {
       byDay.set(item.date, [...(byDay.get(item.date) ?? []), item]);
     }
     return [...byDay.entries()].sort(([a], [b]) => b.localeCompare(a));
-  }, [data?.pages, hiddenIds, hasNextPage, settlementsQuery.data]);
+  }, [data?.pages, hiddenIds, hasNextPage, settlementsQuery.data, show]);
 
   const memberById = new Map(group.members.map((m) => [m.user_id, m]));
   const nameOf = (id: string) => memberById.get(id)?.nickname ?? 'Otro miembro';
@@ -177,12 +185,52 @@ export function GroupLedger({
         }}
       />
     );
+  const filters = (
+    <div
+      role="radiogroup"
+      aria-label="Mostrar"
+      className="mb-1 flex flex-wrap gap-1.5"
+    >
+      {(
+        [
+          ['all', 'Todo'],
+          ['expenses', 'Gastos'],
+          ['payments', 'Pagos'],
+        ] as const
+      ).map(([value, label]) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={show === value}
+          onClick={() => setShow(value)}
+          className={`focus-ring h-8 rounded-xl border px-3 text-xs font-bold transition-colors ${
+            show === value
+              ? 'bg-accent-soft text-accent border-transparent'
+              : 'border-border text-secondary hover:text-primary'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+
   if (days.length === 0)
-    return (
+    return show === 'all' ? (
       <CardNotice
         title="Sin movimientos este mes"
         description="Cuando alguien del grupo registre un gasto o un pago, aparecerá aquí con lo que significa para ti."
       />
+    ) : (
+      <div>
+        {filters}
+        <p className="text-secondary py-6 text-center text-sm">
+          {show === 'payments'
+            ? 'No hubo pagos entre ustedes este mes.'
+            : 'No hubo gastos compartidos este mes.'}
+        </p>
+      </div>
     );
 
   const paymentRow = (payment: GroupSettlement) => {
@@ -272,6 +320,7 @@ export function GroupLedger({
 
   return (
     <div>
+      {filters}
       {days.map(([date, items]) => (
         <section key={date} aria-label={dayLabel(date)}>
           <h3 className="text-muted pt-4 pb-1 text-xs font-semibold capitalize first:pt-0">
@@ -303,6 +352,34 @@ export function GroupLedger({
         </button>
       )}
     </div>
+  );
+}
+
+/** Shares a reminder of a debt, or copies it where sharing isn't available. */
+function RemindButton({ nickname, text }: { nickname: string; text: string }) {
+  const [copied, setCopied] = useState(false);
+  const remind = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch {
+        // Closing the share sheet rejects; nothing to report.
+      }
+      return;
+    }
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      type="button"
+      onClick={remind}
+      aria-label={`Recordarle a ${nickname}`}
+      className="text-accent hover:bg-accent-soft focus-ring -my-1 shrink-0 rounded-lg px-2 py-1 text-xs font-semibold transition-colors"
+    >
+      {copied ? 'Copiado' : 'Recordar'}
+    </button>
   );
 }
 
@@ -394,6 +471,12 @@ export function GroupBalancesPanel({
                   <span className="text-primary ml-auto font-semibold tabular-nums">
                     {money(pair.amount)}
                   </span>
+                  {pair.to_user_id === userId && (
+                    <RemindButton
+                      nickname={pair.from_nickname}
+                      text={`Hola ${pair.from_nickname}, según Seva me debes ${money(pair.amount)} de "${balance.group_name}". ¿Me lo transfieres cuando puedas?`}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -410,10 +493,18 @@ export function GroupBalancesPanel({
 export function GroupMembersPanel({
   group,
   userId,
+  balance,
 }: {
   group: SharedGroup;
   userId?: string;
+  balance?: GroupBalance;
 }) {
+  const router = useRouter();
+  const leaveMutation = useLeaveGroup();
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const myNet = Math.round(
+    balance?.members.find((m) => m.user_id === userId)?.net ?? 0,
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -500,12 +591,50 @@ export function GroupMembersPanel({
         </div>
       )}
 
-      <Link
-        href="/settings?section=grupos"
-        className="text-secondary hover:text-primary focus-ring mt-3 inline-flex min-h-10 items-center rounded-lg text-[13px] font-medium transition-colors"
-      >
-        Renombrar o eliminar en Ajustes →
-      </Link>
+      <div className="border-border mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+        <Link
+          href="/settings?section=grupos"
+          className="text-secondary hover:text-primary focus-ring inline-flex min-h-10 items-center rounded-lg text-[13px] font-medium transition-colors"
+        >
+          Renombrar o eliminar en Ajustes →
+        </Link>
+        <button
+          type="button"
+          onClick={() => setConfirmLeave(true)}
+          disabled={myNet !== 0 || leaveMutation.isPending}
+          className="text-expense focus-ring min-h-10 rounded-lg px-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Salir del grupo
+        </button>
+      </div>
+      {myNet !== 0 && (
+        <p className="text-muted text-xs">
+          Para salir, primero quedar al día:{' '}
+          {myNet > 0 ? `te deben ${money(myNet)}` : `debes ${money(myNet)}`}.
+        </p>
+      )}
+      {leaveMutation.isError && (
+        <p role="alert" className="text-expense mt-1 text-xs">
+          No pudimos sacarte del grupo. Intenta nuevamente.
+        </p>
+      )}
+
+      <ConfirmDeleteModal
+        isOpen={confirmLeave}
+        onClose={() => setConfirmLeave(false)}
+        onConfirm={() =>
+          leaveMutation.mutate(group.id, {
+            onSuccess: () => router.push('/groups'),
+          })
+        }
+        title={`Salir de ${group.name}`}
+        message={
+          group.members.length === 1
+            ? 'Eres el único miembro: el grupo se elimina y sus gastos quedan como tuyos.'
+            : 'Dejarás de ver sus gastos y saldos. Tus gastos anteriores siguen en el grupo para los demás.'
+        }
+        confirmLabel="Salir"
+      />
     </div>
   );
 }
