@@ -1,68 +1,53 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  equalSplit,
-  initialSplitState,
+  equalPercentages,
+  initialPercentages,
   splitAmounts,
   splitPayload,
 } from './splitPlan';
 
-const me = 'seba';
-const three = [{ user_id: me }, { user_id: 'vale' }, { user_id: 'tomas' }];
-const two = [{ user_id: me }, { user_id: 'vale' }];
+const three = [{ user_id: 'seba' }, { user_id: 'vale' }, { user_id: 'tomas' }];
+const two = [{ user_id: 'seba' }, { user_id: 'vale' }];
 
-test('equal parts of $20.000 between three add up to the total', () => {
-  assert.deepEqual(splitPayload(equalSplit(three), three, 20000, me), {
+test('equal parts show as 34/33/33 % but split the pesos evenly', () => {
+  const equal = equalPercentages(three);
+  assert.deepEqual(equal, { seba: 34, vale: 33, tomas: 33 });
+  assert.deepEqual(splitAmounts(equal, three, 20000), {
+    seba: 6667,
+    vale: 6667,
+    tomas: 6666,
+  });
+  const payload = splitPayload(equal, three);
+  assert.ok('splits' in payload);
+  assert.ok(payload.splits.every((s) => s.percentage === 100 / 3));
+});
+
+test('other percentages are sent as chosen and add up exactly', () => {
+  const custom = { seba: 70, vale: 30 };
+  assert.deepEqual(splitAmounts(custom, two, 33333), {
+    seba: 23333,
+    vale: 10000,
+  });
+  assert.deepEqual(splitPayload(custom, two), {
     splits: [
-      { user_id: me, amount: 6667 },
-      { user_id: 'vale', amount: 6667 },
-      { user_id: 'tomas', amount: 6666 },
+      { user_id: 'seba', percentage: 70 },
+      { user_id: 'vale', percentage: 30 },
     ],
   });
 });
 
-test('"Todo para…" gives the whole amount to the other member', () => {
-  const state = { mode: 'other' as const, percentages: {}, amounts: {} };
-  assert.deepEqual(splitAmounts(state, two, 15000, me), {
-    [me]: 0,
-    vale: 15000,
-  });
-});
-
-test('amounts must add up to the movement amount', () => {
-  const state = {
-    mode: 'amount' as const,
-    percentages: {},
-    amounts: { [me]: 12000, vale: 7000 },
-  };
-  const result = splitPayload(state, two, 20000, me);
-  assert.ok('error' in result && result.error.includes('faltan $1.000'));
-});
-
 test('percentages must add up to 100', () => {
-  const state = {
-    mode: 'percent' as const,
-    percentages: { [me]: 60, vale: 30 },
-    amounts: {},
-  };
-  assert.ok('error' in splitPayload(state, two, 20000, me));
+  assert.ok('error' in splitPayload({ seba: 60, vale: 30 }, two));
 });
 
-test('editing recovers equal, "Todo para…" and custom splits', () => {
-  const tx = (amounts: number[]) => ({
-    user_id: me,
-    splits: amounts.map((amount, i) => ({
-      user_id: three[i]!.user_id,
-      amount,
-      percentage: 0,
-    })),
-  });
-  assert.equal(
-    initialSplitState(tx([6667, 6667, 6666]), three, me).mode,
-    'equal',
-  );
-  assert.equal(initialSplitState(tx([0, 15000]), two, me).mode, 'other');
-  const custom = initialSplitState(tx([12000, 8000]), two, me);
-  assert.equal(custom.mode, 'amount');
-  assert.deepEqual(custom.amounts, { [me]: 12000, vale: 8000 });
+test('editing keeps the stored percentages', () => {
+  const tx = {
+    splits: [
+      { user_id: 'seba', percentage: 60, amount: 12000 },
+      { user_id: 'vale', percentage: 40, amount: 8000 },
+    ],
+  };
+  assert.deepEqual(initialPercentages(tx, two), { seba: 60, vale: 40 });
+  assert.deepEqual(initialPercentages(null, two), { seba: 50, vale: 50 });
 });
