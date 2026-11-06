@@ -41,8 +41,16 @@ export const Transaction = z.object({
     .array(
       z.object({
         user_id: Str(),
-        percentage: Num(),
-        amount: Num({ required: false }),
+        percentage: Num({
+          required: false,
+          description:
+            'Share in percent; all parts add up to 100. Send this or `amount` for every part',
+        }),
+        amount: Num({
+          required: false,
+          description:
+            'Share in whole pesos; all parts add up to the movement amount (for installments, to the full purchase)',
+        }),
         nickname: Str({ required: false }),
       }),
     )
@@ -153,11 +161,9 @@ export const GroupBalanceGroup = z.object({
   transaction_count: Num({ description: 'Shared expenses in `month`' }),
   settlement_count: Num({ description: 'Payments between members in `month`' }),
   members: z.array(GroupBalanceMember),
-  pairs: z
-    .array(GroupSettlementPair)
-    .openapi({
-      description: 'Fewest transfers that settle the accumulated balance',
-    }),
+  pairs: z.array(GroupSettlementPair).openapi({
+    description: 'Fewest transfers that settle the accumulated balance',
+  }),
 });
 
 export const GroupBalancesResponse = z.object({
