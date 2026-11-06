@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Web: in the transaction dialog, "Dividir gasto" is a switch shown directly below the installments, instead of a collapsible row. With a single group it is picked automatically; with several, a group selector appears.
 - API/Web: a group can be deleted only when every member is settled up (409 otherwise, with a message in settings). Its movements become personal movements of whoever paid them, instead of staying shared without a group.
 - Web: a shared expense is divided with "Partes iguales", "Todo para …" (with two members, when you paid for the other person), "Montos" (whole pesos per member, with how much is left to assign) or "%". The parts always add up to the exact amount: $20.000 between three is $6.667, $6.667 and $6.666. Editing a movement keeps how it was divided.
 - API: splits of `POST` and `PUT /api/transactions` accept `amount` in whole pesos (adding up to the movement amount; for installments, to the full purchase) as well as `percentage`; every part must use the same kind. Stored parts add up exactly to each movement and installment. Editing only the amount spreads it with the same proportions, and a movement that stops being shared loses its parts and its group.
