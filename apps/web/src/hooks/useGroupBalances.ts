@@ -2,9 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { GroupBalancesResponse, GroupSettlement } from '@/types/api';
 
+/** Other members change group data, so it is fetched again whenever a screen opens or regains focus. */
+export const GROUP_STALE_TIME = 0;
+
 export function useGroupBalances(month: string) {
   return useQuery<GroupBalancesResponse>({
     queryKey: ['group-balances', month],
+    staleTime: GROUP_STALE_TIME,
     queryFn: async () => {
       const res = await api.get(`/groups/balances?month=${month}`);
       return res.data;
@@ -15,6 +19,7 @@ export function useGroupBalances(month: string) {
 export function useGroupSettlements(groupId: number, month: string) {
   return useQuery<{ settlements: GroupSettlement[] }>({
     queryKey: ['group-settlements', groupId, month],
+    staleTime: GROUP_STALE_TIME,
     queryFn: async () => {
       const res = await api.get(
         `/groups/${groupId}/settlements?month=${month}`,

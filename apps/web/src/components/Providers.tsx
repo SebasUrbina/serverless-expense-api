@@ -98,8 +98,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const client = new QueryClient({
       defaultOptions: {
         queries: {
-          // Data only changes through this app's own mutations (which invalidate) and the daily cron.
-          staleTime: 5 * 60 * 1000,
+          // Own changes invalidate right away; other group members' shared expenses
+          // also move personal totals, so those refresh within a minute.
+          staleTime: 60 * 1000,
           gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
         },
         mutations: {

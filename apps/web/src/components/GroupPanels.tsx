@@ -16,6 +16,7 @@ import {
 } from '@/lib/groupLedger';
 import { formatCurrency } from '@/lib/utils';
 import {
+  GROUP_STALE_TIME,
   useDeleteSettlement,
   useGroupSettlements,
 } from '@/hooks/useGroupBalances';
@@ -112,8 +113,8 @@ export function GroupLedger({
     isFetchingNextPage,
     fetchNextPage,
     refetch,
-  } = useInfiniteQuery(
-    transactionListOptions(
+  } = useInfiniteQuery({
+    ...transactionListOptions(
       {
         search: '',
         month,
@@ -125,7 +126,10 @@ export function GroupLedger({
       },
       async (url, signal) => (await api.get(url, { signal })).data,
     ),
-  );
+    // Other members add and edit these movements; the list is one month.
+    staleTime: GROUP_STALE_TIME,
+    refetchOnWindowFocus: true,
+  });
   const settlementsQuery = useGroupSettlements(group.id, month);
   const deleteSettlement = useDeleteSettlement();
   const [show, setShow] = useState<'all' | 'expenses' | 'payments'>('all');
