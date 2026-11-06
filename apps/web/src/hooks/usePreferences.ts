@@ -10,6 +10,7 @@ import type {
   GroupsResponse,
   ApiKeyResponse,
 } from '@/types/api';
+import { GROUP_STALE_TIME } from './useGroupBalances';
 
 export function useCategories() {
   return useQuery<CategoriesResponse>({
@@ -184,7 +185,7 @@ export function useUserSetup() {
 export function useGroups() {
   return useQuery<GroupsResponse>({
     queryKey: ['groups'],
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: GROUP_STALE_TIME,
     queryFn: async () => {
       const res = await api.get('/groups');
       return res.data;
