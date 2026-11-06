@@ -48,13 +48,12 @@ import { SubmitButton } from './ui/SubmitButton';
 import { DeleteButton } from './ui/DeleteButton';
 import type { Transaction } from '@/types/api';
 import { getInstallmentDetails } from '@/lib/installments';
-import { useAuth } from '@/lib/AuthProvider';
 import {
-  equalSplit,
-  initialSplitState,
+  equalPercentages,
+  initialPercentages,
   splitPayload,
   type SplitPayload,
-  type SplitState,
+  type SplitPercentages,
 } from '@/lib/splitPlan';
 import { SplitEditor } from './SplitEditor';
 
@@ -104,8 +103,6 @@ export function CreateTransactionModal({
 
   const { data: groupsData } = useGroups();
   const groups = groupsData?.groups || [];
-  const { session } = useAuth();
-  const userId = session?.user?.id;
 
   const amountRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
@@ -150,13 +147,12 @@ export function CreateTransactionModal({
   const [groupId, setGroupId] = useState<number | ''>(
     source?.group_id || presetGroup?.id || '',
   );
-  const [split, setSplit] = useState<SplitState>(() =>
+  const [split, setSplit] = useState<SplitPercentages>(() =>
     presetGroup
-      ? equalSplit(presetGroup.members)
-      : initialSplitState(
+      ? equalPercentages(presetGroup.members)
+      : initialPercentages(
           source,
           groups.find((g) => g.id === source?.group_id)?.members ?? [],
-          userId,
         ),
   );
 
@@ -184,7 +180,7 @@ export function CreateTransactionModal({
     setTagIds([]);
     setIsShared(false);
     setGroupId('');
-    setSplit(equalSplit([]));
+    setSplit({});
     setIsInstallments(false);
     setInstallments(1);
     setError(null);
@@ -282,7 +278,7 @@ export function CreateTransactionModal({
       return fail('Elige el grupo del gasto compartido.', sharedRef);
     const shared =
       isShared && selectedGroup
-        ? splitPayload(split, selectedGroup.members, parsedAmount, userId)
+        ? splitPayload(split, selectedGroup.members)
         : null;
     if (shared && 'error' in shared) return fail(shared.error, sharedRef);
 
@@ -544,7 +540,7 @@ export function CreateTransactionModal({
                   const only = groups.length === 1 ? groups[0] : undefined;
                   if (on && !selectedGroup && only) {
                     setGroupId(only.id);
-                    setSplit(equalSplit(only.members));
+                    setSplit(equalPercentages(only.members));
                   }
                 }}
               />
@@ -561,7 +557,7 @@ export function CreateTransactionModal({
                         (group) => group.id === nextGroupId,
                       );
                       setGroupId(nextGroupId);
-                      setSplit(equalSplit(nextGroup?.members ?? []));
+                      setSplit(equalPercentages(nextGroup?.members ?? []));
                       setError(null);
                     }}
                     placeholder="Elegir grupo"
@@ -575,8 +571,7 @@ export function CreateTransactionModal({
                   <SplitEditor
                     members={selectedGroup.members}
                     amount={parsedAmount}
-                    userId={userId}
-                    state={split}
+                    percentages={split}
                     onChange={setSplit}
                   />
                 )}
