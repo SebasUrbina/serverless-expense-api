@@ -58,7 +58,6 @@ export function Sidebar() {
                   key={child.href}
                   item={child}
                   active={isActivePath(pathname, child.href)}
-                  nested
                 />
               ))}
             </div>
@@ -96,19 +95,15 @@ export function Sidebar() {
 function SidebarLink({
   item,
   active,
-  nested = false,
 }: {
   item: (typeof mainNavigation)[number];
   active: boolean;
-  nested?: boolean;
 }) {
   return (
     <Link
       href={item.href}
       aria-current={active ? 'page' : undefined}
-      className={`focus-ring flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors ${
-        nested ? 'ml-4 py-2' : 'py-2.5'
-      } ${
+      className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
         active
           ? 'bg-accent-soft text-accent'
           : 'text-secondary hover:bg-inset hover:text-primary'
