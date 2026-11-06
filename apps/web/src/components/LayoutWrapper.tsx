@@ -4,7 +4,8 @@ import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { MobileNavigation } from './MobileNavigation';
 import { useEffect, useRef, useCallback } from 'react';
-import { useUserSetup } from '@/hooks/usePreferences';
+import { isSetupDone, useUserSetup } from '@/hooks/usePreferences';
+import { useAuth } from '@/lib/AuthProvider';
 import { CreateTransactionModal } from './CreateTransactionModal';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { CreateRecurringModal } from './CreateRecurringModal';
@@ -20,6 +21,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const isLoginPage = pathname === '/login';
 
   const { mutate: runSetup } = useUserSetup();
+  const userId = useAuth().session?.user?.id;
   const setupRan = useRef(false);
   const { isOpen, initialData, template, groupId, session, closeModal } =
     useTransactionModal();
@@ -35,11 +37,11 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   useEffect(() => {
-    if (!isLoginPage && !setupRan.current) {
-      setupRan.current = true;
-      runSetup();
-    }
-  }, [isLoginPage, runSetup]);
+    if (isLoginPage || !userId || setupRan.current) return;
+    setupRan.current = true;
+    // Setup is idempotent; once it succeeded for this user, reloads skip it.
+    if (!isSetupDone(userId)) runSetup(userId);
+  }, [isLoginPage, userId, runSetup]);
 
   if (isLoginPage) {
     return (

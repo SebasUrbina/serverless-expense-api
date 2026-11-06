@@ -165,14 +165,21 @@ export function useDeleteAccount() {
   });
 }
 
+const setupKey = (userId: string) => `seva:setup:${userId}`;
+
+/** Whether this browser already ran the first-time setup for the user. */
+export const isSetupDone = (userId: string) =>
+  localStorage.getItem(setupKey(userId)) === '1';
+
 export function useUserSetup() {
   const queryClient = useQueryClient();
-  return useMutation<UserSetupResponse>({
+  return useMutation<UserSetupResponse, Error, string>({
     mutationFn: async () => {
       const res = await api.post('/user/setup');
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, userId) => {
+      localStorage.setItem(setupKey(userId), '1');
       if (data?.setup) {
         queryClient.invalidateQueries({ queryKey: ['accounts'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
