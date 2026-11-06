@@ -1,6 +1,7 @@
 import { Bool, OpenAPIRoute, Str } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
+import { sharedCategoryInsert } from '../utils/myMovements';
 
 export class GroupJoin extends OpenAPIRoute {
   schema = {
@@ -83,11 +84,12 @@ export class GroupJoin extends OpenAPIRoute {
     }
 
     // Add as member
-    await c.env.DB.prepare(
-      `INSERT INTO shared_group_members (group_id, user_id, nickname) VALUES (?, ?, ?)`,
-    )
-      .bind(group.id, userId, displayName)
-      .run();
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        `INSERT INTO shared_group_members (group_id, user_id, nickname) VALUES (?, ?, ?)`,
+      ).bind(group.id, userId, displayName),
+      sharedCategoryInsert(c.env.DB, userId),
+    ]);
 
     return {
       success: true,

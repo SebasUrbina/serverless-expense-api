@@ -123,6 +123,9 @@ CREATE TABLE IF NOT EXISTS shared_group_members (
     FOREIGN KEY (group_id) REFERENCES shared_groups(id) ON DELETE CASCADE
 );
 
+CREATE INDEX IF NOT EXISTS idx_shared_group_members_user
+    ON shared_group_members (user_id, group_id);
+
 CREATE TABLE IF NOT EXISTS transaction_splits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     transaction_id INTEGER NOT NULL,

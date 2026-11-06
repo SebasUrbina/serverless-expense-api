@@ -295,7 +295,11 @@ export function CreateTransactionModal({
     scheduleDelete({
       id: initialData.id,
       title: initialData.title,
-      amount: initialData.amount,
+      // Home totals count only the user's share of a shared expense.
+      amount:
+        initialData.is_shared && initialData.type === 'expense'
+          ? (initialData.my_split_amount ?? initialData.amount)
+          : initialData.amount,
       type: initialData.type,
       date: initialData.date,
       category_id: initialData.category_id ?? null,

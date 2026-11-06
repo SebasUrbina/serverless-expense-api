@@ -1,6 +1,7 @@
 import { OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext } from '../types';
+import { myMovementsCte } from '../utils/myMovements';
 import {
   calculateAvailability,
   dateInTimezone,
@@ -29,7 +30,7 @@ export class TransactionAvailability extends OpenAPIRoute {
   schema = {
     tags: ['Transactions'],
     summary:
-      'Monthly budget availability and upcoming expenses (full amounts paid by the user)',
+      "Monthly budget availability and upcoming expenses (the user's share of shared expenses, including those other members paid)",
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: { query: AvailabilityQuery },
     responses: {
@@ -75,15 +76,17 @@ export class TransactionAvailability extends OpenAPIRoute {
     const userId = c.get('userId');
     const start = `${month}-01`;
     const end = monthEnd(month);
+    const mine = myMovementsCte(userId, start, end);
     // A batch supplies a consistent snapshot if the recurring scheduler runs concurrently.
     const [budgetResult, transactionResult, ruleResult] = await c.env.DB.batch([
       c.env.DB.prepare(
         "SELECT amount FROM budgets WHERE user_id = ? AND month = ? AND scope = 'general'",
       ).bind(userId, month),
       c.env.DB.prepare(
-        `SELECT id, title, amount, date, recurring_rule_id FROM transactions
-        WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ?`,
-      ).bind(userId, start, end),
+        `WITH ${mine.sql}
+        SELECT id, title, amount, date, recurring_rule_id FROM my_tx
+        WHERE type = 'expense'`,
+      ).bind(...mine.binds),
       c.env.DB.prepare(
         `SELECT id, title, amount, frequency, day_of_month, next_run, end_date FROM recurring_rules
         WHERE user_id = ? AND type = 'expense' AND is_active = 1 AND next_run <= ?
