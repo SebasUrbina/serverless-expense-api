@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { isAxiosError } from 'axios';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -25,7 +25,7 @@ import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { CardNotice } from '@/components/ui/Card';
 import { MemberAvatar } from './MemberAvatar';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
-import { useLeaveGroup } from '@/hooks/usePreferences';
+import { useDeleteGroup, useLeaveGroup } from '@/hooks/usePreferences';
 import type {
   GroupBalance,
   GroupSettlement,
@@ -502,6 +502,9 @@ export function GroupMembersPanel({
   const router = useRouter();
   const leaveMutation = useLeaveGroup();
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const deleteMutation = useDeleteGroup();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const isCreator = group.created_by === userId;
   const myNet = Math.round(
     balance?.members.find((m) => m.user_id === userId)?.net ?? 0,
   );
@@ -592,12 +595,18 @@ export function GroupMembersPanel({
       )}
 
       <div className="border-border mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-        <Link
-          href="/settings?section=grupos"
-          className="text-secondary hover:text-primary focus-ring inline-flex min-h-10 items-center rounded-lg text-[13px] font-medium transition-colors"
-        >
-          Renombrar o eliminar en Ajustes →
-        </Link>
+        {isCreator ? (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleteMutation.isPending}
+            className="text-expense focus-ring min-h-10 rounded-lg px-2 text-[13px] font-semibold disabled:opacity-50"
+          >
+            Eliminar grupo
+          </button>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           onClick={() => setConfirmLeave(true)}
@@ -611,6 +620,14 @@ export function GroupMembersPanel({
         <p className="text-muted text-xs">
           Para salir, primero quedar al día:{' '}
           {myNet > 0 ? `te deben ${money(myNet)}` : `debes ${money(myNet)}`}.
+        </p>
+      )}
+      {deleteMutation.isError && (
+        <p role="alert" className="text-expense mt-1 text-xs">
+          {isAxiosError(deleteMutation.error) &&
+          deleteMutation.error.response?.status === 409
+            ? 'No se puede eliminar todavía: alguien del grupo tiene deudas pendientes. Registren los pagos y vuelve a intentarlo.'
+            : 'No pudimos eliminar el grupo. Intenta nuevamente.'}
         </p>
       )}
       {leaveMutation.isError && (
@@ -634,6 +651,17 @@ export function GroupMembersPanel({
             : 'Dejarás de ver sus gastos y saldos. Tus gastos anteriores siguen en el grupo para los demás.'
         }
         confirmLabel="Salir"
+      />
+      <ConfirmDeleteModal
+        isOpen={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() =>
+          deleteMutation.mutate(group.id, {
+            onSuccess: () => router.push('/groups'),
+          })
+        }
+        title={`Eliminar ${group.name}`}
+        message="Solo se puede con todos al día. Todos los miembros salen del grupo y sus gastos quedan como gastos personales de quien los pagó."
       />
     </div>
   );

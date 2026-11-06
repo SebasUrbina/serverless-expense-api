@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Web: groups are managed only from "Grupos". Settings no longer has a groups section (old links open "Grupos"); the creator renames a group from its title and deletes it from its members.
 - Web: in the transaction dialog, "Dividir gasto" is a switch shown directly below the installments, instead of a collapsible row. With a single group it is picked automatically; with several, a group selector appears.
 - API/Web: a group can be deleted only when every member is settled up (409 otherwise, with a message in settings). Its movements become personal movements of whoever paid them, instead of staying shared without a group.
 - Web: the parts of a shared expense always add up to the exact amount: $20.000 between three is $6.667, $6.667 and $6.666, and the dialog shows each member's exact pesos next to their percentage.

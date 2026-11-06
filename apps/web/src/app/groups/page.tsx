@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, Plus } from 'lucide-react';
-import { useGroups } from '@/hooks/usePreferences';
+import { ChevronLeft, Pencil, Plus } from 'lucide-react';
+import { useGroups, useUpdateGroup } from '@/hooks/usePreferences';
 import { useGroupBalances } from '@/hooks/useGroupBalances';
 import { useAuth } from '@/lib/AuthProvider';
 import { formatCurrency } from '@/lib/utils';
@@ -15,9 +15,15 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { MonthSelector } from '@/components/MonthSelector';
-import { GroupAddForm } from '@/components/GroupManager';
+import { GroupAddForm } from '@/components/GroupAddForm';
 import { MemberStack } from '@/components/MemberAvatar';
-import { SegmentedControl } from '@/components/settings/ui';
+import {
+  IconButton,
+  PrimaryButton,
+  SegmentedControl,
+  fieldClass,
+  secondaryButtonClass,
+} from '@/components/settings/ui';
 import { SettlementModal } from '@/components/SettlementModal';
 import {
   GroupBalancesPanel,
@@ -264,12 +270,7 @@ function GroupDetail({
         <ChevronLeft size={18} aria-hidden="true" />
         Grupos
       </Link>
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-primary min-w-0 flex-1 truncate text-lg font-bold tracking-tight sm:text-xl">
-          {group.name}
-        </h2>
-        <MemberStack members={group.members} max={4} size="md" />
-      </div>
+      <GroupTitle group={group} canRename={group.created_by === userId} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[auto_auto_1fr] lg:items-start lg:gap-6">
         <div className="space-y-3 lg:col-start-2 lg:row-start-1">
@@ -406,5 +407,81 @@ function BalanceHero({
         </button>
       )}
     </Card>
+  );
+}
+
+/** Group name, editable in place by its creator. */
+function GroupTitle({
+  group,
+  canRename,
+}: {
+  group: SharedGroup;
+  canRename: boolean;
+}) {
+  const updateMutation = useUpdateGroup();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(group.name);
+
+  const save = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    updateMutation.mutate(
+      { id: group.id, name: name.trim() },
+      { onSuccess: () => setEditing(false) },
+    );
+  };
+
+  if (editing)
+    return (
+      <form onSubmit={save} className="mb-4 flex flex-col gap-2 sm:flex-row">
+        <input
+          autoFocus
+          aria-label="Nombre del grupo"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={fieldClass}
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              setName(group.name);
+            }}
+            className={secondaryButtonClass}
+          >
+            Cancelar
+          </button>
+          <PrimaryButton
+            type="submit"
+            loading={updateMutation.isPending}
+            disabled={!name.trim()}
+          >
+            Guardar
+          </PrimaryButton>
+        </div>
+      </form>
+    );
+
+  return (
+    <div className="mb-4 flex items-center gap-2">
+      <h2 className="text-primary min-w-0 truncate text-lg font-bold tracking-tight sm:text-xl">
+        {group.name}
+      </h2>
+      {canRename && (
+        <IconButton
+          label={`Renombrar ${group.name}`}
+          onClick={() => {
+            setName(group.name);
+            setEditing(true);
+          }}
+        >
+          <Pencil size={15} />
+        </IconButton>
+      )}
+      <span className="ml-auto">
+        <MemberStack members={group.members} max={4} size="md" />
+      </span>
+    </div>
   );
 }
