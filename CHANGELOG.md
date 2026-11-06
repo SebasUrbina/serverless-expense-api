@@ -7,36 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-06
+
 ### Added
 
+- Web: a "Grupos" section for shared expenses. The list shows what you are owed or owe in each group. Each group shows your balance with "Registrar pago", the month's shared movements and payments with what each one means for you ("Prestaste", "Te toca", "Pagaste", "Recibiste"), every member's balance with a bar and the transfers that even it out, and the members with the invite code. On mobile, the movements, balances and members are tabs under the balance; on desktop, the group list, the movements and the balance sit side by side. Members get an initial and a color that stay the same in every group.
+- Web: "Registrar pago" records that a debt in a group was paid, in full or in part. It is a payment between members, not an expense or income: it no longer adds a fake expense and income to your categories and budget, and it no longer asks for an account. Payments show up in the group's movements, and whoever recorded one can undo it.
+- Web: "Gasto compartido" in a group opens the transaction dialog already shared with that group and split equally.
+- Web: "Invitar con un enlace" opens the device's share sheet (or copies the link) with a `/groups?join=CODE` link that opens "Unirme" with the code filled in. Opening an invite link (or any page) while signed out returns to it after signing in, including with Google; with Google, the address must be allowed in Supabase's redirect URLs, otherwise it returns to the home page as before.
 - Web: "Salir del grupo" in the group's members, once your balance is settled. If the creator leaves, the member who joined next takes over; the last member leaving deletes the group.
 - Web: "Recordar" next to each debt someone owes you shares a reminder with the amount (or copies it).
 - Web: the group's movements can be filtered by "Todo", "Gastos" or "Pagos".
-- Web: opening an invite link (or any page) while signed out returns to it after signing in, including with Google. With Google, the address must be allowed in Supabase's redirect URLs; otherwise it returns to the home page as before.
-- API: `DELETE /api/groups/:id/members/me` leaves a group; it answers 409 with your `net` while you owe or are owed.
-- Web: a "Grupos" section for shared expenses. The list shows what you are owed or owe in each group. Each group shows your balance with "Registrar pago", the month's shared movements and payments with what each one means for you ("Prestaste", "Te toca", "Pagaste", "Recibiste"), every member's balance with a bar and the transfers that even it out, and the members with the invite code. On mobile, the movements, balances and members are tabs under the balance; on desktop, the group list, the movements and the balance sit side by side. Members get an initial and a color that stay the same in every group.
-- Web: "Registrar pago" records that a debt in a group was paid, in full or in part. It is a payment between members, not an expense or income: it no longer adds a fake expense and income to your categories and budget, and it no longer asks for an account. Payments show up in the group's movements, and whoever recorded one can undo it.
-- API: `GET`/`POST /api/groups/:group_id/settlements` and `DELETE /api/groups/:group_id/settlements/:id` list, record and undo payments between members. Only the payer or the receiver can record a payment and only whoever recorded it can undo it. Requires migration `0006_group_settlements`.
-- Web: "Gasto compartido" in a group opens the transaction dialog already shared with that group and split equally.
-- Web: "Invitar con un enlace" opens the device's share sheet (or copies the link) with a `/groups?join=CODE` link that opens "Unirme" with the code filled in.
-- API: `POST /api/transactions` accepts an optional `client_id`; repeating it returns the movement already created instead of a duplicate (including installment series). The web sends one per new movement, so a retried offline create is saved once. Requires migration `0005_transaction_client_id`.
 - Web: "Repetir hoy" in the edit dialog opens a new movement with the same details and today's date.
+- API: `GET`/`POST /api/groups/:group_id/settlements` and `DELETE /api/groups/:group_id/settlements/:id` list, record and undo payments between members. Only the payer or the receiver can record a payment and only whoever recorded it can undo it. Requires migration `0006_group_settlements`.
+- API: `DELETE /api/groups/:id/members/me` leaves a group; it answers 409 with your `net` while you owe or are owed.
+- API: `POST /api/transactions` accepts an optional `client_id`; repeating it returns the movement already created instead of a duplicate (including installment series). The web sends one per new movement, so a retried offline create is saved once. Requires migration `0005_transaction_client_id`.
 
 ### Changed
 
+- Web/API: your monthly totals, budget, categories, analytics and largest expense count only your share of shared expenses, including the share of expenses another member paid. If Seba pays $42.000 split in three, Seba, Vale and Tomás each see $14.000. A share paid by someone else goes to your category with the same name as the payer's, or to a new "Compartidos" category that every group member gets (migration `0007_shared_category`, also needed for the faster lookup of your groups). Filtering transactions by category includes those shares too. Movements left by the removed settle endpoint ("💸 Saldo…") no longer count as expenses or income.
+- Web/API: group balances accumulate across months instead of starting over every month, and count only what happened up to today (future installments wait for their date). `GET /api/groups/balances` returns that accumulated `net`, `total_paid` and `total_share`, the month's `month_paid`, `month_share`, `transaction_count` and `settlement_count`, and the `pairs` that settle it, identified by `user_id`.
+- Web/API: a group can be deleted only when every member is settled up (409 otherwise, explained in the group). Its movements become personal movements of whoever paid them, instead of staying shared without a group.
 - Web: groups are managed only from "Grupos". Settings no longer has a groups section (old links open "Grupos"); the creator renames a group from its title and deletes it from its members.
+- Web: "Grupos" replaces "Recurrentes" in the navigation. On mobile, recurring rules are a tab next to "Movimientos" at the top of the transactions page, and "Movimientos" stays highlighted on both; on desktop, "Recurrentes" is its own entry right below "Movimientos" in the sidebar. The shared expenses card on the home links to each group's page instead of the filtered transactions list.
 - Web: in the transaction dialog, "Dividir gasto" is a switch shown directly below the installments, instead of a collapsible row. With a single group it is picked automatically; with several, a group selector appears.
-- API/Web: a group can be deleted only when every member is settled up (409 otherwise, with a message in settings). Its movements become personal movements of whoever paid them, instead of staying shared without a group.
 - Web: the parts of a shared expense always add up to the exact amount: $20.000 between three is $6.667, $6.667 and $6.666, and the dialog shows each member's exact pesos next to their percentage.
 - API: splits of `POST` and `PUT /api/transactions` accept `amount` in whole pesos (adding up to the movement amount; for installments, to the full purchase) as well as `percentage`; every part must use the same kind. Stored parts add up exactly to each movement and installment. Editing only the amount spreads it with the same proportions, and a movement that stops being shared loses its parts and its group.
-- Web/API: your monthly totals, budget, categories, analytics and largest expense count only your share of shared expenses, including the share of expenses another member paid. If Seba pays $42.000 split in three, Seba, Vale and Tomás each see $14.000. A share paid by someone else goes to your category with the same name as the payer's, or to a new "Compartidos" category that every group member gets (migration `0007_shared_category`, also needed for the faster lookup of your groups). Filtering transactions by category includes those shares too. Movements left by the removed settle endpoint ("💸 Saldo…") no longer count as expenses or income.
-- Web: "Grupos" replaces "Recurrentes" in the navigation. On mobile, recurring rules are a tab next to "Movimientos" at the top of the transactions page, and "Movimientos" stays highlighted on both; on desktop, "Recurrentes" is its own entry right below "Movimientos" in the sidebar. The shared expenses card on the home links to each group's page instead of the filtered transactions list.
-- Web/API: group balances accumulate across months instead of starting over every month, and count only what happened up to today (future installments wait for their date). `GET /api/groups/balances` returns that accumulated `net`, `total_paid` and `total_share`, the month's `month_paid`, `month_share`, `transaction_count` and `settlement_count`, and the `pairs` that settle it, identified by `user_id`.
 - Web: movements can also be edited and deleted offline, not only created. Changes are shown in the lists right away and sent in order when the connection returns.
 
 ### Removed
 
-- API: `POST /api/groups/:group_id/settle` was removed. Record payments with `POST /api/groups/:group_id/settlements` instead. Settlements already made with it stay as they were and still count in the balance.
+- API: `POST /api/groups/:group_id/settle` was removed. Record payments with `POST /api/groups/:group_id/settlements` instead. Settlements already made with it stay as they were and still count in the balance. Deploy the web and the API together: earlier web versions call the removed endpoint.
 
 ### Fixed
 
