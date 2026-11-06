@@ -1,6 +1,6 @@
-import { Str, OpenAPIRoute } from 'chanfana';
+import { OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext } from '../types';
+import { MonthParam, type AppContext } from '../types';
 import { myMovementsCte } from '../utils/myMovements';
 import { monthEnd } from '../services/monthlyAvailability';
 import { todayLocal } from '../utils/date';
@@ -12,9 +12,8 @@ export class TransactionKpiSummary extends OpenAPIRoute {
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       query: z.object({
-        month: Str({
+        month: MonthParam.optional().openapi({
           description: 'Optional month filter in YYYY-MM format',
-          required: false,
         }),
       }),
     },
@@ -35,6 +34,7 @@ export class TransactionKpiSummary extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid month' },
     },
   };
 

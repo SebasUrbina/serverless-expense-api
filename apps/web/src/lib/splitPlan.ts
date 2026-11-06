@@ -68,6 +68,18 @@ export function splitAmounts(
   return Object.fromEntries(members.map((m, i) => [m.user_id, parts[i]!]));
 }
 
+/**
+ * Whether saving an edit as shared with `groupId` must send the parts. When it
+ * doesn't, the API keeps the stored ones (re-spread if the amount changed).
+ */
+export function editSendsSplits(
+  original: Pick<Transaction, 'is_shared' | 'group_id'>,
+  groupId: number,
+  splitEdited: boolean,
+): boolean {
+  return splitEdited || !original.is_shared || original.group_id !== groupId;
+}
+
 export type SplitPayload = { user_id: string; percentage: number };
 
 /** Parts to send to the API, or what is wrong with them. */

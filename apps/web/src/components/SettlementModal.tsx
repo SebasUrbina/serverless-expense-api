@@ -104,7 +104,7 @@ export function SettlementModal({
                       {describe(p)}
                     </span>
                     <span className="text-secondary shrink-0 text-sm tabular-nums">
-                      debe ${formatCurrency(p.amount)}
+                      {`${p.from_user_id === userId ? 'debes' : 'te debe'} $${formatCurrency(p.amount)}`}
                     </span>
                   </button>
                 );
@@ -129,11 +129,13 @@ export function SettlementModal({
           </span>
         </label>
         <p className="text-muted mt-2 text-xs">
-          {value > 0 && value < pair.amount
-            ? `Pago parcial: quedan $${formatCurrency(pair.amount - value)} pendientes.`
-            : value > pair.amount
-              ? `Es más que la deuda; la diferencia queda ${pair.from_user_id === userId ? 'a tu favor' : `a favor de ${pair.from_nickname}`}.`
-              : 'Queda saldada la deuda completa.'}
+          {value <= 0
+            ? 'Ingresa un monto.'
+            : value < pair.amount
+              ? `Pago parcial: quedan $${formatCurrency(pair.amount - value)} pendientes.`
+              : value > pair.amount
+                ? `Es más que la deuda; la diferencia queda ${pair.from_user_id === userId ? 'a tu favor' : `a favor de ${pair.from_nickname}`}.`
+                : 'Queda saldada la deuda completa.'}
         </p>
 
         {createMutation.isError && (

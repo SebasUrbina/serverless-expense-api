@@ -126,6 +126,11 @@ export const Budget = z.object({
   updated_at: DateTime({ required: false }),
 });
 
+/** A YYYY-MM month query parameter; other values are rejected with 400. */
+export const MonthParam = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, {
+  message: 'Use a YYYY-MM month',
+});
+
 export const ErrorResponse = z.object({
   success: z.literal(false).openapi({ example: false }),
   error: Str(),

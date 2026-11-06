@@ -4,8 +4,10 @@ import { useRef, useState, type RefObject } from 'react';
 import {
   onlineManager,
   useMutation,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import api from '@/lib/api';
 import {
   CREATE_TRANSACTION_KEY,
   UPDATE_TRANSACTION_KEY,
@@ -49,6 +51,7 @@ import { DeleteButton } from './ui/DeleteButton';
 import type { Transaction } from '@/types/api';
 import { getInstallmentDetails } from '@/lib/installments';
 import {
+  editSendsSplits,
   equalPercentages,
   initialPercentages,
   splitPayload,
@@ -147,13 +150,25 @@ export function CreateTransactionModal({
   const [groupId, setGroupId] = useState<number | ''>(
     source?.group_id || presetGroup?.id || '',
   );
-  const [split, setSplit] = useState<SplitPercentages>(() =>
-    presetGroup
-      ? equalPercentages(presetGroup.members)
-      : initialPercentages(
-          source,
-          groups.find((g) => g.id === source?.group_id)?.members ?? [],
-        ),
+
+  const editingShared = !!initialData?.is_shared && !!initialData.group_id;
+  // The API no longer lets a former member edit or delete the group's movements.
+  const leftGroup =
+    editingShared &&
+    !!groupsData &&
+    !groups.some((g) => g.id === initialData.group_id);
+  // Lists don't carry the parts; the movement itself does.
+  const detailQuery = useQuery<{ transaction: Transaction }>({
+    queryKey: ['transactions', 'detail', initialData?.id],
+    enabled: editingShared && !leftGroup,
+    queryFn: async () =>
+      (await api.get(`/transactions/${initialData!.id}`)).data,
+  });
+  const storedSplits = detailQuery.data?.transaction.splits ?? source?.splits;
+
+  // Until the user changes it, the split shown is the stored one or equal parts.
+  const [editedSplit, setSplit] = useState<SplitPercentages | null>(() =>
+    presetGroup ? equalPercentages(presetGroup.members) : null,
   );
 
   // Installment (Cuotas) State
@@ -161,6 +176,13 @@ export function CreateTransactionModal({
   const [installments, setInstallments] = useState(1);
 
   const selectedGroup = groups.find((g) => g.id === groupId);
+  const split =
+    editedSplit ??
+    initialPercentages(
+      selectedGroup?.id === source?.group_id ? { splits: storedSplits } : null,
+      selectedGroup?.members ?? [],
+    );
+  const sharing = isShared && type === 'expense';
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const effectiveAccountId = resolveAccount(
     accountId,
@@ -180,7 +202,7 @@ export function CreateTransactionModal({
     setTagIds([]);
     setIsShared(false);
     setGroupId('');
-    setSplit({});
+    setSplit(null);
     setIsInstallments(false);
     setInstallments(1);
     setError(null);
@@ -226,7 +248,7 @@ export function CreateTransactionModal({
   const openRepeat = useTransactionModal((s) => s.openRepeat);
 
   const handleDelete = () => {
-    if (!initialData?.id) return;
+    if (!initialData?.id || leftGroup) return;
     scheduleDelete({
       id: initialData.id,
       title: initialData.title,
@@ -270,16 +292,21 @@ export function CreateTransactionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (leftGroup) return;
     if (!parsedAmount) return fail('Ingresa un monto.', amountRef);
     if (!selectedCategory || selectedCategory.type !== type)
       return fail('Elige una categoría.', categoryRef);
     if (effectiveAccountId === '') return fail('Elige una cuenta.', accountRef);
-    if (isShared && !selectedGroup)
+    if (sharing && !selectedGroup)
       return fail('Elige el grupo del gasto compartido.', sharedRef);
-    const shared =
-      isShared && selectedGroup
-        ? splitPayload(split, selectedGroup.members)
-        : null;
+    const sendSplits =
+      sharing &&
+      !!selectedGroup &&
+      (!initialData ||
+        editSendsSplits(initialData, selectedGroup.id, editedSplit !== null));
+    const shared = sendSplits
+      ? splitPayload(split, selectedGroup!.members)
+      : null;
     if (shared && 'error' in shared) return fail(shared.error, sharedRef);
 
     const payload: TransactionPayload = {
@@ -297,10 +324,10 @@ export function CreateTransactionModal({
       payload.installments = installments;
     }
 
-    if (shared && selectedGroup) {
+    if (sharing && selectedGroup) {
       payload.is_shared = 1;
       payload.group_id = selectedGroup.id;
-      payload.splits = shared.splits;
+      if (shared) payload.splits = shared.splits;
     }
 
     // Offline, mutations pause until the connection returns and the sync
@@ -369,7 +396,7 @@ export function CreateTransactionModal({
       <FormModalHeader
         title={initialData ? 'Editar' : heading}
         formId="transaction-form"
-        saving={loading}
+        saving={loading || leftGroup}
         onClose={resetAndClose}
       />
 
@@ -379,6 +406,16 @@ export function CreateTransactionModal({
         noValidate
         className="space-y-6 px-6 pb-6"
       >
+        {leftGroup && (
+          <p
+            role="status"
+            className="bg-inset text-secondary rounded-xl px-4 py-3 text-sm font-medium"
+          >
+            Este gasto es de un grupo del que saliste; ya no se puede editar ni
+            borrar.
+          </p>
+        )}
+
         <TypeToggle value={type} onChange={changeType} />
 
         <div className="flex flex-col items-center gap-4">
@@ -526,7 +563,7 @@ export function CreateTransactionModal({
           </div>
         )}
 
-        {groups.length > 0 && (
+        {groups.length > 0 && type === 'expense' && !leftGroup && (
           <div ref={sharedRef} className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-secondary text-sm font-semibold">
@@ -567,14 +604,17 @@ export function CreateTransactionModal({
                     }))}
                   />
                 )}
-                {selectedGroup && (
-                  <SplitEditor
-                    members={selectedGroup.members}
-                    amount={parsedAmount}
-                    percentages={split}
-                    onChange={setSplit}
-                  />
-                )}
+                {selectedGroup &&
+                  (editedSplit === null && detailQuery.isLoading ? (
+                    <p className="text-muted text-xs">Cargando la división…</p>
+                  ) : (
+                    <SplitEditor
+                      members={selectedGroup.members}
+                      amount={parsedAmount}
+                      percentages={split}
+                      onChange={setSplit}
+                    />
+                  ))}
               </>
             )}
           </div>
@@ -591,6 +631,7 @@ export function CreateTransactionModal({
 
         <SubmitButton
           loading={loading}
+          disabled={leftGroup}
           text={
             initialData
               ? 'Guardar cambios'
@@ -601,8 +642,8 @@ export function CreateTransactionModal({
         {initialData && (
           <button
             type="button"
-            onClick={() => openRepeat(initialData)}
-            disabled={loading}
+            onClick={() => openRepeat({ ...initialData, splits: storedSplits })}
+            disabled={loading || leftGroup}
             className="bg-inset text-primary hover:bg-border focus-ring flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
           >
             <Repeat2 size={16} aria-hidden="true" />
@@ -613,7 +654,7 @@ export function CreateTransactionModal({
         {initialData && (
           <DeleteButton
             onClick={handleDelete}
-            disabled={loading}
+            disabled={loading || leftGroup}
             text="Borrar movimiento"
           />
         )}

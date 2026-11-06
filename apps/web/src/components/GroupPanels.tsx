@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { transactionListOptions } from '@/lib/transactionList';
 import {
   isSettlement,
+  leaveGroupError,
   ledgerEffect,
   type LedgerEffect,
 } from '@/lib/groupLedger';
@@ -250,7 +251,12 @@ export function GroupLedger({
         : payment.to_user_id === userId
           ? { kind: 'received', amount: payment.amount }
           : { kind: 'none' };
-    const canUndo = payment.created_by === userId;
+    const canUndo =
+      !!userId &&
+      [payment.created_by, payment.from_user_id, payment.to_user_id].includes(
+        userId,
+      );
+    const isThis = deleteSettlement.variables?.id === payment.id;
     return (
       <div className={rowClass}>
         <PaymentIcon />
@@ -266,13 +272,18 @@ export function GroupLedger({
                 onClick={() =>
                   deleteSettlement.mutate({ groupId: group.id, id: payment.id })
                 }
-                disabled={deleteSettlement.isPending}
+                disabled={deleteSettlement.isPending && isThis}
                 className="text-secondary hover:text-primary focus-ring shrink-0 rounded font-semibold underline-offset-2 hover:underline disabled:opacity-50"
               >
                 · Deshacer
               </button>
             )}
           </span>
+          {deleteSettlement.isError && isThis && (
+            <span role="alert" className="text-expense mt-0.5 block text-xs">
+              No pudimos deshacer el pago. Intenta nuevamente.
+            </span>
+          )}
         </span>
         <Effect effect={effect} />
       </div>
@@ -614,7 +625,7 @@ export function GroupMembersPanel({
         <button
           type="button"
           onClick={() => setConfirmLeave(true)}
-          disabled={myNet !== 0 || leaveMutation.isPending}
+          disabled={!balance || myNet !== 0 || leaveMutation.isPending}
           className="text-expense focus-ring min-h-10 rounded-lg px-2 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50"
         >
           Salir del grupo
@@ -622,7 +633,7 @@ export function GroupMembersPanel({
       </div>
       {myNet !== 0 && (
         <p className="text-muted text-xs">
-          Para salir, primero quedar al día:{' '}
+          Para salir, primero tienes que quedar al día:{' '}
           {myNet > 0 ? `te deben ${money(myNet)}` : `debes ${money(myNet)}`}.
         </p>
       )}
@@ -636,7 +647,12 @@ export function GroupMembersPanel({
       )}
       {leaveMutation.isError && (
         <p role="alert" className="text-expense mt-1 text-xs">
-          No pudimos sacarte del grupo. Intenta nuevamente.
+          {isAxiosError(leaveMutation.error)
+            ? leaveGroupError(
+                leaveMutation.error.response?.status,
+                leaveMutation.error.response?.data,
+              )
+            : leaveGroupError()}
         </p>
       )}
 
@@ -645,7 +661,7 @@ export function GroupMembersPanel({
         onClose={() => setConfirmLeave(false)}
         onConfirm={() =>
           leaveMutation.mutate(group.id, {
-            onSuccess: () => router.push('/groups'),
+            onSuccess: () => router.replace('/groups'),
           })
         }
         title={`Salir de ${group.name}`}
@@ -661,7 +677,7 @@ export function GroupMembersPanel({
         onClose={() => setConfirmDelete(false)}
         onConfirm={() =>
           deleteMutation.mutate(group.id, {
-            onSuccess: () => router.push('/groups'),
+            onSuccess: () => router.replace('/groups'),
           })
         }
         title={`Eliminar ${group.name}`}

@@ -25,8 +25,21 @@ export class TransactionDelete extends OpenAPIRoute {
           },
         },
       },
+      '403': {
+        description:
+          'Shared movement of a group the caller left; it can no longer be changed',
+        content: {
+          'application/json': {
+            schema: z.object({
+              success: Bool(),
+              error: z.string(),
+            }),
+          },
+        },
+      },
       '404': {
-        description: 'Transaction not found',
+        description:
+          'Transaction not found, or recorded by someone else (only its owner can delete it)',
         content: {
           'application/json': {
             schema: z.object({
@@ -44,28 +57,34 @@ export class TransactionDelete extends OpenAPIRoute {
     const { id } = data.params;
     const userId = c.get('userId');
 
-    // Check if user owns this transaction directly
-    let tx = (await c.env.DB.prepare(
-      `SELECT id, is_shared, group_id FROM transactions WHERE id = ? AND user_id = ?`,
+    // Only whoever recorded a movement deletes it, shared or not.
+    const tx = await c.env.DB.prepare(
+      `SELECT t.id, t.is_shared, t.group_id,
+         EXISTS (
+           SELECT 1 FROM shared_group_members m
+           WHERE m.group_id = t.group_id AND m.user_id = t.user_id
+         ) AS is_member
+       FROM transactions t WHERE t.id = ? AND t.user_id = ?`,
     )
       .bind(id, userId)
-      .first()) as any;
-
-    // If not the owner, check if it's a shared transaction and the user is a group member
-    if (!tx) {
-      tx = (await c.env.DB.prepare(
-        `
-				SELECT t.id, t.is_shared, t.group_id FROM transactions t
-				INNER JOIN shared_group_members sgm ON sgm.group_id = t.group_id AND sgm.user_id = ?
-				WHERE t.id = ? AND t.is_shared = 1
-			`,
-      )
-        .bind(userId, id)
-        .first()) as any;
-    }
+      .first<{
+        id: number;
+        is_shared: number;
+        group_id: number | null;
+        is_member: number;
+      }>();
 
     if (!tx) {
       return c.json({ success: false, error: 'Transaction not found' }, 404);
+    }
+    if (tx.is_shared && tx.group_id != null && !tx.is_member) {
+      return c.json(
+        {
+          success: false,
+          error: 'You left this group; its movements can no longer be changed',
+        },
+        403,
+      );
     }
 
     // Clean up splits and tags first, then delete the transaction
@@ -76,7 +95,9 @@ export class TransactionDelete extends OpenAPIRoute {
       c.env.DB.prepare(
         `DELETE FROM transaction_tags WHERE transaction_id = ?`,
       ).bind(id),
-      c.env.DB.prepare(`DELETE FROM transactions WHERE id = ?`).bind(id),
+      c.env.DB.prepare(
+        `DELETE FROM transactions WHERE id = ? AND user_id = ?`,
+      ).bind(id, userId),
     ]);
 
     return {

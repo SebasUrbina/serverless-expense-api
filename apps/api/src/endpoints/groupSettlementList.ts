@@ -1,6 +1,11 @@
-import { Bool, OpenAPIRoute, Num, Str } from 'chanfana';
+import { Bool, OpenAPIRoute, Num } from 'chanfana';
 import { z } from 'zod';
-import { ErrorResponse, GroupSettlement, type AppContext } from '../types';
+import {
+  ErrorResponse,
+  GroupSettlement,
+  MonthParam,
+  type AppContext,
+} from '../types';
 import { todayLocal } from '../utils/date';
 import { monthEnd } from '../services/monthlyAvailability';
 
@@ -12,8 +17,7 @@ export class GroupSettlementList extends OpenAPIRoute {
     request: {
       params: z.object({ group_id: Num() }),
       query: z.object({
-        month: Str({
-          required: false,
+        month: MonthParam.optional().openapi({
           description: 'YYYY-MM, defaults to this month',
         }),
       }),
@@ -30,6 +34,7 @@ export class GroupSettlementList extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid month' },
       '403': {
         description: 'Not a member',
         content: { 'application/json': { schema: ErrorResponse } },
@@ -41,9 +46,7 @@ export class GroupSettlementList extends OpenAPIRoute {
     const data = await this.getValidatedData<typeof this.schema>();
     const userId = c.get('userId');
     const groupId = data.params.group_id;
-    const month = /^\d{4}-\d{2}$/.test(data.query.month ?? '')
-      ? data.query.month!
-      : todayLocal().slice(0, 7);
+    const month = data.query.month ?? todayLocal().slice(0, 7);
 
     const membership = await c.env.DB.prepare(
       `SELECT 1 FROM shared_group_members WHERE group_id = ? AND user_id = ?`,

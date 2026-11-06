@@ -11,7 +11,7 @@ export function GroupAddForm({
 }: {
   /** From an invite link; opens the form on "Unirme" with the code filled. */
   initialJoinCode?: string;
-  onAdded?: () => void;
+  onAdded?: (groupId: number) => void;
 }) {
   const createMutation = useCreateGroup();
   const joinMutation = useJoinGroup();
@@ -27,9 +27,9 @@ export function GroupAddForm({
     createMutation.mutate(
       { name: groupName.trim(), nickname: '' },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setGroupName('');
-          onAdded?.();
+          onAdded?.(data.group.id);
         },
       },
     );
@@ -41,9 +41,9 @@ export function GroupAddForm({
     joinMutation.mutate(
       { invite_code: joinCode.trim(), nickname: '' },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           setJoinCode('');
-          onAdded?.();
+          onAdded?.(data.group.id);
         },
       },
     );

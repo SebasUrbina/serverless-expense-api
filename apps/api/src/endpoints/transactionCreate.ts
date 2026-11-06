@@ -1,7 +1,9 @@
 import { Bool, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext, Transaction } from '../types';
+import { type AppContext, ErrorResponse, Transaction } from '../types';
 import { type SplitInput, splitRows, splitWeights } from '../utils/splits';
+
+const errorContent = { 'application/json': { schema: ErrorResponse } };
 
 function addMonths(baseDate: string, count: number): string {
   const [yearStr, monthStr, dayStr] = baseDate.split('-');
@@ -89,6 +91,19 @@ export class TransactionCreate extends OpenAPIRoute {
           },
         },
       },
+      '400': {
+        description:
+          'Invalid movement: a shared movement must be an expense with a group_id and at least one split among the group members, and splits need a group_id',
+        content: errorContent,
+      },
+      '403': {
+        description: 'Not a member of the group',
+        content: errorContent,
+      },
+      '404': {
+        description: 'Category or account not found',
+        content: errorContent,
+      },
     },
   };
 
@@ -116,9 +131,31 @@ export class TransactionCreate extends OpenAPIRoute {
     }
 
     const isShared = t.is_shared ? 1 : 0;
-    const groupId = t.group_id || null;
+    const groupId = isShared ? t.group_id || null : null;
     const splits = isShared ? (t.splits ?? []) : [];
     const tagIds = t.tag_ids ?? [];
+
+    if ((isShared || t.splits?.length) && !t.group_id) {
+      return c.json(
+        { success: false, error: 'Shared movements need a group_id' },
+        400,
+      );
+    }
+    if (isShared && t.type !== 'expense') {
+      return c.json(
+        { success: false, error: 'Only expenses can be shared' },
+        400,
+      );
+    }
+    if (isShared && splits.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: 'Shared movements need at least one split',
+        },
+        400,
+      );
+    }
 
     const [ownership, members] = await db.batch<
       { id: number } | { user_id: string }
@@ -146,7 +183,7 @@ export class TransactionCreate extends OpenAPIRoute {
       );
     }
 
-    if (isShared && groupId) {
+    if (isShared) {
       const memberIds = new Set(
         (members.results as { user_id: string }[]).map((m) => m.user_id),
       );

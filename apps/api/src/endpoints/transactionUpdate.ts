@@ -1,7 +1,9 @@
 import { Bool, Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext, Transaction } from '../types';
+import { type AppContext, ErrorResponse, Transaction } from '../types';
 import { type SplitInput, splitRows, splitWeights } from '../utils/splits';
+
+const errorContent = { 'application/json': { schema: ErrorResponse } };
 
 export class TransactionUpdate extends OpenAPIRoute {
   schema = {
@@ -41,6 +43,16 @@ export class TransactionUpdate extends OpenAPIRoute {
             }),
           },
         },
+      },
+      '400': {
+        description:
+          'Invalid movement: a shared movement must be an expense with a group_id, and moving it to a group (or sharing it) needs at least one split among that group members',
+        content: errorContent,
+      },
+      '403': {
+        description:
+          'Not a member of the new group, or the caller left the group of this shared movement',
+        content: errorContent,
       },
       '404': {
         description: 'Transaction not found',
@@ -89,6 +101,69 @@ export class TransactionUpdate extends OpenAPIRoute {
       : updates.group_id !== undefined
         ? updates.group_id
         : existing.group_id;
+    const wasShared = !!existing.is_shared && existing.group_id != null;
+    // Parts of another group (or none) never carry over to the new one.
+    const groupChanged =
+      !!newIsShared && (!wasShared || newGroupId !== existing.group_id);
+
+    const groupIds = [
+      ...new Set([wasShared ? existing.group_id : null, newGroupId]),
+    ].filter((g) => g != null);
+    const members = groupIds.length
+      ? (
+          await c.env.DB.prepare(
+            `SELECT group_id, user_id FROM shared_group_members
+             WHERE group_id IN (SELECT value FROM json_each(?))`,
+          )
+            .bind(JSON.stringify(groupIds))
+            .all<{ group_id: number; user_id: string }>()
+        ).results
+      : [];
+    const memberIdsOf = (groupId: number) =>
+      new Set(
+        members.filter((m) => m.group_id === groupId).map((m) => m.user_id),
+      );
+
+    if (wasShared && !memberIdsOf(existing.group_id).has(userId)) {
+      return c.json(
+        {
+          success: false,
+          error: 'You left this group; its movements can no longer be changed',
+        },
+        403,
+      );
+    }
+    if ((newIsShared || updates.splits?.length) && !newGroupId) {
+      return c.json(
+        { success: false, error: 'Shared movements need a group_id' },
+        400,
+      );
+    }
+    if (newIsShared && newType !== 'expense') {
+      return c.json(
+        { success: false, error: 'Only expenses can be shared' },
+        400,
+      );
+    }
+    if (
+      newIsShared &&
+      (groupChanged || updates.splits !== undefined) &&
+      !updates.splits?.length
+    ) {
+      return c.json(
+        {
+          success: false,
+          error: 'Shared movements need at least one split',
+        },
+        400,
+      );
+    }
+    if (newIsShared && !memberIdsOf(newGroupId).has(userId)) {
+      return c.json(
+        { success: false, error: 'You are not a member of this group' },
+        403,
+      );
+    }
 
     // Fetch existing tags to prefill if no change
     let currentTagIds: number[] = [];
@@ -122,18 +197,7 @@ export class TransactionUpdate extends OpenAPIRoute {
     let splitStatements: D1PreparedStatement[] = [];
     if (splitInputs !== null) {
       if (splitInputs.length > 0) {
-        const members = await c.env.DB.prepare(
-          `SELECT user_id FROM shared_group_members WHERE group_id = ?`,
-        )
-          .bind(newGroupId)
-          .all<{ user_id: string }>();
-        const memberIds = new Set(members.results.map((m) => m.user_id));
-        if (!memberIds.has(userId)) {
-          return c.json(
-            { success: false, error: 'You are not a member of this group' },
-            403,
-          );
-        }
+        const memberIds = memberIdsOf(newGroupId);
         if (splitInputs.some((s) => !memberIds.has(s.user_id))) {
           return c.json(
             {

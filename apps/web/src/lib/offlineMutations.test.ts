@@ -87,6 +87,40 @@ test('offline creates, edits and deletes survive a reload and are sent in order'
   }
 });
 
+test('saving a movement refreshes movements and group views', async () => {
+  const transactions: TransactionApi = {
+    create: async () => ({}),
+    update: async () => ({}),
+    remove: async () => ({}),
+  };
+  const client = new QueryClient();
+  try {
+    registerOfflineMutations(client, transactions);
+    const keys = [
+      ['transactions', 'recent', '2026-11'],
+      ['group-balances', '2026-11'],
+      ['group-settlements', 3, '2026-11'],
+      ['categories'],
+    ];
+    for (const [mutationKey, variables] of [
+      [CREATE_TRANSACTION_KEY, created],
+      [UPDATE_TRANSACTION_KEY, edited],
+      [DELETE_TRANSACTION_KEY, deleted],
+    ] as const) {
+      for (const key of keys) client.setQueryData(key, {});
+      await runTransactionMutation(client, mutationKey, variables);
+      await flush();
+      assert.deepEqual(
+        keys.map((key) => client.getQueryState(key)?.isInvalidated),
+        [true, true, true, false],
+        mutationKey.join(' '),
+      );
+    }
+  } finally {
+    client.clear();
+  }
+});
+
 test('an edit is applied to every cached list that holds the movement', () => {
   const client = new QueryClient();
   client.setQueryData(['transactions', 'recent', '2026-11'], {
