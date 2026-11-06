@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import {
   onlineManager,
   useMutation,
@@ -14,7 +14,7 @@ import {
   type UpdateTransactionVariables,
 } from '@/lib/offlineMutations';
 import { format } from 'date-fns';
-import { ChevronDown, Repeat2 } from 'lucide-react';
+import { Repeat2 } from 'lucide-react';
 import { useTransactionModal } from '@/store/useTransactionModal';
 import { usePendingDeletes } from '@/store/usePendingDeletes';
 import {
@@ -81,42 +81,6 @@ type TransactionPayload = {
   installments?: number;
   splits?: SplitPayload[];
 };
-
-/** A collapsible row for optional settings, showing their current state. */
-function OptionRow({
-  label,
-  status,
-  defaultOpen = false,
-  children,
-}: {
-  label: string;
-  status: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-}) {
-  const [initiallyOpen] = useState(defaultOpen);
-  return (
-    <details
-      open={initiallyOpen}
-      className="group/option border-border border-b"
-    >
-      <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg py-3 [&::-webkit-details-marker]:hidden">
-        <span className="text-primary flex-1 text-sm font-semibold">
-          {label}
-        </span>
-        <span className="text-secondary max-w-[50%] truncate text-sm">
-          {status}
-        </span>
-        <ChevronDown
-          size={16}
-          aria-hidden="true"
-          className="text-muted shrink-0 transition-transform group-open/option:rotate-180"
-        />
-      </summary>
-      <div className="pb-4">{children}</div>
-    </details>
-  );
-}
 
 export function CreateTransactionModal({
   isOpen,
@@ -567,58 +531,57 @@ export function CreateTransactionModal({
         )}
 
         {groups.length > 0 && (
-          <div className="border-border border-t">
-            <OptionRow
-              label="Gasto compartido"
-              status={
-                isShared ? (selectedGroup?.name ?? 'Elige un grupo') : 'No'
-              }
-              defaultOpen={isShared}
-            >
-              <div ref={sharedRef} className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-secondary text-sm">
-                    Dividir con un grupo
-                  </span>
-                  <Switch
-                    label="Gasto compartido"
-                    checked={isShared}
-                    onChange={setIsShared}
+          <div ref={sharedRef} className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-secondary text-sm font-semibold">
+                Dividir gasto
+              </span>
+              <Switch
+                label="Dividir gasto"
+                checked={isShared}
+                onChange={(on) => {
+                  setIsShared(on);
+                  const only = groups.length === 1 ? groups[0] : undefined;
+                  if (on && !selectedGroup && only) {
+                    setGroupId(only.id);
+                    setSplit(equalSplit(only.members));
+                  }
+                }}
+              />
+            </div>
+            {isShared && (
+              <>
+                {groups.length > 1 && (
+                  <CustomSelect
+                    value={groupId}
+                    onChange={(val) => {
+                      const nextGroupId =
+                        typeof val === 'number' ? val : Number(val);
+                      const nextGroup = groups.find(
+                        (group) => group.id === nextGroupId,
+                      );
+                      setGroupId(nextGroupId);
+                      setSplit(equalSplit(nextGroup?.members ?? []));
+                      setError(null);
+                    }}
+                    placeholder="Elegir grupo"
+                    options={groups.map((g) => ({
+                      value: g.id,
+                      label: `👥 ${g.name}`,
+                    }))}
                   />
-                </div>
-                {isShared && (
-                  <>
-                    <CustomSelect
-                      value={groupId}
-                      onChange={(val) => {
-                        const nextGroupId =
-                          typeof val === 'number' ? val : Number(val);
-                        const nextGroup = groups.find(
-                          (group) => group.id === nextGroupId,
-                        );
-                        setGroupId(nextGroupId);
-                        setSplit(equalSplit(nextGroup?.members ?? []));
-                        setError(null);
-                      }}
-                      placeholder="Elegir grupo"
-                      options={groups.map((g) => ({
-                        value: g.id,
-                        label: `👥 ${g.name}`,
-                      }))}
-                    />
-                    {selectedGroup && (
-                      <SplitEditor
-                        members={selectedGroup.members}
-                        amount={parsedAmount}
-                        userId={userId}
-                        state={split}
-                        onChange={setSplit}
-                      />
-                    )}
-                  </>
                 )}
-              </div>
-            </OptionRow>
+                {selectedGroup && (
+                  <SplitEditor
+                    members={selectedGroup.members}
+                    amount={parsedAmount}
+                    userId={userId}
+                    state={split}
+                    onChange={setSplit}
+                  />
+                )}
+              </>
+            )}
           </div>
         )}
 
