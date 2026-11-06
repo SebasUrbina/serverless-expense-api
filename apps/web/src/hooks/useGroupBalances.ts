@@ -2,8 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { GroupBalancesResponse, GroupSettlement } from '@/types/api';
 
-/** Other members change group data, so it is fetched again whenever a screen opens or regains focus. */
-export const GROUP_STALE_TIME = 0;
+/**
+ * Other members change group data, so it is fetched again when a screen opens
+ * or regains focus after 30 s. The user's own changes invalidate it right away.
+ */
+export const GROUP_STALE_TIME = 30_000;
 
 export function useGroupBalances(month: string) {
   return useQuery<GroupBalancesResponse>({

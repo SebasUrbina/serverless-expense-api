@@ -8,6 +8,7 @@ import type {
   TagsResponse,
   AccountsResponse,
   GroupsResponse,
+  GroupAddedResponse,
   ApiKeyResponse,
 } from '@/types/api';
 import { GROUP_STALE_TIME } from './useGroupBalances';
@@ -203,12 +204,17 @@ export function useGroups() {
 export function useCreateGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { name: string; nickname: string }) => {
+    mutationFn: async (data: {
+      name: string;
+      nickname: string;
+    }): Promise<GroupAddedResponse> => {
       const res = await api.post('/groups', data);
       return res.data;
     },
+    // Resolves once the list has the new group, so callers can open it.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      return queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
   });
 }
@@ -216,12 +222,16 @@ export function useCreateGroup() {
 export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { invite_code: string; nickname: string }) => {
+    mutationFn: async (data: {
+      invite_code: string;
+      nickname: string;
+    }): Promise<GroupAddedResponse> => {
       const res = await api.post('/groups/join', data);
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      return queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
   });
 }

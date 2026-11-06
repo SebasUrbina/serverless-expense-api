@@ -250,6 +250,12 @@ export type GroupsResponse = {
   groups: SharedGroup[];
 };
 
+/** Answer to creating or joining a group. */
+export type GroupAddedResponse = {
+  success: boolean;
+  group: { id: number; name: string; invite_code?: string };
+};
+
 export type GroupBalancesResponse = {
   balances: GroupBalance[];
 };

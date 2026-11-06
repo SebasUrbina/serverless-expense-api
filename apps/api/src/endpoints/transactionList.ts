@@ -158,7 +158,11 @@ export class TransactionList extends OpenAPIRoute {
 				SELECT id, date, created_at FROM (
 					SELECT t.id, t.date, t.created_at FROM transaction_splits s
 					JOIN transactions t ON t.id = s.transaction_id
-					WHERE s.user_id = ? AND t.user_id != s.user_id${where}${splitCategory}
+					WHERE s.user_id = ? AND t.user_id != s.user_id AND t.is_shared = 1
+						AND EXISTS (
+							SELECT 1 FROM shared_group_members gm
+							WHERE gm.group_id = t.group_id AND gm.user_id = s.user_id
+						)${where}${splitCategory}
 					ORDER BY ${order} LIMIT ?
 				)
 				ORDER BY date DESC, created_at DESC, id DESC

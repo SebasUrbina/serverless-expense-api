@@ -1,6 +1,6 @@
-import { OpenAPIRoute, Str } from 'chanfana';
+import { OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { GroupBalancesResponse, type AppContext } from '../types';
+import { GroupBalancesResponse, MonthParam, type AppContext } from '../types';
 import { todayLocal } from '../utils/date';
 import { monthEnd } from '../services/monthlyAvailability';
 import { computeSettlementPairs } from '../utils/settlements';
@@ -14,8 +14,7 @@ export class GroupBalances extends OpenAPIRoute {
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       query: z.object({
-        month: Str({
-          required: false,
+        month: MonthParam.optional().openapi({
           description: 'YYYY-MM for the month totals, defaults to this month',
           example: '2026-03',
         }),
@@ -30,6 +29,7 @@ export class GroupBalances extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid month' },
     },
   };
 
@@ -38,9 +38,7 @@ export class GroupBalances extends OpenAPIRoute {
     const userId = c.get('userId');
 
     const today = todayLocal();
-    const month = /^\d{4}-\d{2}$/.test(data.query.month ?? '')
-      ? data.query.month!
-      : today.slice(0, 7);
+    const month = data.query.month ?? today.slice(0, 7);
     const monthStart = `${month}-01`;
     const monthLast = monthEnd(month);
 

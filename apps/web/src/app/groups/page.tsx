@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, Pencil, Plus } from 'lucide-react';
@@ -34,6 +34,8 @@ import type { GroupBalance, SettlementPair, SharedGroup } from '@/types/api';
 
 const money = (n: number) => `$${formatCurrency(Math.round(Math.abs(n)))}`;
 
+const MONTH_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
+
 const desktopQuery = '(min-width: 1024px)';
 
 /** Matches Tailwind's `lg`, where the list and the detail are shown side by side. */
@@ -59,13 +61,20 @@ export default function GroupsPage() {
 
 function GroupsContent() {
   const params = useSearchParams();
-  const idParam = params.get('id') ? Number(params.get('id')) : null;
+  const router = useRouter();
+  const idParam = Number(params.get('id'));
   const joinCode = params.get('join') ?? '';
+  const monthParam = params.get('month') ?? '';
   const [month, setMonth] = useState(
-    params.get('month') || format(new Date(), 'yyyy-MM'),
+    MONTH_PATTERN.test(monthParam) ? monthParam : format(new Date(), 'yyyy-MM'),
   );
   const [adding, setAdding] = useState(!!joinCode);
   const isDesktop = useIsDesktop();
+
+  const openAdded = (groupId: number) => {
+    setAdding(false);
+    router.replace(`/groups?id=${groupId}&month=${month}`);
+  };
 
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -79,7 +88,9 @@ function GroupsContent() {
   );
   const myNet = (groupId: number) =>
     balances.get(groupId)?.members.find((m) => m.user_id === userId)?.net ?? 0;
-  const selected = groups.find((g) => g.id === idParam) ?? groups[0];
+  // A missing, malformed or stale ?id (a group left or deleted) selects nothing.
+  const chosen = groups.find((g) => g.id === idParam);
+  const selected = chosen ?? groups[0];
 
   const total = Math.round(groups.reduce((sum, g) => sum + myNet(g.id), 0));
   const subtitle =
@@ -126,14 +137,14 @@ function GroupsContent() {
                 description="Crea un grupo para tu pareja, tu depto o un viaje, o únete con el código que te compartieron."
               />
               <div className="mt-5">
-                <GroupAddForm initialJoinCode={joinCode} />
+                <GroupAddForm initialJoinCode={joinCode} onAdded={openAdded} />
               </div>
             </Card>
           ) : (
             <div className="lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:items-start lg:gap-6">
               <aside
                 aria-label="Tus grupos"
-                className={`space-y-3 ${idParam ? 'hidden lg:block' : ''}`}
+                className={`space-y-3 ${chosen ? 'hidden lg:block' : ''}`}
               >
                 <ul className="bg-card border-border rounded-3xl border p-2 shadow-sm">
                   {groups.map((group) => (
@@ -152,7 +163,7 @@ function GroupsContent() {
                   <Card label="Agregar grupo">
                     <GroupAddForm
                       initialJoinCode={joinCode}
-                      onAdded={() => setAdding(false)}
+                      onAdded={openAdded}
                     />
                   </Card>
                 ) : (
@@ -166,8 +177,8 @@ function GroupsContent() {
                 )}
               </aside>
 
-              <div className={idParam ? '' : 'hidden lg:block'}>
-                {selected && (idParam || isDesktop) && (
+              <div className={chosen ? '' : 'hidden lg:block'}>
+                {selected && (chosen || isDesktop) && (
                   <GroupDetail
                     key={selected.id}
                     group={selected}
@@ -265,6 +276,7 @@ function GroupDetail({
     <div>
       <Link
         href={`/groups?month=${month}`}
+        replace
         className="text-secondary hover:text-primary focus-ring mb-3 -ml-1 inline-flex min-h-10 items-center gap-1 rounded-lg pr-2 text-sm font-medium transition-colors lg:hidden"
       >
         <ChevronLeft size={18} aria-hidden="true" />

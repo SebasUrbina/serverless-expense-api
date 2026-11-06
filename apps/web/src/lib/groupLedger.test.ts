@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ledgerEffect, memberColorSlot } from './groupLedger';
+import { leaveGroupError, ledgerEffect, memberColorSlot } from './groupLedger';
 
 const me = 'user-me';
 
@@ -52,6 +52,23 @@ test('settlements read as payments, not expenses', () => {
     ),
     { kind: 'received', amount: 10000 },
   );
+});
+
+test('a refused leave explains what is missing', () => {
+  assert.equal(
+    leaveGroupError(409, { error: 'Settle up', net: -12000 }),
+    'Para salir, primero tienes que quedar al día: debes $12.000.',
+  );
+  assert.equal(
+    leaveGroupError(409, { error: 'Settle up', net: 4500.4 }),
+    'Para salir, primero tienes que quedar al día: te deben $4.500.',
+  );
+  assert.match(
+    leaveGroupError(409, { error: 'You have upcoming shared movements' }),
+    /fecha futura/,
+  );
+  assert.match(leaveGroupError(500), /No pudimos sacarte/);
+  assert.match(leaveGroupError(undefined), /No pudimos sacarte/);
 });
 
 test('member colors are stable and within the category palette', () => {

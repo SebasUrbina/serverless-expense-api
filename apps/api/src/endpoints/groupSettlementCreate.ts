@@ -1,7 +1,7 @@
 import { Bool, OpenAPIRoute, Num, Str } from 'chanfana';
 import { z } from 'zod';
 import { ErrorResponse, GroupSettlement, type AppContext } from '../types';
-import { todayLocal } from '../utils/date';
+import { isCalendarDate, todayLocal } from '../utils/date';
 
 const errorContent = { 'application/json': { schema: ErrorResponse } };
 
@@ -26,9 +26,13 @@ export class GroupSettlementCreate extends OpenAPIRoute {
               }),
               date: z
                 .string()
-                .regex(/^\d{4}-\d{2}-\d{2}$/)
+                .refine(isCalendarDate, {
+                  message: 'Use a real YYYY-MM-DD date',
+                })
                 .optional()
-                .openapi({ description: 'YYYY-MM-DD, defaults to today' }),
+                .openapi({
+                  description: 'YYYY-MM-DD, not after today; defaults to today',
+                }),
             }),
           },
         },
@@ -43,7 +47,11 @@ export class GroupSettlementCreate extends OpenAPIRoute {
           },
         },
       },
-      '400': { description: 'Invalid members', content: errorContent },
+      '400': {
+        description:
+          'Invalid members, or a date that does not exist or is after today',
+        content: errorContent,
+      },
       '403': {
         description: 'Not one of the two members',
         content: errorContent,
@@ -56,8 +64,15 @@ export class GroupSettlementCreate extends OpenAPIRoute {
     const userId = c.get('userId');
     const groupId = data.params.group_id;
     const { from_user_id, to_user_id, amount } = data.body;
-    const date = data.body.date ?? todayLocal();
+    const today = todayLocal();
+    const date = data.body.date ?? today;
 
+    if (date > today) {
+      return c.json(
+        { success: false, error: 'A payment cannot be dated in the future' },
+        400,
+      );
+    }
     if (from_user_id === to_user_id) {
       return c.json(
         { success: false, error: 'A member cannot pay themselves' },

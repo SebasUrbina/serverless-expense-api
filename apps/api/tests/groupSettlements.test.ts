@@ -16,7 +16,7 @@ function database() {
     db.exec(readFileSync(new URL(name, migrations), 'utf8'));
   }
   db.exec(`
-    INSERT INTO api_keys(key,user_id) VALUES('key-vale','vale'),('key-out','outsider');
+    INSERT INTO api_keys(key,user_id) VALUES('key-vale','vale'),('key-tomas','tomas'),('key-out','outsider');
     INSERT INTO categories(id,user_id,name,type) VALUES(1,'${ME}','Hogar','expense');
     INSERT INTO accounts(id,user_id,name,type) VALUES(1,'${ME}','Tarjeta','credit');
     INSERT INTO shared_groups(id,name,created_by,invite_code) VALUES(1,'Depto','${ME}','K7P2QX');
@@ -171,26 +171,106 @@ test('only the payer or receiver records a payment, between members', async () =
   );
 });
 
-test('only whoever recorded a payment can undo it', async () => {
+test('the payer or the receiver can undo a payment, while members', async () => {
   const db = database();
   const api = client(db);
-  const created = await api('POST', '/groups/1/settlements', {
-    body: { from_user_id: ME, to_user_id: 'vale', amount: 7000 },
-  });
-  const id = created.body.settlement.id;
+  const record = async () =>
+    (
+      await api('POST', '/groups/1/settlements', {
+        body: { from_user_id: ME, to_user_id: 'vale', amount: 7000 },
+      })
+    ).body.settlement.id;
+  const undo = async (id: number, key?: string) =>
+    (await api('DELETE', `/groups/1/settlements/${id}`, { key })).status;
 
-  assert.equal(
-    (await api('DELETE', `/groups/1/settlements/${id}`, { key: 'key-vale' }))
-      .status,
-    404,
-  );
-  assert.equal(
-    (await api('DELETE', `/groups/1/settlements/${id}`)).status,
-    200,
-  );
+  const first = await record();
+  assert.equal(await undo(first, 'key-tomas'), 404);
+  assert.equal(await undo(first, 'key-out'), 403);
+  assert.equal(await undo(first, 'key-vale'), 200);
+  assert.equal(await undo(await record()), 200);
   assert.equal(
     (db.prepare('SELECT COUNT(*) AS n FROM group_settlements').get() as any).n,
     0,
+  );
+
+  const kept = await record();
+  db.exec(`DELETE FROM shared_group_members WHERE user_id = 'vale'`);
+  assert.equal(await undo(kept, 'key-vale'), 403);
+});
+
+test('a payment needs a real date that is not in the future', async () => {
+  const api = client(database());
+  const pay = async (date: string) =>
+    (
+      await api('POST', '/groups/1/settlements', {
+        body: { from_user_id: ME, to_user_id: 'vale', amount: 1000, date },
+      })
+    ).status;
+
+  assert.equal(await pay('2026-02-31'), 400);
+  assert.equal(await pay('2026-13-01'), 400);
+  assert.equal(await pay('2026-1-05'), 400);
+  assert.equal(await pay('2099-01-01'), 400);
+  assert.equal(await pay('2024-02-29'), 200);
+});
+
+test('month parameters must be real YYYY-MM months', async () => {
+  const api = client(database());
+  for (const path of [
+    '/groups/balances?month=2026-13',
+    '/groups/1/settlements?month=2026-00',
+    '/transactions/summary/kpi?month=2026-1',
+    '/transactions/summary/category?month=abc',
+    '/transactions/summary/monthly?endMonth=2026-13',
+    '/transactions/summary/category-trend?endMonth=2026-99',
+    '/transactions/summary/availability?month=2026-13',
+  ]) {
+    assert.equal((await api('GET', path)).status, 400, path);
+  }
+  assert.equal((await api('GET', '/groups/balances')).status, 200);
+  assert.equal((await api('GET', '/groups/1/settlements')).status, 200);
+  assert.equal((await api('GET', '/transactions/summary/kpi')).status, 200);
+});
+
+test('shared income and shares of income are left out of the balance', async () => {
+  const db = database();
+  sharedExpense(db, ME, 30000, '2026-10-02');
+  db.exec(`
+    INSERT INTO categories(id,user_id,name,type) VALUES(2,'${ME}','Sueldo','income');
+    INSERT INTO transactions(id,title,amount,category_id,type,account_id,user_id,date,is_shared,group_id)
+    VALUES(900,'Ingreso',90000,2,'income',1,'${ME}','2026-10-03',1,1);
+    INSERT INTO transaction_splits(transaction_id,user_id,amount,percentage) VALUES
+      (900,'${ME}',30000,34),(900,'vale',30000,33),(900,'tomas',30000,33);
+  `);
+  const { body } = await client(db)('GET', '/groups/balances?month=2026-10');
+  const group = body.balances[0];
+  assert.equal(group.transaction_count, 1);
+  assert.equal(netOf(group, ME), 20000);
+  assert.equal(netOf(group, 'vale'), -10000);
+});
+
+test('leaving is blocked by upcoming shared movements, own or split', async () => {
+  const db = database();
+  const api = client(db);
+  // Settled: one upcoming installment paid by Vale, split in three.
+  sharedExpense(db, 'vale', 30000, '2099-01-01');
+
+  const blocked = await api('DELETE', '/groups/1/members/me');
+  assert.equal(blocked.status, 409);
+  assert.equal(
+    blocked.body.error,
+    'You have upcoming shared movements in this group',
+  );
+  assert.equal(blocked.body.net, undefined);
+  assert.equal(
+    (await api('DELETE', '/groups/1/members/me', { key: 'key-vale' })).status,
+    409,
+  );
+
+  db.exec(`DELETE FROM transaction_splits WHERE user_id = 'tomas'`);
+  assert.equal(
+    (await api('DELETE', '/groups/1/members/me', { key: 'key-tomas' })).status,
+    200,
   );
 });
 

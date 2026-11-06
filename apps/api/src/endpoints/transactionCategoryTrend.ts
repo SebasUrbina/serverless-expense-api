@@ -1,6 +1,6 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext } from '../types';
+import { MonthParam, type AppContext } from '../types';
 import { myMovementsCte } from '../utils/myMovements';
 import { monthWindow } from '../utils/date';
 
@@ -16,11 +16,9 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
           required: false,
           default: 12,
         }),
-        endMonth: z
-          .string()
-          .regex(/^\d{4}-\d{2}$/)
-          .optional()
-          .describe('Last month of the window (YYYY-MM). Defaults to now.'),
+        endMonth: MonthParam.optional().describe(
+          'Last month of the window (YYYY-MM). Defaults to now.',
+        ),
         day: z.coerce
           .number()
           .int()
@@ -53,6 +51,7 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid endMonth' },
     },
   };
 

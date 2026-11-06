@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  editSendsSplits,
   equalPercentages,
   initialPercentages,
   splitAmounts,
@@ -50,4 +51,12 @@ test('editing keeps the stored percentages', () => {
   };
   assert.deepEqual(initialPercentages(tx, two), { seba: 60, vale: 40 });
   assert.deepEqual(initialPercentages(null, two), { seba: 50, vale: 50 });
+});
+
+test('an edit only sends the parts when the split or the group changes', () => {
+  const shared = { is_shared: 1, group_id: 3 };
+  assert.equal(editSendsSplits(shared, 3, false), false);
+  assert.equal(editSendsSplits(shared, 3, true), true);
+  assert.equal(editSendsSplits(shared, 4, false), true);
+  assert.equal(editSendsSplits({ is_shared: 0 }, 3, false), true);
 });

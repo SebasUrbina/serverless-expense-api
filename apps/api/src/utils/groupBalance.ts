@@ -17,6 +17,9 @@ type BalanceRow = {
  * Every member's accumulated balance up to `asOf`, with the totals of the month
  * from `monthStart` to `monthLast`. The group's shared movements up to `asOf`
  * are scanned once and reused for both.
+ *
+ * CROSS JOIN keeps tx as the outer loop, so splits are looked up per movement
+ * by transaction_id; otherwise SQLite walks every split in the database.
  */
 export function groupBalanceStatement(
   db: D1Database,
@@ -30,12 +33,12 @@ export function groupBalanceStatement(
       `
 			WITH tx AS MATERIALIZED (
 				SELECT id, user_id, amount, date FROM transactions
-				WHERE group_id = ?1 AND is_shared = 1 AND date <= ?2
+				WHERE group_id = ?1 AND is_shared = 1 AND type = 'expense' AND date <= ?2
 			), shares AS MATERIALIZED (
 				SELECT s.user_id,
 					SUM(s.amount) AS total,
 					SUM(CASE WHEN tx.date >= ?3 AND tx.date <= ?4 THEN s.amount ELSE 0 END) AS month_total
-				FROM tx JOIN transaction_splits s ON s.transaction_id = tx.id
+				FROM tx CROSS JOIN transaction_splits s ON s.transaction_id = tx.id
 				GROUP BY s.user_id
 			), paid AS MATERIALIZED (
 				SELECT user_id,

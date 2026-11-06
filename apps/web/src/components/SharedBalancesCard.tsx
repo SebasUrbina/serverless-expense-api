@@ -2,7 +2,7 @@
 import { ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Card, CardHeader, CardLink } from '@/components/ui/Card';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useGroupBalances } from '@/hooks/useGroupBalances';
 import { useAuth } from '@/lib/AuthProvider';
@@ -16,7 +16,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
   const { data, isLoading } = useGroupBalances(currentMonth);
   const { session } = useAuth();
 
-  const balances = data?.balances || [];
+  const balances = (data?.balances ?? []).filter((g) => g.members.length >= 2);
   const userId = session?.user?.id;
 
   const [settleTarget, setSettleTarget] = useState<{
@@ -26,7 +26,7 @@ export function SharedBalancesCard({ filterMonth }: { filterMonth: string }) {
 
   if (!isLoading && balances.length === 0) return null;
 
-  const monthName = format(new Date(currentMonth + '-01'), 'MMMM', {
+  const monthName = format(parseISO(`${currentMonth}-01`), 'MMMM', {
     locale: es,
   });
 
@@ -90,8 +90,6 @@ function GroupBalanceBlock({
   onSettle: (pairs: SettlementPair[]) => void;
 }) {
   const { members, pairs } = group;
-  if (members.length < 2) return null;
-
   const myNet = Math.round(members.find((m) => m.user_id === userId)?.net ?? 0);
   const myPairs = pairs.filter(
     (p) => p.from_user_id === userId || p.to_user_id === userId,

@@ -6,6 +6,7 @@ import {
   groupNets,
   hasDebt,
 } from '../utils/groupBalance';
+import { todayLocal } from '../utils/date';
 
 const errorContent = { 'application/json': { schema: ErrorResponse } };
 
@@ -14,7 +15,7 @@ export class GroupLeave extends OpenAPIRoute {
     tags: ['Groups'],
     summary: 'Leave a group',
     description:
-      'Only with a settled balance. If the creator leaves, the member who joined next becomes the creator. The last member leaving deletes the group, and its movements become personal movements of whoever paid them.',
+      'Only with a settled balance and no shared movements of the group dated after today. If the creator leaves, the member who joined next becomes the creator. The last member leaving deletes the group, and its movements become personal movements of whoever paid them.',
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       params: z.object({ id: Num({ description: 'Group ID' }) }),
@@ -33,10 +34,11 @@ export class GroupLeave extends OpenAPIRoute {
       },
       '404': { description: 'Not a member', content: errorContent },
       '409': {
-        description: 'The member still owes or is owed',
+        description:
+          'The member still owes or is owed (`net` is their balance), or has shared movements of the group dated after today, such as upcoming installments',
         content: {
           'application/json': {
-            schema: ErrorResponse.extend({ net: Num() }),
+            schema: ErrorResponse.extend({ net: Num({ required: false }) }),
           },
         },
       },
@@ -70,6 +72,29 @@ export class GroupLeave extends OpenAPIRoute {
     if (members.length === 1) {
       await c.env.DB.batch(deleteGroupStatements(c.env.DB, groupId));
       return { success: true, group_deleted: true };
+    }
+
+    // Future installments would turn into debt after leaving, with no way to settle it.
+    const upcoming = await c.env.DB.prepare(
+      `SELECT 1 FROM transactions t
+       WHERE t.group_id = ?1 AND t.is_shared = 1 AND t.date > ?3 AND (
+         t.user_id = ?2 OR EXISTS (
+           SELECT 1 FROM transaction_splits s
+           WHERE s.transaction_id = t.id AND s.user_id = ?2
+         )
+       )
+       LIMIT 1`,
+    )
+      .bind(groupId, userId, todayLocal())
+      .first();
+    if (upcoming) {
+      return c.json(
+        {
+          success: false,
+          error: 'You have upcoming shared movements in this group',
+        },
+        409,
+      );
     }
 
     await c.env.DB.batch([

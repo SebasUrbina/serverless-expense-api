@@ -46,8 +46,13 @@ export function registerOfflineMutations(
   queryClient: QueryClient,
   transactions: TransactionApi,
 ) {
+  // Shared movements also move group balances and the group ledger.
   const onSettled = () =>
-    queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    Promise.all(
+      [['transactions'], ['group-balances'], ['group-settlements']].map(
+        (queryKey) => queryClient.invalidateQueries({ queryKey }),
+      ),
+    );
   queryClient.setMutationDefaults(CREATE_TRANSACTION_KEY, {
     mutationFn: transactions.create,
     scope: SCOPE,
