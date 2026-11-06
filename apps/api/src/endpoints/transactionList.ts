@@ -2,6 +2,7 @@ import { Bool, Num, OpenAPIRoute, Str } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext, Transaction } from '../types';
 import { todayLocal } from '../utils/date';
+import { SHARED_CATEGORY } from '../utils/myMovements';
 
 export class TransactionList extends OpenAPIRoute {
   schema = {
@@ -98,10 +99,6 @@ export class TransactionList extends OpenAPIRoute {
       filters.push(`LOWER(t.title) LIKE LOWER(?)`);
       filterBinds.push(`%${search}%`);
     }
-    if (category_id) {
-      filters.push(`t.category_id = ?`);
-      filterBinds.push(category_id);
-    }
     if (tag_id) {
       filters.push(
         `EXISTS (SELECT 1 FROM transaction_tags tt WHERE tt.transaction_id = t.id AND tt.tag_id = ?)`,
@@ -126,6 +123,19 @@ export class TransactionList extends OpenAPIRoute {
       filterBinds.push(group_id);
     }
     const where = filters.map((f) => ` AND ${f}`).join('');
+    // Others' shared expenses are filed under the viewer's category of the same
+    // name, or Compartidos, as in the summaries (see myMovementsCte).
+    const ownCategory = category_id ? ` AND t.category_id = ?` : '';
+    const splitCategory = category_id
+      ? ` AND COALESCE(
+					(SELECT mine.id FROM categories pc
+					 JOIN categories mine ON mine.user_id = s.user_id AND mine.type = 'expense' AND mine.name = pc.name
+					 WHERE pc.id = t.category_id),
+					(SELECT id FROM categories
+					 WHERE user_id = s.user_id AND type = 'expense' AND name = '${SHARED_CATEGORY.name}')
+				) = ?`
+      : '';
+    const categoryBinds = category_id ? [category_id] : [];
 
     const safePage = Math.max(1, page || 1);
     const safeLimit = Math.max(1, Math.min(100, limit || 20)); // Max 100 items per page
@@ -141,14 +151,14 @@ export class TransactionList extends OpenAPIRoute {
 			WITH page AS (
 				SELECT id, date, created_at FROM (
 					SELECT t.id, t.date, t.created_at FROM transactions t
-					WHERE t.user_id = ?${where}
+					WHERE t.user_id = ?${where}${ownCategory}
 					ORDER BY ${order} LIMIT ?
 				)
 				UNION ALL
 				SELECT id, date, created_at FROM (
 					SELECT t.id, t.date, t.created_at FROM transaction_splits s
 					JOIN transactions t ON t.id = s.transaction_id
-					WHERE s.user_id = ? AND t.user_id != s.user_id${where}
+					WHERE s.user_id = ? AND t.user_id != s.user_id${where}${splitCategory}
 					ORDER BY ${order} LIMIT ?
 				)
 				ORDER BY date DESC, created_at DESC, id DESC
@@ -174,9 +184,11 @@ export class TransactionList extends OpenAPIRoute {
     const binds = [
       userId,
       ...filterBinds,
+      ...categoryBinds,
       window,
       userId,
       ...filterBinds,
+      ...categoryBinds,
       window,
       safeLimit + 1,
       offset,

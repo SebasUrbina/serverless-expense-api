@@ -174,12 +174,13 @@ test('pagination merges owned and split-with-me transactions once each, in order
     );
     assert.equal(byUser.local_user.net, -1500);
 
+    // Shared expenses count the viewer's share, including those Bob paid.
     const kpi = await api('/transactions/summary/kpi?month=2026-01');
     assert.deepEqual(kpi.body.kpis, {
-      largest_expense: 200,
-      largest_expense_title: 'Mío compartido',
+      largest_expense: 150,
+      largest_expense_title: 'De Bob',
       largest_income: 0,
-      transaction_count: 60,
+      transaction_count: 90,
     });
   } finally {
     db.close();
