@@ -1,6 +1,7 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext } from '../types';
+import { MonthParam, type AppContext } from '../types';
+import { myMovementsCte } from '../utils/myMovements';
 import { monthWindow } from '../utils/date';
 
 export class TransactionMonthlySummary extends OpenAPIRoute {
@@ -15,11 +16,9 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
           required: false,
           default: 6,
         }),
-        endMonth: z
-          .string()
-          .regex(/^\d{4}-\d{2}$/)
-          .optional()
-          .describe('Last month of the window (YYYY-MM). Defaults to now.'),
+        endMonth: MonthParam.optional().describe(
+          'Last month of the window (YYYY-MM). Defaults to now.',
+        ),
         day: z.coerce
           .number()
           .int()
@@ -50,6 +49,7 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid endMonth' },
     },
   };
 
@@ -61,21 +61,22 @@ export class TransactionMonthlySummary extends OpenAPIRoute {
     const safeMonths = Math.max(1, Math.min(12, months || 6));
     const { start, end } = monthWindow(safeMonths, endMonth);
 
+    const mine = myMovementsCte(userId, start, end);
     const query = `
+			WITH ${mine.sql}
 			SELECT 
 				strftime('%Y-%m', date) as month,
 				SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
 				SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
 				SUM(CASE WHEN type = 'expense' AND CAST(strftime('%d', date) AS INTEGER) <= ? THEN amount ELSE 0 END) as expense_to_day
-			FROM transactions
-			WHERE user_id = ? AND date >= ? AND date <= ?
+			FROM my_tx
 			GROUP BY month
 			ORDER BY month DESC
 			LIMIT ?
 		`;
 
     const result = await c.env.DB.prepare(query)
-      .bind(day ?? 31, userId, start, end, safeMonths)
+      .bind(...mine.binds, day ?? 31, safeMonths)
       .all();
 
     // Map the results and return them in chronological order

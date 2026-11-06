@@ -60,10 +60,14 @@ export class TransactionFetch extends OpenAPIRoute {
 			LEFT JOIN categories c ON t.category_id = c.id
 			LEFT JOIN accounts a ON t.account_id = a.id
 			LEFT JOIN shared_groups sg ON t.group_id = sg.id
-			WHERE t.id = ? AND (t.user_id = ? OR t.id IN (SELECT transaction_id FROM transaction_splits WHERE user_id = ?))
+			WHERE t.id = ?1 AND (t.user_id = ?2 OR (
+				t.is_shared = 1
+				AND EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id = t.id AND user_id = ?2)
+				AND EXISTS (SELECT 1 FROM shared_group_members WHERE group_id = t.group_id AND user_id = ?2)
+			))
 		`,
     )
-      .bind(id, userId, userId)
+      .bind(id, userId)
       .first()) as any;
 
     if (!result) {

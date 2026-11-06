@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/AuthProvider';
 import {
+  isActiveItem,
   isActivePath,
   mainNavigation,
   settingsNavigation,
@@ -41,28 +42,26 @@ export function Sidebar() {
           aria-label="Navegación principal"
           className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2"
         >
-          {[...mainNavigation, settingsNavigation].map((item) => {
-            const active = isActivePath(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-accent-soft text-accent'
-                    : 'text-secondary hover:bg-inset hover:text-primary'
-                }`}
-              >
-                <item.icon
-                  className="h-4 w-4 shrink-0"
-                  aria-hidden="true"
-                  strokeWidth={active ? 2.5 : 2}
+          {[...mainNavigation, settingsNavigation].map((item) => (
+            <div key={item.href} className="space-y-0.5">
+              <SidebarLink
+                item={item}
+                // Sections with their own entry below highlight only that entry.
+                active={
+                  item.children
+                    ? isActivePath(pathname, item.href)
+                    : isActiveItem(pathname, item)
+                }
+              />
+              {item.children?.map((child) => (
+                <SidebarLink
+                  key={child.href}
+                  item={child}
+                  active={isActivePath(pathname, child.href)}
                 />
-                {item.name}
-              </Link>
-            );
-          })}
+              ))}
+            </div>
+          ))}
         </nav>
 
         <div className="border-border flex shrink-0 items-center gap-2 border-t p-3">
@@ -90,5 +89,32 @@ export function Sidebar() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SidebarLink({
+  item,
+  active,
+}: {
+  item: (typeof mainNavigation)[number];
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? 'page' : undefined}
+      className={`focus-ring flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+        active
+          ? 'bg-accent-soft text-accent'
+          : 'text-secondary hover:bg-inset hover:text-primary'
+      }`}
+    >
+      <item.icon
+        className="h-4 w-4 shrink-0"
+        aria-hidden="true"
+        strokeWidth={active ? 2.5 : 2}
+      />
+      {item.name}
+    </Link>
   );
 }

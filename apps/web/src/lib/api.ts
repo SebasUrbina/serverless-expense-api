@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase';
+import { loginHref } from './loginRedirect';
 
 // Connect to Cloudflare Worker backend
 export const api = axios.create({
@@ -47,7 +48,9 @@ api.interceptors.response.use(
     const accessToken = await refreshAccessToken();
     if (!accessToken) {
       await supabase.auth.signOut();
-      window.location.href = '/login';
+      window.location.href = loginHref(
+        window.location.pathname + window.location.search,
+      );
       return Promise.reject(error);
     }
 

@@ -15,7 +15,10 @@ import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { Card, CardHeader, CardNotice, CardStat } from '@/components/ui/Card';
 import { formatCurrency, formatMoney } from '@/lib/utils';
 import { useTransactionModal } from '@/store/useTransactionModal';
-import { usePendingDeleteIds } from '@/store/usePendingDeletes';
+import {
+  useDeletedTotals,
+  usePendingDeleteIds,
+} from '@/store/usePendingDeletes';
 import { useAuth } from '@/lib/AuthProvider';
 
 const RECENT_COUNT = 8;
@@ -29,9 +32,15 @@ export default function Home() {
     categorySummary,
     kpiSummary,
     selectedMonthSummary,
-    totalBalance,
+    totalBalance: serverBalance,
     isLoading,
   } = useDashboardData(filterMonth);
+  // Server totals still count movements whose deletion can be undone or is queued.
+  const deleted = useDeletedTotals(filterMonth);
+  const categories = categorySummary.map((cat) => ({
+    ...cat,
+    amount: cat.amount - (deleted.byCategory.get(cat.category_id) ?? 0),
+  }));
   const { openModal } = useTransactionModal();
   const pendingDeletes = usePendingDeleteIds();
   const visibleRecent = recentTransactions.filter(
@@ -46,8 +55,13 @@ export default function Home() {
 
   const monthDate = parseISO(`${filterMonth}-01`);
   const previousMonthDate = subMonths(monthDate, 1);
-  const expense = selectedMonthSummary?.total_expense ?? 0;
-  const income = selectedMonthSummary?.total_income ?? 0;
+  const expense = (selectedMonthSummary?.total_expense ?? 0) - deleted.expense;
+  const income = (selectedMonthSummary?.total_income ?? 0) - deleted.income;
+  const totalBalance = serverBalance - deleted.income + deleted.expense;
+  const transactionCount = Math.max(
+    (kpiSummary?.transaction_count || 0) - deleted.count,
+    0,
+  );
   const prevExpense =
     monthlySummary.find((s) => s.month === format(previousMonthDate, 'yyyy-MM'))
       ?.total_expense ?? 0;
@@ -141,16 +155,14 @@ export default function Home() {
                     >
                       {formatMoney(totalBalance)}
                     </CardStat>
-                    <CardStat label="Movimientos">
-                      {kpiSummary?.transaction_count || 0}
-                    </CardStat>
+                    <CardStat label="Movimientos">{transactionCount}</CardStat>
                   </dl>
                 </Card>
 
                 <UpcomingPayments key={filterMonth} month={filterMonth} />
 
                 <CategoryBreakdownCard
-                  categories={categorySummary}
+                  categories={categories}
                   month={filterMonth}
                   onAdd={() => openModal()}
                 />

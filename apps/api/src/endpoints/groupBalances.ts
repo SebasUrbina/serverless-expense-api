@@ -1,17 +1,21 @@
-import { Bool, OpenAPIRoute, Str } from 'chanfana';
+import { OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { GroupBalancesResponse, type AppContext } from '../types';
+import { GroupBalancesResponse, MonthParam, type AppContext } from '../types';
+import { todayLocal } from '../utils/date';
+import { monthEnd } from '../services/monthlyAvailability';
+import { computeSettlementPairs } from '../utils/settlements';
+import { groupBalanceStatement, membersFromRows } from '../utils/groupBalance';
 
 export class GroupBalances extends OpenAPIRoute {
   schema = {
     tags: ['Groups'],
-    summary: 'Get shared expense balances for all groups (for a given month)',
+    summary:
+      'Accumulated balance of every group, with the shared totals of a month',
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       query: z.object({
-        month: Str({
-          required: false,
-          description: 'YYYY-MM filter, defaults to current month',
+        month: MonthParam.optional().openapi({
+          description: 'YYYY-MM for the month totals, defaults to this month',
           example: '2026-03',
         }),
       }),
@@ -25,6 +29,7 @@ export class GroupBalances extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid month' },
     },
   };
 
@@ -32,82 +37,49 @@ export class GroupBalances extends OpenAPIRoute {
     const data = await this.getValidatedData<typeof this.schema>();
     const userId = c.get('userId');
 
-    // Default to current month
-    const now = new Date();
-    const month =
-      data.query.month ||
-      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const startDate = `${month}-01`;
-    const endDate = `${month}-31`;
+    const today = todayLocal();
+    const month = data.query.month ?? today.slice(0, 7);
+    const monthStart = `${month}-01`;
+    const monthLast = monthEnd(month);
 
-    // Get all groups user is a member of
-    const groupsResult = await c.env.DB.prepare(
-      `
-			SELECT g.id, g.name FROM shared_groups g
-			INNER JOIN shared_group_members m ON g.id = m.group_id
-			WHERE m.user_id = ?
-		`,
-    )
-      .bind(userId)
-      .all();
+    const groups = (
+      await c.env.DB.prepare(
+        `SELECT g.id, g.name FROM shared_groups g
+         INNER JOIN shared_group_members m ON g.id = m.group_id
+         WHERE m.user_id = ?`,
+      )
+        .bind(userId)
+        .all()
+    ).results as { id: number; name: string }[];
 
-    const balances = [];
-
-    const groups = groupsResult.results as any[];
-    // One query per group: the month's shared transactions are scanned once and
-    // reused for every member's paid/share totals.
     const perGroup = groups.length
       ? await c.env.DB.batch(
           groups.map((group) =>
-            c.env.DB.prepare(
-              `
-					WITH tx AS MATERIALIZED (
-						SELECT id, user_id, amount FROM transactions
-						WHERE group_id = ? AND is_shared = 1 AND date >= ? AND date <= ?
-					), shares AS MATERIALIZED (
-						SELECT s.user_id, SUM(s.amount) as total
-						FROM tx JOIN transaction_splits s ON s.transaction_id = tx.id
-						GROUP BY s.user_id
-					), paid AS MATERIALIZED (
-						SELECT user_id, SUM(amount) as total FROM tx GROUP BY user_id
-					)
-					SELECT
-						m.user_id,
-						m.nickname,
-						COALESCE(paid.total, 0) as total_paid,
-						COALESCE(shares.total, 0) as total_share,
-						(SELECT COUNT(*) FROM tx) as transaction_count
-					FROM shared_group_members m
-					LEFT JOIN paid ON paid.user_id = m.user_id
-					LEFT JOIN shares ON shares.user_id = m.user_id
-					WHERE m.group_id = ?
-				`,
-            ).bind(group.id, startDate, endDate, group.id),
+            groupBalanceStatement(
+              c.env.DB,
+              group.id,
+              today,
+              monthStart,
+              monthLast,
+            ),
           ),
         )
       : [];
 
-    groups.forEach((group, i) => {
+    const balances = groups.map((group, i) => {
       const rows = (perGroup[i]?.results ?? []) as any[];
-      balances.push({
+      const members = membersFromRows(rows);
+      return {
         group_id: group.id,
         group_name: group.name,
         month,
         transaction_count: rows[0]?.transaction_count ?? 0,
-        members: rows.map((member) => ({
-          user_id: member.user_id,
-          nickname: member.nickname,
-          total_paid: member.total_paid,
-          total_share: member.total_share,
-          // Positive = they overpaid (others owe them), Negative = they underpaid (they owe others)
-          net: member.total_paid - member.total_share,
-        })),
-      });
+        settlement_count: rows[0]?.settlement_count ?? 0,
+        members,
+        pairs: computeSettlementPairs(members),
+      };
     });
 
-    return {
-      success: true,
-      balances,
-    };
+    return { success: true, balances };
   }
 }

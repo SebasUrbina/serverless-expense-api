@@ -7,6 +7,13 @@ export function todayLocal(now = new Date()): string {
   return dateInTimezone(now, DEFAULT_TIMEZONE);
 }
 
+/** Whether `value` is a YYYY-MM-DD date that exists in the calendar. */
+export function isCalendarDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+}
+
 /**
  * The last `count` months (YYYY-MM, oldest first) ending at `endMonth`, and
  * the date range that covers them. Never extends past today.

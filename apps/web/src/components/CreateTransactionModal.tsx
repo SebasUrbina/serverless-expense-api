@@ -1,15 +1,23 @@
 'use client';
 
-import { useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import {
   onlineManager,
   useMutation,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { CREATE_TRANSACTION_KEY } from '@/lib/offlineMutations';
+import {
+  CREATE_TRANSACTION_KEY,
+  UPDATE_TRANSACTION_KEY,
+  patchCachedTransaction,
+  type CreateTransactionVariables,
+  type UpdateTransactionVariables,
+} from '@/lib/offlineMutations';
 import { format } from 'date-fns';
-import { ChevronDown } from 'lucide-react';
+import { Repeat2 } from 'lucide-react';
+import { useTransactionModal } from '@/store/useTransactionModal';
 import { usePendingDeletes } from '@/store/usePendingDeletes';
 import {
   useCategories,
@@ -42,11 +50,24 @@ import { SubmitButton } from './ui/SubmitButton';
 import { DeleteButton } from './ui/DeleteButton';
 import type { Transaction } from '@/types/api';
 import { getInstallmentDetails } from '@/lib/installments';
+import {
+  editSendsSplits,
+  equalPercentages,
+  initialPercentages,
+  splitPayload,
+  type SplitPayload,
+  type SplitPercentages,
+} from '@/lib/splitPlan';
+import { SplitEditor } from './SplitEditor';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   initialData?: Transaction | null;
+  /** Prefills a new movement from an earlier one; the date is today. */
+  template?: Transaction | null;
+  /** Starts a new movement shared with this group, split equally. */
+  presetGroupId?: number | null;
 };
 
 type TransactionPayload = {
@@ -60,87 +81,17 @@ type TransactionPayload = {
   is_shared: 0 | 1;
   group_id?: number;
   installments?: number;
-  splits?: Array<{
-    user_id: string;
-    percentage: number;
-  }>;
+  splits?: SplitPayload[];
 };
-
-function getInitialSplitPercentages(
-  transaction?: Transaction | null,
-): Record<string, number> {
-  if (!transaction?.splits?.length) {
-    return {};
-  }
-
-  return transaction.splits.reduce<Record<string, number>>(
-    (accumulator, split) => {
-      accumulator[split.user_id] = split.percentage;
-      return accumulator;
-    },
-    {},
-  );
-}
-
-function getEqualSplitPercentages(
-  members: Array<{ user_id: string }>,
-): Record<string, number> {
-  if (members.length === 0) {
-    return {};
-  }
-
-  const equalPct = Math.floor(100 / members.length);
-  return members.reduce<Record<string, number>>(
-    (accumulator, member, index) => {
-      accumulator[member.user_id] =
-        index === 0 ? 100 - equalPct * (members.length - 1) : equalPct;
-      return accumulator;
-    },
-    {},
-  );
-}
-
-/** A collapsible row for optional settings, showing their current state. */
-function OptionRow({
-  label,
-  status,
-  defaultOpen = false,
-  children,
-}: {
-  label: string;
-  status: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-}) {
-  const [initiallyOpen] = useState(defaultOpen);
-  return (
-    <details
-      open={initiallyOpen}
-      className="group/option border-border border-b"
-    >
-      <summary className="focus-ring flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-lg py-3 [&::-webkit-details-marker]:hidden">
-        <span className="text-primary flex-1 text-sm font-semibold">
-          {label}
-        </span>
-        <span className="text-secondary max-w-[50%] truncate text-sm">
-          {status}
-        </span>
-        <ChevronDown
-          size={16}
-          aria-hidden="true"
-          className="text-muted shrink-0 transition-transform group-open/option:rotate-180"
-        />
-      </summary>
-      <div className="pb-4">{children}</div>
-    </details>
-  );
-}
 
 export function CreateTransactionModal({
   isOpen,
   onClose,
   initialData,
+  template,
+  presetGroupId,
 }: Props) {
+  const source = initialData ?? template ?? null;
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const { data: categoriesData, isLoading: isLoadingCategories } =
@@ -163,23 +114,21 @@ export function CreateTransactionModal({
 
   // Form State
   const [type, setType] = useState<'expense' | 'income'>(
-    initialData?.type ?? 'expense',
+    source?.type ?? 'expense',
   );
-  const [title, setTitle] = useState(initialData?.title ?? '');
+  const [title, setTitle] = useState(source?.title ?? '');
   const [amount, setAmount] = useState(
-    initialData
-      ? new Intl.NumberFormat('es-CL').format(initialData.amount)
-      : '',
+    source ? new Intl.NumberFormat('es-CL').format(source.amount) : '',
   );
   const [categoryId, setCategoryId] = useState<number | ''>(
-    initialData?.category_id || '',
+    source?.category_id || '',
   );
   // '' means "not chosen in this form": new movements fall back to the last account used.
   const [accountId, setAccountId] = useState<number | ''>(
-    initialData?.account_id || '',
+    source?.account_id || '',
   );
   const [lastAccountId, setLastAccountId] = useState(readLastAccount);
-  const [tagIds, setTagIds] = useState<number[]>(initialData?.tag_ids || []);
+  const [tagIds, setTagIds] = useState<number[]>(source?.tag_ids || []);
   const [date, setDate] = useState(
     // API dates are calendar dates (YYYY-MM-DD), not UTC timestamps.
     initialData?.date ?? format(new Date(), 'yyyy-MM-dd'),
@@ -192,19 +141,48 @@ export function CreateTransactionModal({
   } | null>(null);
 
   // Shared expense state
-  const [isShared, setIsShared] = useState(Boolean(initialData?.is_shared));
-  const [groupId, setGroupId] = useState<number | ''>(
-    initialData?.group_id || '',
+  const presetGroup = source
+    ? undefined
+    : groups.find((g) => g.id === presetGroupId);
+  const [isShared, setIsShared] = useState(
+    Boolean(source?.is_shared) || !!presetGroup,
   );
-  const [splitPercentages, setSplitPercentages] = useState<
-    Record<string, number>
-  >(() => getInitialSplitPercentages(initialData));
+  const [groupId, setGroupId] = useState<number | ''>(
+    source?.group_id || presetGroup?.id || '',
+  );
+
+  const editingShared = !!initialData?.is_shared && !!initialData.group_id;
+  // The API no longer lets a former member edit or delete the group's movements.
+  const leftGroup =
+    editingShared &&
+    !!groupsData &&
+    !groups.some((g) => g.id === initialData.group_id);
+  // Lists don't carry the parts; the movement itself does.
+  const detailQuery = useQuery<{ transaction: Transaction }>({
+    queryKey: ['transactions', 'detail', initialData?.id],
+    enabled: editingShared && !leftGroup,
+    queryFn: async () =>
+      (await api.get(`/transactions/${initialData!.id}`)).data,
+  });
+  const storedSplits = detailQuery.data?.transaction.splits ?? source?.splits;
+
+  // Until the user changes it, the split shown is the stored one or equal parts.
+  const [editedSplit, setSplit] = useState<SplitPercentages | null>(() =>
+    presetGroup ? equalPercentages(presetGroup.members) : null,
+  );
 
   // Installment (Cuotas) State
   const [isInstallments, setIsInstallments] = useState(false);
   const [installments, setInstallments] = useState(1);
 
   const selectedGroup = groups.find((g) => g.id === groupId);
+  const split =
+    editedSplit ??
+    initialPercentages(
+      selectedGroup?.id === source?.group_id ? { splits: storedSplits } : null,
+      selectedGroup?.members ?? [],
+    );
+  const sharing = isShared && type === 'expense';
   const selectedCategory = categories.find((c) => c.id === categoryId);
   const effectiveAccountId = resolveAccount(
     accountId,
@@ -213,7 +191,6 @@ export function CreateTransactionModal({
     !initialData,
   );
   const parsedAmount = parseAmountInput(amount);
-  const splitTotal = Object.values(splitPercentages).reduce((a, b) => a + b, 0);
 
   const resetForm = () => {
     setTitle('');
@@ -225,22 +202,23 @@ export function CreateTransactionModal({
     setTagIds([]);
     setIsShared(false);
     setGroupId('');
-    setSplitPercentages({});
+    setSplit(null);
     setIsInstallments(false);
     setInstallments(1);
     setError(null);
   };
 
-  // Its function comes from the defaults registered in Providers (works offline).
-  const createMutation = useMutation<unknown, Error, TransactionPayload>({
-    mutationKey: CREATE_TRANSACTION_KEY,
-  });
-  const updateMutation = useMutation({
-    mutationFn: async (newTx: TransactionPayload) =>
-      (await api.put(`/transactions/${initialData!.id}`, newTx)).data,
-    onSettled: () =>
-      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
-  });
+  // Their functions come from the defaults registered in Providers (work offline).
+  const createMutation = useMutation<
+    unknown,
+    Error,
+    CreateTransactionVariables
+  >({ mutationKey: CREATE_TRANSACTION_KEY });
+  const updateMutation = useMutation<
+    unknown,
+    Error,
+    UpdateTransactionVariables
+  >({ mutationKey: UPDATE_TRANSACTION_KEY });
 
   const rememberPayloadAccount = (payload: TransactionPayload) => {
     if (!payload.account_id) return;
@@ -249,8 +227,7 @@ export function CreateTransactionModal({
   };
 
   const callbacks = {
-    onSuccess: (_data: unknown, payload: TransactionPayload) => {
-      rememberPayloadAccount(payload);
+    onSuccess: () => {
       setSuccessSnapshot({ amount, type });
       setShowSuccess(true);
       setTimeout(() => {
@@ -268,10 +245,22 @@ export function CreateTransactionModal({
   };
 
   const scheduleDelete = usePendingDeletes((s) => s.add);
+  const openRepeat = useTransactionModal((s) => s.openRepeat);
 
   const handleDelete = () => {
-    if (!initialData?.id) return;
-    scheduleDelete({ id: initialData.id, title: initialData.title });
+    if (!initialData?.id || leftGroup) return;
+    scheduleDelete({
+      id: initialData.id,
+      title: initialData.title,
+      // Home totals count only the user's share of a shared expense.
+      amount:
+        initialData.is_shared && initialData.type === 'expense'
+          ? (initialData.my_split_amount ?? initialData.amount)
+          : initialData.amount,
+      type: initialData.type,
+      date: initialData.date,
+      category_id: initialData.category_id ?? null,
+    });
     resetAndClose();
   };
 
@@ -303,17 +292,22 @@ export function CreateTransactionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (leftGroup) return;
     if (!parsedAmount) return fail('Ingresa un monto.', amountRef);
     if (!selectedCategory || selectedCategory.type !== type)
       return fail('Elige una categoría.', categoryRef);
     if (effectiveAccountId === '') return fail('Elige una cuenta.', accountRef);
-    if (isShared && !selectedGroup)
+    if (sharing && !selectedGroup)
       return fail('Elige el grupo del gasto compartido.', sharedRef);
-    if (isShared && splitTotal !== 100)
-      return fail(
-        `La división debe sumar 100% (ahora suma ${splitTotal}%).`,
-        sharedRef,
-      );
+    const sendSplits =
+      sharing &&
+      !!selectedGroup &&
+      (!initialData ||
+        editSendsSplits(initialData, selectedGroup.id, editedSplit !== null));
+    const shared = sendSplits
+      ? splitPayload(split, selectedGroup!.members)
+      : null;
+    if (shared && 'error' in shared) return fail(shared.error, sharedRef);
 
     const payload: TransactionPayload = {
       title: title.trim() || selectedCategory.name,
@@ -330,36 +324,42 @@ export function CreateTransactionModal({
       payload.installments = installments;
     }
 
-    if (isShared && selectedGroup) {
+    if (sharing && selectedGroup) {
       payload.is_shared = 1;
       payload.group_id = selectedGroup.id;
-      payload.splits = selectedGroup.members.map((m) => ({
-        user_id: m.user_id,
-        percentage: splitPercentages[m.user_id] || 0,
-      }));
+      if (shared) payload.splits = shared.splits;
     }
 
+    // Offline, mutations pause until the connection returns and the sync
+    // banner lists them; the dialog closes right away.
     const online = onlineManager.isOnline();
+    rememberPayloadAccount(payload);
+
     if (initialData) {
+      patchCachedTransaction(queryClient, initialData.id, {
+        ...payload,
+        category: selectedCategory.name,
+        category_icon: selectedCategory.icon,
+      });
+      const variables = { id: initialData.id, payload };
       if (!online) {
-        setError(
-          'Sin conexión. Para editar un movimiento necesitas estar en línea.',
-        );
+        updateMutation.mutate(variables);
+        resetAndClose();
         return;
       }
       setLoading(true);
-      updateMutation.mutate(payload, callbacks);
+      updateMutation.mutate(variables, callbacks);
       return;
     }
+
+    const variables = { ...payload, client_id: crypto.randomUUID() };
     if (!online) {
-      // Paused until the connection returns; the sync banner lists it meanwhile.
-      createMutation.mutate(payload);
-      rememberPayloadAccount(payload);
+      createMutation.mutate(variables);
       resetAndClose();
       return;
     }
     setLoading(true);
-    createMutation.mutate(payload, callbacks);
+    createMutation.mutate(variables, callbacks);
   };
 
   const resetAndClose = () => {
@@ -396,7 +396,7 @@ export function CreateTransactionModal({
       <FormModalHeader
         title={initialData ? 'Editar' : heading}
         formId="transaction-form"
-        saving={loading}
+        saving={loading || leftGroup}
         onClose={resetAndClose}
       />
 
@@ -406,6 +406,16 @@ export function CreateTransactionModal({
         noValidate
         className="space-y-6 px-6 pb-6"
       >
+        {leftGroup && (
+          <p
+            role="status"
+            className="bg-inset text-secondary rounded-xl px-4 py-3 text-sm font-medium"
+          >
+            Este gasto es de un grupo del que saliste; ya no se puede editar ni
+            borrar.
+          </p>
+        )}
+
         <TypeToggle value={type} onChange={changeType} />
 
         <div className="flex flex-col items-center gap-4">
@@ -553,63 +563,60 @@ export function CreateTransactionModal({
           </div>
         )}
 
-        {groups.length > 0 && (
-          <div className="border-border border-t">
-            <OptionRow
-              label="Gasto compartido"
-              status={
-                isShared ? (selectedGroup?.name ?? 'Elige un grupo') : 'No'
-              }
-              defaultOpen={isShared}
-            >
-              <div ref={sharedRef} className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-secondary text-sm">
-                    Dividir con un grupo
-                  </span>
-                  <Switch
-                    label="Gasto compartido"
-                    checked={isShared}
-                    onChange={setIsShared}
+        {groups.length > 0 && type === 'expense' && !leftGroup && (
+          <div ref={sharedRef} className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-secondary text-sm font-semibold">
+                Dividir gasto
+              </span>
+              <Switch
+                label="Dividir gasto"
+                checked={isShared}
+                onChange={(on) => {
+                  setIsShared(on);
+                  const only = groups.length === 1 ? groups[0] : undefined;
+                  if (on && !selectedGroup && only) {
+                    setGroupId(only.id);
+                    setSplit(equalPercentages(only.members));
+                  }
+                }}
+              />
+            </div>
+            {isShared && (
+              <>
+                {groups.length > 1 && (
+                  <CustomSelect
+                    value={groupId}
+                    onChange={(val) => {
+                      const nextGroupId =
+                        typeof val === 'number' ? val : Number(val);
+                      const nextGroup = groups.find(
+                        (group) => group.id === nextGroupId,
+                      );
+                      setGroupId(nextGroupId);
+                      setSplit(equalPercentages(nextGroup?.members ?? []));
+                      setError(null);
+                    }}
+                    placeholder="Elegir grupo"
+                    options={groups.map((g) => ({
+                      value: g.id,
+                      label: `👥 ${g.name}`,
+                    }))}
                   />
-                </div>
-                {isShared && (
-                  <>
-                    <CustomSelect
-                      value={groupId}
-                      onChange={(val) => {
-                        const nextGroupId =
-                          typeof val === 'number' ? val : Number(val);
-                        const nextGroup = groups.find(
-                          (group) => group.id === nextGroupId,
-                        );
-                        setGroupId(nextGroupId);
-                        setSplitPercentages(
-                          nextGroup
-                            ? getEqualSplitPercentages(nextGroup.members)
-                            : {},
-                        );
-                        setError(null);
-                      }}
-                      placeholder="Elegir grupo"
-                      options={groups.map((g) => ({
-                        value: g.id,
-                        label: `👥 ${g.name}`,
-                      }))}
-                    />
-                    {selectedGroup && (
-                      <SplitEditor
-                        members={selectedGroup.members}
-                        amount={parsedAmount}
-                        percentages={splitPercentages}
-                        total={splitTotal}
-                        onChange={setSplitPercentages}
-                      />
-                    )}
-                  </>
                 )}
-              </div>
-            </OptionRow>
+                {selectedGroup &&
+                  (editedSplit === null && detailQuery.isLoading ? (
+                    <p className="text-muted text-xs">Cargando la división…</p>
+                  ) : (
+                    <SplitEditor
+                      members={selectedGroup.members}
+                      amount={parsedAmount}
+                      percentages={split}
+                      onChange={setSplit}
+                    />
+                  ))}
+              </>
+            )}
           </div>
         )}
 
@@ -624,6 +631,7 @@ export function CreateTransactionModal({
 
         <SubmitButton
           loading={loading}
+          disabled={leftGroup}
           text={
             initialData
               ? 'Guardar cambios'
@@ -632,145 +640,25 @@ export function CreateTransactionModal({
         />
 
         {initialData && (
+          <button
+            type="button"
+            onClick={() => openRepeat({ ...initialData, splits: storedSplits })}
+            disabled={loading || leftGroup}
+            className="bg-inset text-primary hover:bg-border focus-ring flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            <Repeat2 size={16} aria-hidden="true" />
+            Repetir hoy
+          </button>
+        )}
+
+        {initialData && (
           <DeleteButton
             onClick={handleDelete}
-            disabled={loading}
+            disabled={loading || leftGroup}
             text="Borrar movimiento"
           />
         )}
       </form>
     </BaseModal>
-  );
-}
-
-function SplitEditor({
-  members,
-  amount,
-  percentages,
-  total,
-  onChange,
-}: {
-  members: Array<{ user_id: string; nickname?: string }>;
-  amount: number;
-  percentages: Record<string, number>;
-  total: number;
-  onChange: (next: Record<string, number>) => void;
-}) {
-  const is2Members = members.length === 2;
-  const firstPct = percentages[members[0]?.user_id ?? ''] || 0;
-  const presets = is2Members
-    ? [
-        [50, 50],
-        [60, 40],
-        [70, 30],
-        [80, 20],
-        [100, 0],
-      ]
-    : [];
-
-  return (
-    <div className="space-y-3">
-      <p className="text-secondary text-sm font-semibold">División</p>
-      {is2Members ? (
-        <>
-          <div className="flex flex-wrap gap-1.5">
-            {presets.map(([a, b]) => (
-              <button
-                key={a}
-                type="button"
-                aria-pressed={firstPct === a}
-                onClick={() =>
-                  onChange({
-                    [members[0]!.user_id]: a!,
-                    [members[1]!.user_id]: b!,
-                  })
-                }
-                className={`focus-ring h-8 rounded-xl border px-3 text-xs font-bold tabular-nums transition-colors ${
-                  firstPct === a
-                    ? 'bg-accent-soft text-accent border-transparent'
-                    : 'border-border text-secondary hover:text-primary'
-                }`}
-              >
-                {a} / {b}
-              </button>
-            ))}
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            aria-label={`Porcentaje de ${members[0]!.nickname ?? 'la primera persona'}`}
-            value={firstPct}
-            onChange={(e) => {
-              const value = parseInt(e.target.value, 10);
-              onChange({
-                [members[0]!.user_id]: value,
-                [members[1]!.user_id]: 100 - value,
-              });
-            }}
-            className="h-2 w-full cursor-pointer appearance-none rounded-full"
-            style={{
-              background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${firstPct}%, var(--border) ${firstPct}%, var(--border) 100%)`,
-            }}
-          />
-        </>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onChange(getEqualSplitPercentages(members))}
-          className="focus-ring border-border text-secondary hover:text-primary h-8 rounded-xl border px-3 text-xs font-bold"
-        >
-          Partes iguales
-        </button>
-      )}
-
-      <ul className="space-y-1.5">
-        {members.map((member) => {
-          const pct = percentages[member.user_id] || 0;
-          return (
-            <li
-              key={member.user_id}
-              className="bg-inset flex items-center gap-3 rounded-xl px-3 py-2"
-            >
-              <span className="text-primary min-w-0 flex-1 truncate text-sm font-medium">
-                {member.nickname}
-              </span>
-              {!is2Members && (
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={5}
-                  aria-label={`Porcentaje de ${member.nickname ?? 'integrante'}`}
-                  value={pct}
-                  onChange={(e) =>
-                    onChange({
-                      ...percentages,
-                      [member.user_id]: parseInt(e.target.value, 10) || 0,
-                    })
-                  }
-                  className="h-1.5 w-20 cursor-pointer appearance-none rounded-full"
-                  style={{
-                    background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`,
-                  }}
-                />
-              )}
-              <span className="text-primary w-10 text-right text-sm font-bold tabular-nums">
-                {pct}%
-              </span>
-              <span className="text-secondary w-20 text-right text-sm tabular-nums">
-                ${Math.round((amount * pct) / 100).toLocaleString('es-CL')}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-      {total !== 100 && (
-        <p className="text-expense text-xs">
-          Debe sumar 100% (ahora suma {total}%).
-        </p>
-      )}
-    </div>
   );
 }

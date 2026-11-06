@@ -9,7 +9,10 @@ import Link from 'next/link';
 import { formatMoney as money } from '@/lib/utils';
 import { useBudget } from '@/hooks/useBudget';
 import { useAvailability } from '@/hooks/useAvailability';
+import { useDeletedTotals } from '@/store/usePendingDeletes';
+import type { MonthlyAvailability } from '@/types/api';
 import { BaseModal } from './ui/BaseModal';
+import { formatAmountInput } from './TransactionFields';
 
 const WARNING_RATIO = 0.8;
 
@@ -55,10 +58,37 @@ function BudgetBar({
   );
 }
 
+/** Availability minus expenses whose deletion is still pending on the server. */
+function withoutDeleted(
+  data: MonthlyAvailability,
+  expense: number,
+): MonthlyAvailability {
+  const available = data.available === null ? null : data.available + expense;
+  return {
+    ...data,
+    spent: data.spent - expense,
+    available,
+    daily_available:
+      available === null || data.remaining_days === 0
+        ? null
+        : Math.floor(Math.max(0, available) / data.remaining_days),
+  };
+}
+
 /** Budget progress shown inside the monthly summary card. */
 export function HeroBudget({ month }: { month: string }) {
-  const { data, isPending, isError, isFetching, refetch } =
-    useAvailability(month);
+  const {
+    data: serverData,
+    isPending,
+    isError,
+    isFetching,
+    refetch,
+  } = useAvailability(month);
+  const deletedExpense = useDeletedTotals(month).expense;
+  const data =
+    serverData && deletedExpense
+      ? withoutDeleted(serverData, deletedExpense)
+      : serverData;
   const [editing, setEditing] = useState(false);
 
   if (isPending)
@@ -176,13 +206,15 @@ function BudgetEditForm({
   onClose: () => void;
 }) {
   const { saveBudget } = useBudget(month);
-  const [draft, setDraft] = useState(budget === null ? '' : String(budget));
+  const [draft, setDraft] = useState(
+    budget === null ? '' : formatAmountInput(String(budget)),
+  );
   const [saveError, setSaveError] = useState('');
   const monthLabel = format(parseISO(`${month}-01`), 'MMMM', { locale: es });
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    const amount = Number(draft);
+    const amount = Number(draft.replace(/\./g, ''));
     if (!draft.trim() || !Number.isSafeInteger(amount) || amount < 0) {
       setSaveError('Ingresa un monto válido en pesos, sin decimales.');
       return;
@@ -229,13 +261,13 @@ function BudgetEditForm({
           inputMode="numeric"
           value={draft}
           onChange={(e) => {
-            setDraft(e.target.value.replace(/[^0-9]/g, ''));
+            setDraft(formatAmountInput(e.target.value));
             setSaveError('');
           }}
           disabled={saveBudget.isPending}
           aria-describedby={saveError ? 'budget-error' : undefined}
           className="bg-inset text-primary border-border min-h-12 w-full rounded-xl border px-3 text-base tabular-nums"
-          placeholder="1200000"
+          placeholder="1.200.000"
         />
         {saveError && (
           <p

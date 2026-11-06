@@ -1,9 +1,10 @@
-const CACHE_NAME = 'seva-static-v2';
+const CACHE_NAME = 'seva-static-v3';
 const OFFLINE_URL = '/offline';
 const APP_SHELL = [
   '/',
   '/login',
   '/transactions',
+  '/groups',
   '/analytics',
   '/recurring',
   '/settings',

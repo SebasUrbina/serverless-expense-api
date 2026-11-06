@@ -8,8 +8,10 @@ import type {
   TagsResponse,
   AccountsResponse,
   GroupsResponse,
+  GroupAddedResponse,
   ApiKeyResponse,
 } from '@/types/api';
+import { GROUP_STALE_TIME } from './useGroupBalances';
 
 export function useCategories() {
   return useQuery<CategoriesResponse>({
@@ -164,14 +166,21 @@ export function useDeleteAccount() {
   });
 }
 
+const setupKey = (userId: string) => `seva:setup:${userId}`;
+
+/** Whether this browser already ran the first-time setup for the user. */
+export const isSetupDone = (userId: string) =>
+  localStorage.getItem(setupKey(userId)) === '1';
+
 export function useUserSetup() {
   const queryClient = useQueryClient();
-  return useMutation<UserSetupResponse>({
+  return useMutation<UserSetupResponse, Error, string>({
     mutationFn: async () => {
       const res = await api.post('/user/setup');
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, userId) => {
+      localStorage.setItem(setupKey(userId), '1');
       if (data?.setup) {
         queryClient.invalidateQueries({ queryKey: ['accounts'] });
         queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -184,7 +193,7 @@ export function useUserSetup() {
 export function useGroups() {
   return useQuery<GroupsResponse>({
     queryKey: ['groups'],
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: GROUP_STALE_TIME,
     queryFn: async () => {
       const res = await api.get('/groups');
       return res.data;
@@ -195,12 +204,17 @@ export function useGroups() {
 export function useCreateGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { name: string; nickname: string }) => {
+    mutationFn: async (data: {
+      name: string;
+      nickname: string;
+    }): Promise<GroupAddedResponse> => {
       const res = await api.post('/groups', data);
       return res.data;
     },
+    // Resolves once the list has the new group, so callers can open it.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      return queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
   });
 }
@@ -208,12 +222,16 @@ export function useCreateGroup() {
 export function useJoinGroup() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { invite_code: string; nickname: string }) => {
+    mutationFn: async (data: {
+      invite_code: string;
+      nickname: string;
+    }): Promise<GroupAddedResponse> => {
       const res = await api.post('/groups/join', data);
       return res.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      return queryClient.invalidateQueries({ queryKey: ['groups'] });
     },
   });
 }
@@ -227,6 +245,21 @@ export function useDeleteGroup() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    },
+  });
+}
+
+export function useLeaveGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) =>
+      (await api.delete(`/groups/${id}/members/me`)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
     },
   });
 }

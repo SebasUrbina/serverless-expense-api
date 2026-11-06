@@ -33,6 +33,8 @@ export type Transaction = {
   category_icon?: string;
   type: 'expense' | 'income';
   account_id: number;
+  /** Who recorded it; for shared movements, the member who paid. */
+  user_id?: string;
   tag_ids?: number[];
   date: string;
   recurring_rule_id?: number;
@@ -118,21 +120,41 @@ export type GroupBalanceMember = {
   nickname: string;
   total_paid: number;
   total_share: number;
+  /** Accumulated up to today, payments included; positive means others owe them. */
   net: number;
+  month_paid: number;
+  month_share: number;
+};
+
+export type SettlementPair = {
+  from_user_id: string;
+  from_nickname: string;
+  to_user_id: string;
+  to_nickname: string;
+  amount: number;
 };
 
 export type GroupBalance = {
   group_id: number;
   group_name: string;
   month: string;
+  /** Shared expenses in `month`. */
   transaction_count: number;
+  /** Payments between members in `month`. */
+  settlement_count: number;
   members: GroupBalanceMember[];
+  pairs: SettlementPair[];
 };
 
-export type SettlementPair = {
-  debtor: string;
-  creditor: string;
+export type GroupSettlement = {
+  id: number;
+  group_id: number;
+  from_user_id: string;
+  to_user_id: string;
   amount: number;
+  date: string;
+  created_by: string;
+  created_at?: string;
 };
 
 export type GroupMember = {
@@ -226,6 +248,12 @@ export type AccountsResponse = {
 
 export type GroupsResponse = {
   groups: SharedGroup[];
+};
+
+/** Answer to creating or joining a group. */
+export type GroupAddedResponse = {
+  success: boolean;
+  group: { id: number; name: string; invite_code?: string };
 };
 
 export type GroupBalancesResponse = {

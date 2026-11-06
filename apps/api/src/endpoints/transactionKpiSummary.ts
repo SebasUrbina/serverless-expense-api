@@ -1,6 +1,8 @@
-import { Str, OpenAPIRoute } from 'chanfana';
+import { OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext } from '../types';
+import { MonthParam, type AppContext } from '../types';
+import { myMovementsCte } from '../utils/myMovements';
+import { monthEnd } from '../services/monthlyAvailability';
 import { todayLocal } from '../utils/date';
 
 export class TransactionKpiSummary extends OpenAPIRoute {
@@ -10,9 +12,8 @@ export class TransactionKpiSummary extends OpenAPIRoute {
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       query: z.object({
-        month: Str({
+        month: MonthParam.optional().openapi({
           description: 'Optional month filter in YYYY-MM format',
-          required: false,
         }),
       }),
     },
@@ -33,6 +34,7 @@ export class TransactionKpiSummary extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid month' },
     },
   };
 
@@ -41,18 +43,12 @@ export class TransactionKpiSummary extends OpenAPIRoute {
     const { month } = data.query;
     const userId = c.get('userId');
 
-    let baseFilter = `WHERE user_id = ?`;
-    const binds: any[] = [userId];
-
-    if (month) {
-      baseFilter += ` AND date >= ? AND date <= ?`;
-      binds.push(`${month}-01`, `${month}-31`);
-    } else {
-      baseFilter += ` AND date <= ?`;
-      binds.push(todayLocal());
-    }
+    const mine = month
+      ? myMovementsCte(userId, `${month}-01`, monthEnd(month))
+      : myMovementsCte(userId, '0000-01-01', todayLocal());
 
     const query = `
+			WITH ${mine.sql}
 			SELECT
 				totals.largest_income,
 				totals.transaction_count,
@@ -62,16 +58,16 @@ export class TransactionKpiSummary extends OpenAPIRoute {
 				SELECT
 					MAX(CASE WHEN type = 'income' THEN amount END) as largest_income,
 					COUNT(*) as transaction_count
-				FROM transactions ${baseFilter}
+				FROM my_tx
 			) totals
 			LEFT JOIN (
-				SELECT amount, title FROM transactions ${baseFilter} AND type = 'expense'
+				SELECT amount, title FROM my_tx WHERE type = 'expense'
 				ORDER BY amount DESC LIMIT 1
 			) top_expense ON 1 = 1
 		`;
 
     const result = (await c.env.DB.prepare(query)
-      .bind(...binds, ...binds)
+      .bind(...mine.binds)
       .first()) as any;
 
     return {

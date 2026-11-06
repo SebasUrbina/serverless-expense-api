@@ -1,6 +1,8 @@
 import { Str, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext } from '../types';
+import { MonthParam, type AppContext } from '../types';
+import { SHARED_CATEGORY, myMovementsCte } from '../utils/myMovements';
+import { monthEnd } from '../services/monthlyAvailability';
 import { todayLocal } from '../utils/date';
 
 export class TransactionCategorySummary extends OpenAPIRoute {
@@ -10,9 +12,8 @@ export class TransactionCategorySummary extends OpenAPIRoute {
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       query: z.object({
-        month: Str({
+        month: MonthParam.optional().openapi({
           description: 'Optional month filter in YYYY-MM format',
-          required: false,
         }),
         type: Str({
           description: 'Optional type filter (expense/income)',
@@ -41,6 +42,7 @@ export class TransactionCategorySummary extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid month' },
     },
   };
 
@@ -56,6 +58,11 @@ export class TransactionCategorySummary extends OpenAPIRoute {
       prevMonth = d.toISOString().substring(0, 7);
     }
 
+    const mine = month
+      ? myMovementsCte(userId, `${prevMonth}-01`, monthEnd(month))
+      : myMovementsCte(userId, '0000-01-01', todayLocal());
+    const binds: unknown[] = [...mine.binds];
+
     let query = `
 			SELECT
 				t.category_id as category_id,
@@ -67,6 +74,7 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 				SUM(CASE WHEN strftime('%Y-%m', t.date) = ? THEN t.amount ELSE 0 END) as amount,
 				SUM(CASE WHEN strftime('%Y-%m', t.date) = ? THEN t.amount ELSE 0 END) as previous_amount
 			`;
+      binds.push(month, prevMonth);
     } else {
       query += `
 				SUM(t.amount) as amount,
@@ -74,24 +82,7 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 			`;
     }
 
-    query += `
-			FROM transactions t
-			WHERE t.user_id = ?
-		`;
-
-    const binds: any[] = [];
-    if (month) {
-      binds.push(month, prevMonth);
-    }
-    binds.push(userId);
-
-    if (month) {
-      query += ` AND t.date >= ? AND t.date <= ?`;
-      binds.push(`${prevMonth}-01`, `${month}-31`);
-    } else {
-      query += ` AND t.date <= ?`;
-      binds.push(todayLocal());
-    }
+    query += ` FROM my_tx t WHERE 1 = 1`;
 
     if (type) {
       query += ` AND t.type = ?`;
@@ -100,7 +91,9 @@ export class TransactionCategorySummary extends OpenAPIRoute {
 
     query += ` GROUP BY t.category_id, t.type HAVING amount > 0 OR previous_amount > 0`;
     query = `
-			SELECT c.name as category, c.icon as category_icon, s.*
+			WITH ${mine.sql}
+			SELECT COALESCE(c.name, '${SHARED_CATEGORY.name}') as category,
+				COALESCE(c.icon, '${SHARED_CATEGORY.icon}') as category_icon, s.*
 			FROM (${query}) s
 			LEFT JOIN categories c ON c.id = s.category_id
 			ORDER BY s.amount DESC

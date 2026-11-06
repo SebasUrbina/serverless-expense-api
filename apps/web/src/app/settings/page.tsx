@@ -12,22 +12,15 @@ import {
   Scale,
   Settings2,
   Smartphone,
-  Users,
   Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import {
-  useAccounts,
-  useCategories,
-  useGroups,
-  useTags,
-} from '@/hooks/usePreferences';
+import { useAccounts, useCategories, useTags } from '@/hooks/usePreferences';
 import { AccountManager } from '@/components/AccountManager';
 import { CategoryManager } from '@/components/CategoryManager';
 import { TagManager } from '@/components/TagManager';
-import { GroupManager } from '@/components/GroupManager';
 import { ApiKeyManager } from '@/components/ApiKeyManager';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
@@ -65,13 +58,6 @@ const SECTIONS: Section[] = [
     Content: TagManager,
   },
   {
-    id: 'grupos',
-    title: 'Grupos compartidos',
-    description: 'Divide gastos con tu pareja, amigos o familia.',
-    icon: Users,
-    Content: GroupManager,
-  },
-  {
     id: 'atajos',
     title: 'Atajos de iOS',
     description: 'Registra tus pagos con Apple Pay sin abrir la app.',
@@ -88,14 +74,12 @@ function useSectionSummaries(): Record<string, string | undefined> {
   const { data: accounts } = useAccounts();
   const { data: categories } = useCategories();
   const { data: tags } = useTags();
-  const { data: groups } = useGroups();
   return {
     cuentas: accounts && plural(accounts.accounts.length, 'cuenta', 'cuentas'),
     categorias:
       categories &&
       plural(categories.categories.length, 'categoría', 'categorías'),
     etiquetas: tags && plural(tags.tags.length, 'etiqueta', 'etiquetas'),
-    grupos: groups && plural(groups.groups.length, 'grupo', 'grupos'),
     atajos: 'Apple Pay',
   };
 }
@@ -114,6 +98,12 @@ function SettingsContent() {
   const sectionId = useSearchParams().get('section');
   const section = SECTIONS.find((s) => s.id === sectionId);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Groups moved to their own page; keep old links working.
+  useEffect(() => {
+    if (sectionId === 'grupos') router.replace('/groups');
+  }, [sectionId, router]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
@@ -334,7 +324,7 @@ function MobileIndex() {
         <Profile />
       </div>
       <Group title="Finanzas">
-        {SECTIONS.slice(0, 4).map((s) => (
+        {SECTIONS.slice(0, 3).map((s) => (
           <Row
             key={s.id}
             href={sectionHref(s.id)}
@@ -345,7 +335,7 @@ function MobileIndex() {
         ))}
       </Group>
       <Group title="Integraciones">
-        {SECTIONS.slice(4).map((s) => (
+        {SECTIONS.slice(3).map((s) => (
           <Row
             key={s.id}
             href={sectionHref(s.id)}

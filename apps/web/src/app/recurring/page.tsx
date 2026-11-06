@@ -9,6 +9,7 @@ import { ArrowUpRight, ArrowDownRight, Plus } from 'lucide-react';
 import { useRecurringModal } from '@/store/useRecurringModal';
 import type { RecurringRule, RecurringRulesResponse } from '@/types/api';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { MovementsTabs } from '@/components/MovementsTabs';
 import { LoadingState } from '@/components/ui/LoadingSpinner';
 import { Card, CardHeader, CardNotice } from '@/components/ui/Card';
 import { formatCurrency } from '@/lib/utils';
@@ -115,6 +116,7 @@ export default function RecurringPage() {
           showOnMobile: rules.length > 0,
         }}
       >
+        <MovementsTabs />
         {activeRules.length > 0 && (
           <p className="text-secondary flex flex-wrap gap-x-3 gap-y-1 text-[13px] tabular-nums">
             {monthlyExpenses > 0 && (

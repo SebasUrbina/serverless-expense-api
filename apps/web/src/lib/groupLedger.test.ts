@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { leaveGroupError, ledgerEffect, memberColorSlot } from './groupLedger';
+
+const me = 'user-me';
+
+test('paying a split expense lends everything but your share', () => {
+  assert.deepEqual(
+    ledgerEffect(
+      {
+        title: 'Supermercado',
+        amount: 42000,
+        user_id: me,
+        my_split_amount: 14000,
+      },
+      me,
+    ),
+    { kind: 'lent', amount: 28000 },
+  );
+});
+
+test('an expense paid by someone else costs your share', () => {
+  assert.deepEqual(
+    ledgerEffect(
+      { title: 'Gas', amount: 36000, user_id: 'other', my_split_amount: 12000 },
+      me,
+    ),
+    { kind: 'owe', amount: 12000 },
+  );
+});
+
+test('an expense you paid entirely for yourself lends nothing', () => {
+  assert.deepEqual(
+    ledgerEffect(
+      { title: 'Café', amount: 3000, user_id: me, my_split_amount: 3000 },
+      me,
+    ),
+    { kind: 'none' },
+  );
+});
+
+test('settlements read as payments, not expenses', () => {
+  const settlement = { title: '💸 Saldo — Depto', amount: 10000 };
+  assert.deepEqual(
+    ledgerEffect({ ...settlement, user_id: me, my_split_amount: 0 }, me),
+    { kind: 'paid', amount: 10000 },
+  );
+  assert.deepEqual(
+    ledgerEffect(
+      { ...settlement, user_id: 'other', my_split_amount: 10000 },
+      me,
+    ),
+    { kind: 'received', amount: 10000 },
+  );
+});
+
+test('a refused leave explains what is missing', () => {
+  assert.equal(
+    leaveGroupError(409, { error: 'Settle up', net: -12000 }),
+    'Para salir, primero tienes que quedar al día: debes $12.000.',
+  );
+  assert.equal(
+    leaveGroupError(409, { error: 'Settle up', net: 4500.4 }),
+    'Para salir, primero tienes que quedar al día: te deben $4.500.',
+  );
+  assert.match(
+    leaveGroupError(409, { error: 'You have upcoming shared movements' }),
+    /fecha futura/,
+  );
+  assert.match(leaveGroupError(500), /No pudimos sacarte/);
+  assert.match(leaveGroupError(undefined), /No pudimos sacarte/);
+});
+
+test('member colors are stable and within the category palette', () => {
+  const slot = memberColorSlot('3f1c2a9e-7b1d-4c55-9a0e-1f2b3c4d5e6f');
+  assert.equal(slot, memberColorSlot('3f1c2a9e-7b1d-4c55-9a0e-1f2b3c4d5e6f'));
+  assert.ok(slot >= 1 && slot <= 8);
+});

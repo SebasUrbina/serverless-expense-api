@@ -1,6 +1,7 @@
 import { Num, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
-import { type AppContext } from '../types';
+import { MonthParam, type AppContext } from '../types';
+import { myMovementsCte } from '../utils/myMovements';
 import { monthWindow } from '../utils/date';
 
 export class TransactionCategoryTrend extends OpenAPIRoute {
@@ -15,11 +16,9 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
           required: false,
           default: 12,
         }),
-        endMonth: z
-          .string()
-          .regex(/^\d{4}-\d{2}$/)
-          .optional()
-          .describe('Last month of the window (YYYY-MM). Defaults to now.'),
+        endMonth: MonthParam.optional().describe(
+          'Last month of the window (YYYY-MM). Defaults to now.',
+        ),
         day: z.coerce
           .number()
           .int()
@@ -52,6 +51,7 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
           },
         },
       },
+      '400': { description: 'Invalid endMonth' },
     },
   };
 
@@ -63,8 +63,10 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
     const safeMonths = Math.max(1, Math.min(24, months || 12));
     const { months: monthsArr, start, end } = monthWindow(safeMonths, endMonth);
 
+    const mine = myMovementsCte(userId, start, end);
     const { results } = await c.env.DB.prepare(
-      `SELECT
+      `WITH ${mine.sql}
+			SELECT
 				s.category_id as category_id,
 				c.name as category,
 				c.icon as category_icon,
@@ -74,14 +76,14 @@ export class TransactionCategoryTrend extends OpenAPIRoute {
 			 FROM (
 				SELECT category_id, strftime('%Y-%m', date) as month, SUM(amount) as amount,
 					SUM(CASE WHEN CAST(strftime('%d', date) AS INTEGER) <= ? THEN amount ELSE 0 END) as amount_to_day
-				FROM transactions
-				WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ?
+				FROM my_tx
+				WHERE type = 'expense'
 				GROUP BY category_id, month
 			 ) s
 			 LEFT JOIN categories c ON c.id = s.category_id
 			 ORDER BY month ASC, amount DESC`,
     )
-      .bind(day ?? 31, userId, start, end)
+      .bind(...mine.binds, day ?? 31)
       .all();
 
     // Aggregate into per-category arrays aligned with monthsArr

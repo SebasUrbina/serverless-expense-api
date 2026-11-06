@@ -15,6 +15,7 @@ import { applyTheme, useTheme } from '@/store/useTheme';
 import { supabase } from '@/lib/supabase';
 import { registerOfflineMutations } from '@/lib/offlineMutations';
 import api from '@/lib/api';
+import { loginHref, nextFromLocation } from '@/lib/loginRedirect';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const QUERY_CACHE_KEY = 'SEVA_QUERY_CACHE';
@@ -68,9 +69,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !session && pathname !== '/login') {
-      router.push('/login');
+      router.push(loginHref(pathname + window.location.search));
     } else if (!loading && session && pathname === '/login') {
-      router.push('/');
+      router.push(nextFromLocation());
     }
   }, [session, loading, pathname, router]);
 
@@ -97,8 +98,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const client = new QueryClient({
       defaultOptions: {
         queries: {
-          // Data only changes through this app's own mutations (which invalidate) and the daily cron.
-          staleTime: 5 * 60 * 1000,
+          // Own changes invalidate right away; other group members' shared expenses
+          // also move personal totals, so those refresh within a minute.
+          staleTime: 60 * 1000,
           gcTime: 1000 * 60 * 60 * 24, // 24 horas de tiempo de recolección para persistencia offline
         },
         mutations: {
@@ -107,10 +109,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       },
     });
-    registerOfflineMutations(
-      client,
-      async (payload) => (await api.post('/transactions', payload)).data,
-    );
+    registerOfflineMutations(client, {
+      create: async (payload) =>
+        (await api.post('/transactions', payload)).data,
+      update: async (id, payload) =>
+        (await api.put(`/transactions/${id}`, payload)).data,
+      remove: async (id) => (await api.delete(`/transactions/${id}`)).data,
+    });
     return client;
   });
 

@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS expenses;
+DROP TABLE IF EXISTS group_settlements;
 DROP TABLE IF EXISTS transaction_splits;
 DROP TABLE IF EXISTS shared_group_members;
 DROP TABLE IF EXISTS shared_groups;
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS transactions (
        typeof(installment_total) = 'integer' AND installment_total >= 2 AND
        installment_number <= installment_total)),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    client_id TEXT, -- idempotency key sent by the client on create
     FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
     FOREIGN KEY (group_id) REFERENCES shared_groups(id) ON DELETE SET NULL
@@ -121,6 +123,9 @@ CREATE TABLE IF NOT EXISTS shared_group_members (
     FOREIGN KEY (group_id) REFERENCES shared_groups(id) ON DELETE CASCADE
 );
 
+CREATE INDEX IF NOT EXISTS idx_shared_group_members_user
+    ON shared_group_members (user_id, group_id);
+
 CREATE TABLE IF NOT EXISTS transaction_splits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     transaction_id INTEGER NOT NULL,
@@ -129,6 +134,21 @@ CREATE TABLE IF NOT EXISTS transaction_splits (
     percentage INTEGER NOT NULL,
     FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS group_settlements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    from_user_id TEXT NOT NULL,
+    to_user_id TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount > 0),
+    date DATE NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CHECK (from_user_id <> to_user_id),
+    FOREIGN KEY (group_id) REFERENCES shared_groups(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_group_settlements_group_date
+    ON group_settlements (group_id, date);
 
 CREATE TABLE IF NOT EXISTS budgets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,6 +162,8 @@ CREATE TABLE IF NOT EXISTS budgets (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 -- Un presupuesto 'general' por usuario+mes (category_id es NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_user_client
+    ON transactions (user_id, client_id) WHERE client_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_budgets_general
     ON budgets(user_id, month) WHERE scope = 'general';
 -- Un presupuesto por categoría en cada mes
