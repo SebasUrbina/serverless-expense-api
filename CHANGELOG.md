@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- API: `POST /api/shortcuts/transactions` picks a category from the title with Workers AI (Clef-flash) when the shortcut sends no `category_name` or one that doesn't match. Uncertain answers (confidence below 0.6), errors and replies slower than 1.5 s keep "Sin Categorizar". The Worker now has an `AI` binding, so `wrangler dev` needs `wrangler login` or `CLOUDFLARE_API_TOKEN`.
+
 ## [0.4.0] - 2026-11-06
 
 ### Added

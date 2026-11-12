@@ -7,6 +7,7 @@ declare namespace Cloudflare {
   }
   interface Env {
     DB: D1Database;
+    AI: Ai;
     SUPABASE_URL: string;
     IOS_SHORTCUT_URL: string;
     ENVIRONMENT?: string;

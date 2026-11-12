@@ -16,7 +16,8 @@
     "db:seed:more": "tsx scripts/seed-more.ts",
     "db:setup:local": "wrangler d1 migrations apply DB --local && tsx scripts/seed-more.ts",
     "typecheck": "tsc --noEmit",
-    "measure:rows": "tsx scripts/measure-rows-read.ts"
+    "measure:rows": "tsx scripts/measure-rows-read.ts",
+    "eval:categorize": "tsx scripts/eval-categorize.ts"
   },
   "dependencies": {
     "chanfana": "^2.6.3",

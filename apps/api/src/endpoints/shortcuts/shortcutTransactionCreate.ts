@@ -2,13 +2,18 @@ import { Bool, OpenAPIRoute } from 'chanfana';
 import { z } from 'zod';
 import { type AppContext, Transaction } from '../../types';
 import { parseAmount } from '../../utils/parseAmount';
+import {
+  type CategoryOption,
+  decideWithBinding,
+  suggestCategory,
+} from '../../services/categorize';
 
 export class ShortcutTransactionCreate extends OpenAPIRoute {
   schema = {
     tags: ['Shortcuts', 'Transactions'],
     summary: 'Create a Transaction via iOS Shortcuts',
     description:
-      "Simplified transaction creation for iOS Shortcuts / Wallet automations. Category and account are optional — falls back to 'Sin Categorizar' and 'Sin Asignar' defaults. Type defaults to expense.",
+      "Simplified transaction creation for iOS Shortcuts / Wallet automations. Category and account are optional. Without a matching category_name the title is classified with Workers AI (Clef-flash) and, when the model is unsure or unavailable, falls back to 'Sin Categorizar'; accounts fall back to 'Sin Asignar'. Type defaults to expense.",
     security: [{ BearerAuth: [] }, { ApiKeyAuth: [] }],
     request: {
       body: {
@@ -64,6 +69,27 @@ export class ShortcutTransactionCreate extends OpenAPIRoute {
         .bind(userId, type, t.category_name, t.category_name)
         .first<{ id: number }>();
       if (cat) categoryId = cat.id;
+    }
+    if (!categoryId && c.env.AI) {
+      const { results: categories } = await c.env.DB.prepare(
+        `SELECT id, name, icon FROM categories WHERE user_id = ? AND type = ?`,
+      )
+        .bind(userId, type)
+        .all<CategoryOption>();
+      const suggestion = await suggestCategory(
+        decideWithBinding(c.env.AI),
+        { title: t.title, amount: t.amount, type },
+        categories,
+      );
+      if (suggestion) {
+        categoryId = suggestion.categoryId;
+        console.log('categorize', {
+          title: t.title,
+          categoryId,
+          confidence: suggestion.confidence,
+          inputTokens: suggestion.inputTokens,
+        });
+      }
     }
     if (!categoryId) {
       const fallback = await c.env.DB.prepare(
